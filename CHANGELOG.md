@@ -23,3 +23,4 @@ All notable project changes are tracked via Git commits and summarized here.
 ## 2026-03-05
 - Expanded `/account-settings.html` into a fuller account center with editable profile details, notification preferences, live workspace stats, password-reset shortcut, account data export, saved-artists cleanup, and matching `auth.js` logic/persistence updates.
 - Added root `CATALOG.md` and mirrored it in root `README.md` so GitHub repo landing README displays the catalog content.
+- Upgraded `/index.html` to production-ready metadata/canonical/social tags, removed dev-facing landing copy, and improved shared nav behavior so logout buttons only render when signed in.

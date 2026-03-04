@@ -33,6 +33,16 @@ function setAuthLinks(session) {
   });
 }
 
+function setLogoutVisibility(session) {
+  const signedIn = Boolean(session?.cognitoEmail);
+  qsa("[data-logout]").forEach((node) => {
+    if (!(node instanceof HTMLButtonElement)) {
+      return;
+    }
+    node.hidden = !signedIn;
+  });
+}
+
 function markActiveLinks() {
   const path = window.location.pathname;
 
@@ -111,6 +121,7 @@ export function initSharedPage() {
 
   setRoleText(session);
   setAuthLinks(session);
+  setLogoutVisibility(session);
   markActiveLinks();
   mountMaintenanceBanner(db, session);
   bindGlobalButtons();
