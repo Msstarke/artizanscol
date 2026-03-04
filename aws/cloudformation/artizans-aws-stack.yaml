@@ -151,6 +151,51 @@ Resources:
             CloudWatchMetricsEnabled: true
             MetricName: !Sub '${ProjectName}-${EnvironmentName}-common-rules'
             SampledRequestsEnabled: true
+        - Name: RateLimitRule
+          Priority: 1
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              AggregateKeyType: IP
+              Limit: 2000
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub '${ProjectName}-${EnvironmentName}-rate-limit'
+            SampledRequestsEnabled: true
+
+  ArtizansResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${ProjectName}-${EnvironmentName}-security-headers'
+        Comment: Security response headers for static web delivery
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Preload: false
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: Permissions-Policy
+              Value: geolocation=(), microphone=(), camera=(), payment=()
+              Override: true
 
   ArtizansDistribution:
     Type: AWS::CloudFront::Distribution
@@ -172,17 +217,18 @@ Resources:
           AllowedMethods: [GET, HEAD, OPTIONS]
           CachedMethods: [GET, HEAD, OPTIONS]
           Compress: true
+          ResponseHeadersPolicyId: !Ref ArtizansResponseHeadersPolicy
           ForwardedValues:
-            QueryString: true
+            QueryString: false
             Cookies:
-              Forward: all
+              Forward: none
         CustomErrorResponses:
           - ErrorCode: 403
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+            ResponseCode: 404
+            ResponsePagePath: /404.html
           - ErrorCode: 404
-            ResponseCode: 200
-            ResponsePagePath: /index.html
+            ResponseCode: 404
+            ResponsePagePath: /404.html
         Aliases: !If
           - CanUseCustomDomain
           - [!Ref DomainName]

@@ -14,3 +14,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Simplified `/account-settings.html` to a login-first flow with inline sign-up, verification, forgot-password, continue routing, and hidden dashboard switching.
 - Improved global responsive behavior across shared styles so layouts/forms/tables/media scale more cleanly under browser zoom.
 - Removed role selection from account access and updated guards/actions so any signed-in account can both submit jobs and hire without role switching.
+- Hardened security baseline: fixed auth open-redirect validation, moved Cognito tokens to sessionStorage, escaped artist preview HTML injections, strengthened booking/contact validation, added security headers + rate limiting to CloudFront/WAF template, added 404 page, robots/sitemap, favicon, and `.well-known/security.txt`.

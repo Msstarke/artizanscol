@@ -14,6 +14,27 @@ export function getQueryParam(name, url = window.location.search) {
   return new URLSearchParams(url).get(name);
 }
 
+export function normalizeInternalPath(candidate, fallbackPath = "/") {
+  const fallback = String(fallbackPath || "/");
+  const raw = String(candidate || "").trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const resolved = new URL(raw, window.location.origin);
+    if (resolved.origin !== window.location.origin) {
+      return fallback;
+    }
+    if (!resolved.pathname.startsWith("/")) {
+      return fallback;
+    }
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch (_) {
+    return fallback;
+  }
+}
+
 export function formatMoney(value) {
   return new Intl.NumberFormat("en-AU", {
     style: "currency",

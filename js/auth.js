@@ -11,7 +11,7 @@ import {
 } from "./cognito-auth.js";
 import { clearCognitoIdentity, getSession, setCognitoIdentity, setSession } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, getQueryParam, showToast } from "./utils.js";
+import { byId, getQueryParam, normalizeInternalPath, showToast } from "./utils.js";
 
 initSharedPage();
 
@@ -167,10 +167,7 @@ function ensureLinkedProfiles(session) {
 }
 
 function getContinueTarget() {
-  if (nextParam && nextParam.startsWith("/")) {
-    return nextParam;
-  }
-  return "/explore.html";
+  return normalizeInternalPath(nextParam, "/explore.html");
 }
 
 function handleContinue() {

@@ -12,12 +12,17 @@ import { isCognitoAuthenticated } from "./cognito-auth.js";
 import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, formatMoney, getQueryParam, showToast } from "./utils.js";
+import { byId, escapeHtml, formatMoney, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
 
 let session = getSession();
 let db = getDB();
+
+const MAX_BOOKING_BUDGET = 1_000_000;
+const MAX_BOOKING_MESSAGE_LENGTH = 2000;
+const FALLBACK_PORTFOLIO_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='560' viewBox='0 0 800 560'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6efe4'/%3E%3Cstop offset='1' stop-color='%23dccab1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='560' fill='url(%23bg)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='sans-serif' fill='%23614d3a'%3EPortfolio%20Preview%3C/text%3E%3C/svg%3E";
 
 const artistIdFromQuery = getQueryParam("id");
 const fallbackArtistId = db.artists[0]?.id || null;
@@ -43,6 +48,51 @@ const bookingMessage = byId("booking-message");
 const prefillBooking = byId("prefill-booking");
 
 const services = artist ? getServicesForArtist(db, artist.id) : [];
+
+function safeImageUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return FALLBACK_PORTFOLIO_IMAGE;
+  }
+
+  if (raw.startsWith("data:image/")) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (!["http:", "https:"].includes(url.protocol)) {
+      return FALLBACK_PORTFOLIO_IMAGE;
+    }
+    return url.href;
+  } catch (_) {
+    return FALLBACK_PORTFOLIO_IMAGE;
+  }
+}
+
+function setEmptyCollection(root, message, listItemTag = "div") {
+  if (!root) {
+    return;
+  }
+  const node = document.createElement(listItemTag);
+  node.className = "empty-state";
+  node.textContent = message;
+  root.replaceChildren(node);
+}
+
+function minBookingDateISO() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now.toISOString().slice(0, 10);
+}
+
+if (bookingDeadline) {
+  bookingDeadline.min = minBookingDateISO();
+}
+
+if (bookingMessage) {
+  bookingMessage.maxLength = MAX_BOOKING_MESSAGE_LENGTH;
+}
 
 function getActiveUserId() {
   if (!isCognitoAuthenticated()) {
@@ -84,28 +134,22 @@ function renderNoArtistState() {
   }
 
   if (artistTags) {
-    artistTags.innerHTML = `<span class="tag">No profile</span>`;
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = "No profile";
+    artistTags.replaceChildren(tag);
   }
 
   if (artistMeta) {
-    artistMeta.innerHTML = `<span>Create an artist account from Account Settings to get listed.</span>`;
+    const text = document.createElement("span");
+    text.textContent = "Create an artist account from Account Settings to get listed.";
+    artistMeta.replaceChildren(text);
   }
 
-  if (portfolioGrid) {
-    portfolioGrid.innerHTML = `<div class="empty-state">Portfolio is empty because no artist has onboarded yet.</div>`;
-  }
-
-  if (servicesList) {
-    servicesList.innerHTML = `<li class="empty-state">No services available.</li>`;
-  }
-
-  if (reviewsList) {
-    reviewsList.innerHTML = `<li class="empty-state">No reviews available.</li>`;
-  }
-
-  if (availabilityList) {
-    availabilityList.innerHTML = `<li class="empty-state">No availability available.</li>`;
-  }
+  setEmptyCollection(portfolioGrid, "Portfolio is empty because no artist has onboarded yet.");
+  setEmptyCollection(servicesList, "No services available.", "li");
+  setEmptyCollection(reviewsList, "No reviews available.", "li");
+  setEmptyCollection(availabilityList, "No availability available.", "li");
 
   [saveArtistBtn, contactArtistBtn, openBookingBtn].forEach((button) => {
     if (button) {
@@ -114,7 +158,7 @@ function renderNoArtistState() {
   });
 
   if (bookingForm) {
-    bookingForm.innerHTML = `<div class="empty-state">No artist is available to book yet.</div>`;
+    setEmptyCollection(bookingForm, "No artist is available to book yet.");
   }
 }
 
@@ -135,7 +179,7 @@ function renderArtistDetails() {
   if (artistTags) {
     artistTags.innerHTML = [artist.category, ...(artist.mediums || []), artist.verified ? "Verified" : "Pending"]
       .filter(Boolean)
-      .map((tag) => `<span class="tag">${tag}</span>`)
+      .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
       .join("");
   }
 
@@ -146,7 +190,7 @@ function renderArtistDetails() {
       `Rating ${artist.rating || 0}`,
       `Availability: ${artist.availability || "open"}`,
     ]
-      .map((item) => `<span>${item}</span>`)
+      .map((item) => `<span>${escapeHtml(item)}</span>`)
       .join("");
   }
 
@@ -156,9 +200,9 @@ function renderArtistDetails() {
         .map(
           (item) => `
         <article class="artist-card">
-          <img src="${item.image}" alt="${item.title}" />
+          <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" />
           <div class="artist-card-body">
-            <h3>${item.title}</h3>
+            <h3>${escapeHtml(item.title)}</h3>
             <p>Human-created process evidence available.</p>
           </div>
         </article>
@@ -166,7 +210,7 @@ function renderArtistDetails() {
         )
         .join("");
     } else {
-      portfolioGrid.innerHTML = `<div class="empty-state">No portfolio samples uploaded yet.</div>`;
+      setEmptyCollection(portfolioGrid, "No portfolio samples uploaded yet.");
     }
   }
 
@@ -176,14 +220,14 @@ function renderArtistDetails() {
           .map(
             (service) => `
         <li class="collection-item">
-          <h4>${service.title}</h4>
-          <p>${service.description}</p>
+          <h4>${escapeHtml(service.title)}</h4>
+          <p>${escapeHtml(service.description)}</p>
           <p><strong>${formatMoney(service.price)}</strong> • ${service.deliveryDays} days</p>
         </li>
       `,
           )
           .join("")
-      : `<li class="empty-state">No services listed yet.</li>`;
+      : `<li class="empty-state">${escapeHtml("No services listed yet.")}</li>`;
   }
 
   if (reviewsList) {
@@ -197,7 +241,7 @@ function renderArtistDetails() {
         })
         .join("");
     } else {
-      reviewsList.innerHTML = `<li class="empty-state">No client reviews yet.</li>`;
+      reviewsList.innerHTML = `<li class="empty-state">${escapeHtml("No client reviews yet.")}</li>`;
     }
   }
 
@@ -206,14 +250,21 @@ function renderArtistDetails() {
       .map((_, index) => {
         const date = new Date();
         date.setDate(date.getDate() + (index + 1) * 3);
-        return `<li class="collection-item">${date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}</li>`;
+        return `<li class="collection-item">${escapeHtml(
+          date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
+        )}</li>`;
       })
       .join("");
   }
 
   if (bookingService) {
     bookingService.innerHTML = services.length
-      ? services.map((service) => `<option value="${service.id}">${service.title} (${formatMoney(service.price)})</option>`).join("")
+      ? services
+          .map(
+            (service) =>
+              `<option value="${escapeHtml(service.id)}">${escapeHtml(service.title)} (${escapeHtml(formatMoney(service.price))})</option>`,
+          )
+          .join("")
       : `<option value="">No services available</option>`;
   }
 }
@@ -329,6 +380,22 @@ bookingForm?.addEventListener("submit", (event) => {
 
   if (!serviceId || !deadline || !budget || !message) {
     showToast("Service, deadline, budget, and message are required.", "warning");
+    return;
+  }
+
+  if (!Number.isFinite(budget) || budget < 1 || budget > MAX_BOOKING_BUDGET) {
+    showToast(`Budget must be between 1 and ${MAX_BOOKING_BUDGET}.`, "warning");
+    return;
+  }
+
+  const minDate = minBookingDateISO();
+  if (deadline < minDate) {
+    showToast("Deadline cannot be in the past.", "warning");
+    return;
+  }
+
+  if (message.length > MAX_BOOKING_MESSAGE_LENGTH) {
+    showToast(`Message must be ${MAX_BOOKING_MESSAGE_LENGTH} characters or fewer.`, "warning");
     return;
   }
 

@@ -1,6 +1,7 @@
 import { getAWSConfig } from "./aws-config.js";
 
 const COGNITO_SESSION_KEY = "artizans.cognito.v1";
+const LEGACY_COGNITO_SESSION_KEY = "artizans.cognito.v1";
 
 const FALLBACK_COGNITO_CONFIG = {
   region: "ap-southeast-2",
@@ -16,16 +17,50 @@ function safeParse(value) {
   }
 }
 
+function getSessionStorage() {
+  try {
+    return window.sessionStorage;
+  } catch (_) {
+    return null;
+  }
+}
+
+function getLocalStorage() {
+  try {
+    return window.localStorage;
+  } catch (_) {
+    return null;
+  }
+}
+
 function getStoredSession() {
-  return safeParse(localStorage.getItem(COGNITO_SESSION_KEY));
+  const sessionStorage = getSessionStorage();
+  const localStorage = getLocalStorage();
+
+  const fromSession = safeParse(sessionStorage?.getItem(COGNITO_SESSION_KEY) || "");
+  if (fromSession) {
+    return fromSession;
+  }
+
+  const legacy = safeParse(localStorage?.getItem(LEGACY_COGNITO_SESSION_KEY) || "");
+  if (!legacy) {
+    return null;
+  }
+
+  sessionStorage?.setItem(COGNITO_SESSION_KEY, JSON.stringify(legacy));
+  localStorage?.removeItem(LEGACY_COGNITO_SESSION_KEY);
+  return legacy;
 }
 
 function setStoredSession(session) {
-  localStorage.setItem(COGNITO_SESSION_KEY, JSON.stringify(session));
+  const payload = JSON.stringify(session);
+  getSessionStorage()?.setItem(COGNITO_SESSION_KEY, payload);
+  getLocalStorage()?.removeItem(LEGACY_COGNITO_SESSION_KEY);
 }
 
 function clearStoredSession() {
-  localStorage.removeItem(COGNITO_SESSION_KEY);
+  getSessionStorage()?.removeItem(COGNITO_SESSION_KEY);
+  getLocalStorage()?.removeItem(LEGACY_COGNITO_SESSION_KEY);
 }
 
 function decodeJwtPayload(token) {

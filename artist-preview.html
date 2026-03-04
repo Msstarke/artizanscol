@@ -73,7 +73,7 @@
       <section class="container content-section">
         <article class="site-card">
           <h2 class="section-title" style="font-size:1.35rem;">Book this artist</h2>
-          <form id="booking-form" class="form-grid" novalidate>
+          <form id="booking-form" class="form-grid">
             <div class="form-row">
               <label>
                 Service
@@ -87,7 +87,7 @@
             <div class="form-row">
               <label>
                 Budget
-                <input id="booking-budget" type="number" min="1" required />
+                <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
               </label>
               <label>
                 Contact preference
@@ -99,7 +99,7 @@
             </div>
             <label>
               Project message
-              <textarea id="booking-message" required placeholder="Describe scope, style, and must-have details"></textarea>
+              <textarea id="booking-message" maxlength="2000" required placeholder="Describe scope, style, and must-have details"></textarea>
             </label>
             <div class="form-actions">
               <button class="btn btn-primary" type="submit">Create booking request</button>
