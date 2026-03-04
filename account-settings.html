@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
   </head>
   <body>
     <div class="noise-overlay" aria-hidden="true"></div>
@@ -25,13 +26,26 @@
     </header>
 
     <main class="page-shell">
-      <section class="container content-section split-grid">
-        <article class="site-card">
-          <p class="site-tag">Cognito Login</p>
-          <h1 class="section-title">Sign in with AWS Cognito</h1>
-          <p class="section-copy" id="auth-status">Not signed in. Sign in with Cognito to continue.</p>
+      <section class="container content-section account-settings-hero">
+        <p class="eyebrow">YOUR ACCOUNT</p>
+        <h1 class="section-title">Sign in, secure your account, and continue.</h1>
+        <p class="section-copy">
+          Everything in one place: login, registration, email verification, and direct access to your client or artist dashboard.
+        </p>
+      </section>
 
-          <form id="signin-form" class="form-grid" style="margin-top:0.8rem;">
+      <section class="container content-section split-grid account-settings-grid">
+        <article class="site-card account-auth-card">
+          <p class="site-tag">Secure Sign In</p>
+          <h2 class="section-title" style="font-size:1.65rem;">Welcome back</h2>
+          <p class="section-copy" id="auth-status">You are signed out. Sign in to continue.</p>
+
+          <div class="account-meta">
+            <p class="account-meta-row"><span>Current mode</span><strong data-role-summary>none</strong></p>
+            <p class="account-meta-row"><span>Last activity</span><strong id="last-login-at">-</strong></p>
+          </div>
+
+          <form id="signin-form" class="form-grid" style="margin-top:1rem;">
             <label>
               Email
               <input id="signin-email" type="email" autocomplete="email" required />
@@ -43,12 +57,14 @@
             <div class="form-actions">
               <button class="btn btn-primary" type="submit">Sign in</button>
               <button class="btn btn-outline" id="cognito-logout" type="button">Sign out</button>
+              <a class="btn btn-ghost" href="/contact.html">Need help?</a>
             </div>
           </form>
 
-          <hr style="margin:1rem 0;border:none;border-top:1px solid rgba(34,34,34,0.1);" />
+          <hr class="account-divider" />
 
-          <h2 class="section-title" style="font-size:1.15rem;">Create account</h2>
+          <h3 class="section-title" style="font-size:1.2rem;">Create account</h3>
+          <p class="muted">Use a secure password with at least 10 characters, including upper/lowercase letters and a number.</p>
           <form id="signup-form" class="form-grid">
             <label>
               Email
@@ -59,53 +75,73 @@
               <input id="signup-password" type="password" autocomplete="new-password" required />
             </label>
             <div class="form-actions">
-              <button class="btn btn-outline" type="submit">Sign up</button>
+              <button class="btn btn-outline" type="submit">Create account</button>
             </div>
           </form>
 
-          <h2 class="section-title" style="font-size:1.15rem;margin-top:1rem;">Verify email</h2>
-          <form id="confirm-form" class="form-grid">
-            <label>
-              Email
-              <input id="confirm-email" type="email" autocomplete="email" required />
-            </label>
-            <label>
-              Verification code
-              <input id="confirm-code" type="text" inputmode="numeric" required />
-            </label>
-            <div class="form-actions">
-              <button class="btn btn-outline" type="submit">Confirm</button>
-            </div>
-          </form>
+          <details class="verify-email-panel" open>
+            <summary>Verify email address</summary>
+            <p class="muted">Enter the code sent to your inbox after sign up.</p>
+            <form id="confirm-form" class="form-grid">
+              <label>
+                Email
+                <input id="confirm-email" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                Verification code
+                <input id="confirm-code" type="text" inputmode="numeric" required />
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-outline" type="submit">Verify email</button>
+              </div>
+            </form>
+          </details>
         </article>
 
-        <article class="site-card">
-          <p class="site-tag">Account Settings</p>
-          <h2 class="section-title" style="font-size:1.35rem;">Manage workspace access</h2>
-          <p class="section-copy">Sign in first, then open the workspace you want to use.</p>
-          <p class="muted" id="role-lock-notice" style="display:none;">Sign in with Cognito to enable workspace actions.</p>
+        <article class="site-card account-mode-card">
+          <p class="site-tag">Access</p>
+          <h2 class="section-title" style="font-size:1.65rem;">Choose where you want to continue</h2>
+          <p class="section-copy">
+            Open the dashboard that matches how you are using the platform right now.
+          </p>
+          <p class="muted" id="role-lock-notice" style="display:none;">Sign in to enable dashboard access.</p>
 
-          <div class="form-actions" style="margin-top:0.8rem;">
-            <button class="btn btn-primary" id="open-user-workspace" type="button">Open User Workspace</button>
-            <button class="btn btn-outline" id="open-artist-workspace" type="button">Open Artist Workspace</button>
+          <div class="mode-grid" style="margin-top:0.8rem;">
+            <article class="mode-card">
+              <h3>Client dashboard</h3>
+              <p>Browse artists, save profiles, send messages, and create bookings.</p>
+              <button class="btn btn-primary" id="open-user-workspace" type="button">Continue as Client</button>
+            </article>
+            <article class="mode-card">
+              <h3>Artist dashboard</h3>
+              <p>Manage your profile, services, bookings, earnings, and analytics.</p>
+              <button class="btn btn-outline" id="open-artist-workspace" type="button">Continue as Artist</button>
+            </article>
           </div>
 
-          <h3 class="section-title" style="font-size:1.05rem;margin-top:1rem;">Linked profiles</h3>
-          <ul class="feature-list" id="profile-summary"></ul>
+          <h3 class="section-title" style="font-size:1.1rem;margin-top:1rem;">Linked profiles</h3>
+          <div id="profile-summary" class="profile-summary-grid"></div>
 
-          <h3 class="section-title" style="font-size:1.05rem;margin-top:1rem;">Quick routes</h3>
-          <ul class="feature-list">
-            <li><a href="/user/discovery.html">User home: Discovery</a></li>
-            <li><a href="/artist/bookings.html">Artist home: Booking management</a></li>
-          </ul>
+          <h3 class="section-title" style="font-size:1.1rem;margin-top:1rem;">Quick links</h3>
+          <div class="quick-route-grid">
+            <a class="quick-route" href="/user/discovery.html">
+              <strong>Client home</strong>
+              <small>Discovery, saved artists, messages, booking history</small>
+            </a>
+            <a class="quick-route" href="/artist/bookings.html">
+              <strong>Artist home</strong>
+              <small>Incoming requests, confirmations, cancellations</small>
+            </a>
+          </div>
 
-          <p class="muted">Current role: <strong data-role-summary>none</strong></p>
-          <button class="btn btn-ghost btn-small" data-logout type="button">Sign out and clear account</button>
+          <div class="form-actions" style="margin-top:1rem;">
+            <button class="btn btn-ghost btn-small" data-logout type="button">Sign out and clear account</button>
+          </div>
         </article>
       </section>
     </main>
 
-    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Cognito login and workspace preferences</p></div></footer>
+    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Secure access and dashboard preferences</p></div></footer>
 
     <script type="module" src="/js/auth.js"></script>
   </body>

@@ -10,3 +10,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Reworked `/account-settings.html` to remove the account picker UI and use workspace settings actions instead.
 - Added `REPO_RULES.md` with mandatory commit-and-push workflow rules for all future changes.
 - Updated all site brand labels from `Artizans.com` / `Artizans.CO` to `ARTIZANS.COLLECTIVE`.
+- Redesigned `/account-settings.html` for production UX with clearer sign-in flow, session metadata, dashboard access cards, and profile summaries.

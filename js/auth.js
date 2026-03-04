@@ -22,7 +22,7 @@ import {
   setSession,
 } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, getQueryParam, showToast } from "./utils.js";
+import { byId, escapeHtml, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
 
@@ -31,6 +31,7 @@ const openArtistWorkspaceBtn = byId("open-artist-workspace");
 const authStatus = byId("auth-status");
 const roleLockNotice = byId("role-lock-notice");
 const profileSummary = byId("profile-summary");
+const lastLoginAt = byId("last-login-at");
 
 const signInForm = byId("signin-form");
 const signInEmail = byId("signin-email");
@@ -64,11 +65,35 @@ function renderAuthStatus(session) {
 
   if (authStatus) {
     authStatus.textContent = signedIn
-      ? `Signed in as ${session.cognitoEmail}`
-      : "Not signed in. Sign in with Cognito to continue.";
+      ? `Signed in as ${session.cognitoEmail}. Choose a dashboard to continue.`
+      : "You are signed out. Sign in to continue.";
   }
 
   setRoleFormEnabled(signedIn);
+}
+
+function renderLastLogin(session) {
+  if (!lastLoginAt) {
+    return;
+  }
+
+  if (!session?.lastLoginAt) {
+    lastLoginAt.textContent = "-";
+    return;
+  }
+
+  const date = new Date(session.lastLoginAt);
+  if (Number.isNaN(date.getTime())) {
+    lastLoginAt.textContent = "-";
+    return;
+  }
+
+  lastLoginAt.textContent = date.toLocaleString("en-AU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function renderProfileSummary(session) {
@@ -77,7 +102,16 @@ function renderProfileSummary(session) {
   }
 
   if (!isCognitoAuthenticated() || !session.cognitoSub) {
-    profileSummary.innerHTML = "<li>Sign in to view linked user and artist profiles.</li>";
+    profileSummary.innerHTML = `
+      <article class="profile-summary-item">
+        <small>Client profile</small>
+        <strong>Sign in to load</strong>
+      </article>
+      <article class="profile-summary-item">
+        <small>Artist profile</small>
+        <strong>Sign in to load</strong>
+      </article>
+    `;
     return;
   }
 
@@ -85,23 +119,32 @@ function renderProfileSummary(session) {
   const user = getUserByCognitoSub(db, session.cognitoSub);
   const artist = getArtistByCognitoSub(db, session.cognitoSub);
 
-  profileSummary.innerHTML = [
-    `<li>User profile: ${user ? `${user.name} (${user.id})` : "Not created yet"}</li>`,
-    `<li>Artist profile: ${artist ? `${artist.name} (${artist.id})` : "Not created yet"}</li>`,
-    `<li>Tip: opening a workspace creates the missing profile automatically.</li>`,
-  ].join("");
+  const userLabel = user ? `${user.name} (${user.id})` : "Will be created on first use";
+  const artistLabel = artist ? `${artist.name} (${artist.id})` : "Will be created on first use";
+
+  profileSummary.innerHTML = `
+    <article class="profile-summary-item">
+      <small>Client profile</small>
+      <strong>${escapeHtml(userLabel)}</strong>
+    </article>
+    <article class="profile-summary-item">
+      <small>Artist profile</small>
+      <strong>${escapeHtml(artistLabel)}</strong>
+    </article>
+  `;
 }
 
 function syncSessionFromExisting() {
   const existing = getSession();
 
   renderAuthStatus(existing);
+  renderLastLogin(existing);
   renderProfileSummary(existing);
 }
 
 function activateWorkspace(role) {
   if (!isCognitoAuthenticated()) {
-    showToast("Sign in with Cognito before opening a workspace.", "warning");
+    showToast("Sign in before opening a dashboard.", "warning");
     return;
   }
 
@@ -154,11 +197,11 @@ function activateWorkspace(role) {
   }
 
   if (!session) {
-    showToast("Please choose a valid workspace.", "warning");
+    showToast("Please choose a valid dashboard.", "warning");
     return;
   }
 
-  showToast(`Workspace opened: ${session.role}.`, "success");
+  showToast(role === "user" ? "Opening client dashboard..." : "Opening artist dashboard...", "success");
   syncSessionFromExisting();
 
   const target = nextParam || getRoleHome(role);
@@ -235,7 +278,7 @@ signInForm?.addEventListener("submit", async (event) => {
       signInPassword.value = "";
     }
 
-    showToast("Signed in with Cognito. Select account role to continue.", "success");
+    showToast("Signed in successfully. Choose your dashboard to continue.", "success");
     syncSessionFromExisting();
   } catch (error) {
     showToast(error?.message || "Cognito sign-in failed.", "danger");
