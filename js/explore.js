@@ -21,6 +21,7 @@ const sortSelect = byId("sort-select");
 const resetBtn = byId("reset-filters");
 const resultsRoot = byId("artist-results");
 const resultCount = byId("result-count");
+const exploreBookingCta = byId("explore-booking-cta");
 
 function unique(list) {
   return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
@@ -134,8 +135,25 @@ function handleSaveArtist(artistId) {
   render();
 }
 
+function updateExploreBookingCta(artists = db.artists) {
+  if (!(exploreBookingCta instanceof HTMLAnchorElement)) {
+    return;
+  }
+
+  if (!isCognitoAuthenticated()) {
+    exploreBookingCta.textContent = "Sign in to book";
+    exploreBookingCta.href = "/account-settings.html?next=%2Fexplore.html";
+    return;
+  }
+
+  const firstArtist = artists[0] || db.artists[0] || null;
+  exploreBookingCta.textContent = "Book this artist";
+  exploreBookingCta.href = firstArtist ? `/artist-preview.html?id=${encodeURIComponent(firstArtist.id)}` : "/artist-preview.html";
+}
+
 function render() {
   const artists = getFilteredArtists();
+  updateExploreBookingCta(artists);
 
   if (resultsRoot) {
     if (!artists.length) {
