@@ -155,6 +155,10 @@
 
 .account-session-meta strong {
   font-size: 0.87rem;
+  max-width: 62%;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .account-access-card [data-auth-view] {
@@ -204,5 +208,15 @@
 @media (max-width: 720px) {
   .account-access-card {
     padding: 0.95rem;
+  }
+
+  .account-session-meta p {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .account-session-meta strong {
+    max-width: 100%;
+    text-align: left;
   }
 }

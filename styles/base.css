@@ -137,6 +137,10 @@ iframe {
   justify-content: flex-end;
 }
 
+.header-actions > * {
+  min-width: 0;
+}
+
 .role-chip {
   display: inline-flex;
   align-items: center;
@@ -146,6 +150,10 @@ iframe {
   background: var(--color-bg-soft);
   font-size: 0.78rem;
   font-weight: 600;
+  max-width: min(44vw, 360px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .hero {
@@ -215,6 +223,10 @@ iframe {
 
 .page-shell {
   padding: 1.3rem 0 2rem;
+}
+
+.page-shell .content-section:last-child {
+  margin-bottom: 0;
 }
 
 .app-layout {

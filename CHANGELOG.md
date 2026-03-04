@@ -17,3 +17,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Hardened security baseline: fixed auth open-redirect validation, moved Cognito tokens to sessionStorage, escaped artist preview HTML injections, strengthened booking/contact validation, added security headers + rate limiting to CloudFront/WAF template, added 404 page, robots/sitemap, favicon, and `.well-known/security.txt`.
 - Updated artist preview booking CTA so logged-in users see direct booking action, while signed-out users are prompted to sign in.
 - Made Explore page booking CTA auth-aware so signed-in users get a direct artist booking link and signed-out users see a sign-in prompt.
+- Improved zoom/overflow behavior for account and header UI by truncating long session chips, allowing account metadata wrapping, and removing extra bottom section spacing.
