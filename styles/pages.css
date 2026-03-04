@@ -123,11 +123,13 @@
 .account-access-wrap {
   display: flex;
   justify-content: center;
+  margin-bottom: 0;
 }
 
 .account-access-card {
   width: min(760px, 100%);
   padding: 1.2rem;
+  min-height: clamp(540px, 66vh, 740px);
 }
 
 .account-session-meta {
@@ -205,9 +207,18 @@
   gap: 0.5rem;
 }
 
+.account-page .page-shell {
+  padding-bottom: 0.9rem;
+}
+
+.account-page .site-footer {
+  margin-top: 0.6rem;
+}
+
 @media (max-width: 720px) {
   .account-access-card {
     padding: 0.95rem;
+    min-height: 0;
   }
 
   .account-session-meta p {
