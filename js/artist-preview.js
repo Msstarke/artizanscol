@@ -49,6 +49,13 @@ const prefillBooking = byId("prefill-booking");
 
 const services = artist ? getServicesForArtist(db, artist.id) : [];
 
+function updateBookingCta() {
+  if (!openBookingBtn) {
+    return;
+  }
+  openBookingBtn.textContent = isCognitoAuthenticated() ? "Book this artist" : "Sign in to book";
+}
+
 function safeImageUrl(value) {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -321,6 +328,12 @@ openBookingBtn?.addEventListener("click", () => {
     return;
   }
 
+  const userId = getActiveUserId();
+  if (!userId) {
+    redirectToAuth();
+    return;
+  }
+
   if (!services.length) {
     showToast("This artist has not published services yet.", "warning");
     return;
@@ -424,4 +437,5 @@ bookingForm?.addEventListener("submit", (event) => {
   bookingForm.reset();
 });
 
+updateBookingCta();
 renderArtistDetails();
