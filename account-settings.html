@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Artizans | Account Settings</title>
+    <title>ARTIZANS.COLLECTIVE | Account Settings</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -140,6 +140,81 @@
             <p class="section-copy">Continue to explore artists, submit jobs, and hire.</p>
             <div class="form-actions">
               <button class="btn btn-primary" id="continue-btn" type="button">Continue</button>
+            </div>
+
+            <div class="account-settings-panels">
+              <section class="account-panel">
+                <p class="site-tag">Profile</p>
+                <h3>Personal details</h3>
+                <form id="account-profile-form" class="form-grid">
+                  <label>
+                    Display name
+                    <input id="account-name" type="text" maxlength="80" />
+                  </label>
+                  <label>
+                    Location
+                    <input id="account-location" type="text" maxlength="80" placeholder="City, country" />
+                  </label>
+                  <label>
+                    About
+                    <textarea id="account-bio" maxlength="280" placeholder="Short profile bio"></textarea>
+                  </label>
+                  <div class="form-actions">
+                    <button class="btn btn-outline btn-small" type="submit">Save profile</button>
+                  </div>
+                </form>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Preferences</p>
+                <h3>Notifications</h3>
+                <form id="account-preferences-form" class="form-grid">
+                  <label class="checkbox-row">
+                    <input id="pref-booking-updates" type="checkbox" />
+                    Booking status updates
+                  </label>
+                  <label class="checkbox-row">
+                    <input id="pref-message-alerts" type="checkbox" />
+                    Message alerts
+                  </label>
+                  <label class="checkbox-row">
+                    <input id="pref-marketing-emails" type="checkbox" />
+                    Product updates and tips
+                  </label>
+                  <div class="form-actions">
+                    <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
+                    <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Enable browser alerts</button>
+                  </div>
+                </form>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Workspace</p>
+                <h3>Quick links</h3>
+                <div class="account-mini-stats">
+                  <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
+                  <article class="kpi"><small>Total bookings</small><strong id="stat-total-bookings">0</strong></article>
+                  <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
+                </div>
+                <ul class="feature-list">
+                  <li><a href="/explore.html">Explore artists</a></li>
+                  <li><a href="/user/discovery.html">Client workspace</a></li>
+                  <li><a href="/artist/profile.html">Artist workspace</a></li>
+                </ul>
+                <div class="form-actions">
+                  <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
+                </div>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Data controls</p>
+                <h3>Downloads and cleanup</h3>
+                <p class="muted">Manage the local data linked to this browser session.</p>
+                <div class="form-actions">
+                  <button class="btn btn-outline btn-small" id="export-account-data" type="button">Download my data</button>
+                  <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+                </div>
+              </section>
             </div>
           </section>
 

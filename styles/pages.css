@@ -127,9 +127,9 @@
 }
 
 .account-access-card {
-  width: min(760px, 100%);
+  width: min(980px, 100%);
   padding: 1.2rem;
-  min-height: clamp(540px, 66vh, 740px);
+  min-height: 0;
 }
 
 .account-session-meta {
@@ -207,6 +207,45 @@
   gap: 0.5rem;
 }
 
+.account-settings-panels {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-panel {
+  border: 1px solid rgba(34, 34, 34, 0.12);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  padding: 0.8rem;
+}
+
+.account-panel h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1.04rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  min-height: 18px;
+  height: 18px;
+}
+
+.account-mini-stats {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 0.65rem;
+}
+
 .account-page .page-shell {
   padding-bottom: 0.9rem;
 }
@@ -224,6 +263,14 @@
   .account-session-meta p {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .account-settings-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .account-mini-stats {
+    grid-template-columns: 1fr;
   }
 
   .account-session-meta strong {

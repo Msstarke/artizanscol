@@ -19,3 +19,6 @@ All notable project changes are tracked via Git commits and summarized here.
 - Made Explore page booking CTA auth-aware so signed-in users get a direct artist booking link and signed-out users see a sign-in prompt.
 - Improved zoom/overflow behavior for account and header UI by truncating long session chips, allowing account metadata wrapping, and removing extra bottom section spacing.
 - Stabilized account-settings layout to prevent post-load flicker into extra footer-bar space by using consistent card height and tighter account-page spacing.
+
+## 2026-03-05
+- Expanded `/account-settings.html` into a fuller account center with editable profile details, notification preferences, live workspace stats, password-reset shortcut, account data export, saved-artists cleanup, and matching `auth.js` logic/persistence updates.

@@ -1,4 +1,12 @@
-import { ensureArtistForCognito, ensureUserForCognito } from "./store.js";
+import {
+  ensureArtistForCognito,
+  ensureUserForCognito,
+  getArtistById,
+  getDB,
+  getUserById,
+  updateArtistProfile,
+  updateUserProfile,
+} from "./store.js";
 import {
   confirmForgotPasswordCognito,
   confirmSignUpCognito,
@@ -52,11 +60,243 @@ const continueBtn = byId("continue-btn");
 
 const authSignoutBtn = byId("auth-signout");
 const fullSignoutBtn = byId("full-signout-btn");
+const accountProfileForm = byId("account-profile-form");
+const accountName = byId("account-name");
+const accountLocation = byId("account-location");
+const accountBio = byId("account-bio");
+
+const accountPreferencesForm = byId("account-preferences-form");
+const prefBookingUpdates = byId("pref-booking-updates");
+const prefMessageAlerts = byId("pref-message-alerts");
+const prefMarketingEmails = byId("pref-marketing-emails");
+const enableBrowserNotificationsBtn = byId("enable-browser-notifications");
+
+const statSavedArtists = byId("stat-saved-artists");
+const statTotalBookings = byId("stat-total-bookings");
+const statUnreadUpdates = byId("stat-unread-updates");
+
+const openResetFromSettingsBtn = byId("open-reset-from-settings");
+const exportAccountDataBtn = byId("export-account-data");
+const clearSavedArtistsBtn = byId("clear-saved-artists");
 
 const views = Array.from(document.querySelectorAll("[data-auth-view]"));
 
 const nextParam = getQueryParam("next");
 let currentView = "login";
+const ACCOUNT_PREFERENCES_KEY = "artizans.account.preferences.v1";
+const DEFAULT_ACCOUNT_PREFERENCES = {
+  bookingUpdates: true,
+  messageAlerts: true,
+  marketingEmails: false,
+};
+
+function safeParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return null;
+  }
+}
+
+function titleize(value) {
+  return String(value || "")
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function preferenceOwnerKey(session) {
+  if (session?.cognitoSub) {
+    return `sub:${session.cognitoSub}`;
+  }
+  if (session?.cognitoEmail) {
+    return `email:${String(session.cognitoEmail).toLowerCase()}`;
+  }
+  return null;
+}
+
+function getPreferenceStore() {
+  return safeParse(localStorage.getItem(ACCOUNT_PREFERENCES_KEY)) || {};
+}
+
+function savePreferenceStore(store) {
+  localStorage.setItem(ACCOUNT_PREFERENCES_KEY, JSON.stringify(store));
+}
+
+function getAccountPreferences(session) {
+  const ownerKey = preferenceOwnerKey(session);
+  if (!ownerKey) {
+    return { ...DEFAULT_ACCOUNT_PREFERENCES };
+  }
+
+  const store = getPreferenceStore();
+  return {
+    ...DEFAULT_ACCOUNT_PREFERENCES,
+    ...(store[ownerKey] || {}),
+  };
+}
+
+function setAccountPreferences(session, preferences) {
+  const ownerKey = preferenceOwnerKey(session);
+  if (!ownerKey) {
+    return;
+  }
+
+  const store = getPreferenceStore();
+  store[ownerKey] = {
+    ...DEFAULT_ACCOUNT_PREFERENCES,
+    ...(preferences || {}),
+  };
+  savePreferenceStore(store);
+}
+
+function clearAccountPreferences(session) {
+  const ownerKey = preferenceOwnerKey(session);
+  if (!ownerKey) {
+    return;
+  }
+
+  const store = getPreferenceStore();
+  if (!Object.prototype.hasOwnProperty.call(store, ownerKey)) {
+    return;
+  }
+
+  delete store[ownerKey];
+  savePreferenceStore(store);
+}
+
+function signedInContext(session = getSession()) {
+  if (!isCognitoAuthenticated() || !session?.cognitoEmail) {
+    return null;
+  }
+
+  const db = getDB();
+  return {
+    db,
+    user: getUserById(db, session.activeUserId),
+    artist: getArtistById(db, session.activeArtistId),
+    session,
+  };
+}
+
+function setElementDisabled(element, disabled) {
+  if (element && "disabled" in element) {
+    element.disabled = disabled;
+  }
+}
+
+function setSettingsInteractive(enabled) {
+  const disabled = !enabled;
+
+  [accountName, accountLocation, accountBio].forEach((element) => setElementDisabled(element, disabled));
+  [prefBookingUpdates, prefMessageAlerts, prefMarketingEmails].forEach((element) =>
+    setElementDisabled(element, disabled),
+  );
+  [
+    continueBtn,
+    enableBrowserNotificationsBtn,
+    openResetFromSettingsBtn,
+    exportAccountDataBtn,
+    clearSavedArtistsBtn,
+  ].forEach((element) => setElementDisabled(element, disabled));
+}
+
+function writeText(node, value) {
+  if (!node) {
+    return;
+  }
+  node.textContent = String(value);
+}
+
+function renderHeaderSessionState(session) {
+  const text = session?.cognitoEmail ? `Signed in: ${session.cognitoEmail}` : "Session: signed out";
+
+  document.querySelectorAll("[data-role-chip]").forEach((node) => {
+    node.textContent = text;
+  });
+}
+
+function renderAccountPanels(session) {
+  const context = signedInContext(session);
+
+  if (!context) {
+    setSettingsInteractive(false);
+    if (accountName instanceof HTMLInputElement) {
+      accountName.value = "";
+    }
+    if (accountLocation instanceof HTMLInputElement) {
+      accountLocation.value = "";
+    }
+    if (accountBio instanceof HTMLTextAreaElement) {
+      accountBio.value = "";
+    }
+    if (prefBookingUpdates instanceof HTMLInputElement) {
+      prefBookingUpdates.checked = DEFAULT_ACCOUNT_PREFERENCES.bookingUpdates;
+    }
+    if (prefMessageAlerts instanceof HTMLInputElement) {
+      prefMessageAlerts.checked = DEFAULT_ACCOUNT_PREFERENCES.messageAlerts;
+    }
+    if (prefMarketingEmails instanceof HTMLInputElement) {
+      prefMarketingEmails.checked = DEFAULT_ACCOUNT_PREFERENCES.marketingEmails;
+    }
+    writeText(statSavedArtists, 0);
+    writeText(statTotalBookings, 0);
+    writeText(statUnreadUpdates, 0);
+    return;
+  }
+
+  setSettingsInteractive(true);
+
+  const { db, user, artist } = context;
+  const fallbackName = titleize(
+    session.cognitoUsername || String(session.cognitoEmail || "").split("@")[0] || "Member",
+  );
+  const preferences = getAccountPreferences(session);
+
+  if (accountName instanceof HTMLInputElement) {
+    accountName.value = user?.name || artist?.name || fallbackName;
+  }
+
+  if (accountLocation instanceof HTMLInputElement) {
+    accountLocation.value = user?.location || artist?.location || "";
+  }
+
+  if (accountBio instanceof HTMLTextAreaElement) {
+    accountBio.value = artist?.bio || "";
+  }
+
+  if (prefBookingUpdates instanceof HTMLInputElement) {
+    prefBookingUpdates.checked = Boolean(preferences.bookingUpdates);
+  }
+
+  if (prefMessageAlerts instanceof HTMLInputElement) {
+    prefMessageAlerts.checked = Boolean(preferences.messageAlerts);
+  }
+
+  if (prefMarketingEmails instanceof HTMLInputElement) {
+    prefMarketingEmails.checked = Boolean(preferences.marketingEmails);
+  }
+
+  const savedArtistsCount = Array.isArray(user?.savedArtists) ? user.savedArtists.length : 0;
+  writeText(statSavedArtists, savedArtistsCount);
+
+  const bookingIds = new Set();
+  db.bookings.forEach((booking) => {
+    if ((user && booking.userId === user.id) || (artist && booking.artistId === artist.id)) {
+      bookingIds.add(booking.id);
+    }
+  });
+  writeText(statTotalBookings, bookingIds.size);
+
+  const unreadCount = db.notifications.filter(
+    (notification) =>
+      !notification.read &&
+      ((user && notification.role === "user" && notification.ownerId === user.id) ||
+        (artist && notification.role === "artist" && notification.ownerId === artist.id)),
+  ).length;
+  writeText(statUnreadUpdates, unreadCount);
+}
 
 function showView(nextView) {
   currentView = nextView;
@@ -118,7 +358,9 @@ function renderAuthStatus(session) {
     currentModeLabel.textContent = signedIn ? "Universal access" : "Sign in required";
   }
 
+  renderHeaderSessionState(session);
   setSignedInControls(signedIn);
+  renderAccountPanels(session);
 }
 
 function isInlineAuthFlow(viewName) {
@@ -126,8 +368,12 @@ function isInlineAuthFlow(viewName) {
 }
 
 function syncSessionFromExisting() {
-  const session = getSession();
+  let session = getSession();
   const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
+
+  if (signedIn) {
+    session = ensureLinkedProfiles(session);
+  }
 
   renderAuthStatus(session);
 
@@ -205,6 +451,63 @@ async function hydrateCognitoState() {
   });
 
   syncSessionFromExisting();
+}
+
+function buildAccountExport(context) {
+  const { db, user, artist, session } = context;
+  const ownerIds = new Set();
+
+  if (user?.id) {
+    ownerIds.add(user.id);
+  }
+  if (artist?.id) {
+    ownerIds.add(artist.id);
+  }
+
+  const notifications = db.notifications.filter(
+    (notification) =>
+      (user && notification.role === "user" && notification.ownerId === user.id) ||
+      (artist && notification.role === "artist" && notification.ownerId === artist.id),
+  );
+
+  const bookings = db.bookings.filter(
+    (booking) => (user && booking.userId === user.id) || (artist && booking.artistId === artist.id),
+  );
+
+  return {
+    exportedAt: new Date().toISOString(),
+    account: {
+      email: session.cognitoEmail || null,
+      cognitoSub: session.cognitoSub || null,
+      userId: user?.id || null,
+      artistId: artist?.id || null,
+    },
+    profile: {
+      user: user || null,
+      artist: artist || null,
+    },
+    preferences: getAccountPreferences(session),
+    savedArtists: db.artists.filter((candidate) => Array.isArray(user?.savedArtists) && user.savedArtists.includes(candidate.id)),
+    bookings,
+    messages: db.messages.filter((message) => ownerIds.has(message.fromId) || ownerIds.has(message.toId)),
+    notifications,
+    invoices: db.invoices.filter(
+      (invoice) => (user && invoice.userId === user.id) || (artist && invoice.artistId === artist.id),
+    ),
+    payouts: db.payouts.filter((payout) => artist && payout.artistId === artist.id),
+  };
+}
+
+function downloadJsonFile(filename, payload) {
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 signInForm?.addEventListener("submit", async (event) => {
@@ -345,6 +648,124 @@ resetConfirmForm?.addEventListener("submit", async (event) => {
   }
 });
 
+accountProfileForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const session = ensureLinkedProfiles(getSession());
+  const context = signedInContext(session);
+  if (!context) {
+    showToast("Sign in to update profile details.", "warning");
+    return;
+  }
+
+  const name = (accountName?.value || "").trim();
+  const location = (accountLocation?.value || "").trim();
+  const bio = (accountBio?.value || "").trim();
+
+  if (!name) {
+    showToast("Display name is required.", "warning");
+    return;
+  }
+
+  if (context.user?.id) {
+    updateUserProfile(context.user.id, {
+      name,
+      location,
+      profileCompleted: true,
+    });
+  }
+
+  if (context.artist?.id) {
+    updateArtistProfile(context.artist.id, {
+      name,
+      location,
+      bio,
+    });
+  }
+
+  syncSessionFromExisting();
+  showToast("Profile saved.", "success");
+});
+
+accountPreferencesForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const session = getSession();
+  if (!isCognitoAuthenticated() || !session.cognitoEmail) {
+    showToast("Sign in to update preferences.", "warning");
+    return;
+  }
+
+  setAccountPreferences(session, {
+    bookingUpdates: Boolean(prefBookingUpdates?.checked),
+    messageAlerts: Boolean(prefMessageAlerts?.checked),
+    marketingEmails: Boolean(prefMarketingEmails?.checked),
+  });
+  showToast("Preferences saved.", "success");
+});
+
+enableBrowserNotificationsBtn?.addEventListener("click", async () => {
+  if (!("Notification" in window)) {
+    showToast("Browser notifications are not supported on this device.", "warning");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    showToast("Browser alerts are already enabled.", "success");
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    showToast("Browser alerts are blocked in browser settings.", "warning");
+    return;
+  }
+
+  const result = await Notification.requestPermission();
+  if (result === "granted") {
+    showToast("Browser alerts enabled.", "success");
+    return;
+  }
+
+  showToast("Browser alerts were not enabled.", "warning");
+});
+
+openResetFromSettingsBtn?.addEventListener("click", () => {
+  const session = getSession();
+  if (resetRequestEmail && session?.cognitoEmail) {
+    resetRequestEmail.value = session.cognitoEmail;
+  }
+  showView("reset_request");
+});
+
+exportAccountDataBtn?.addEventListener("click", () => {
+  const session = ensureLinkedProfiles(getSession());
+  const context = signedInContext(session);
+  if (!context) {
+    showToast("Sign in before exporting account data.", "warning");
+    return;
+  }
+
+  const payload = buildAccountExport(context);
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  downloadJsonFile(`artizans-account-${dateStamp}.json`, payload);
+  showToast("Account data export generated.", "success");
+});
+
+clearSavedArtistsBtn?.addEventListener("click", () => {
+  const session = ensureLinkedProfiles(getSession());
+  const context = signedInContext(session);
+  if (!context?.user?.id) {
+    showToast("No saved artists found for this account.", "warning");
+    return;
+  }
+
+  updateUserProfile(context.user.id, {
+    savedArtists: [],
+  });
+  syncSessionFromExisting();
+  showToast("Saved artists cleared.", "success");
+});
+
 goSignUp?.addEventListener("click", () => showView("signup"));
 goResetRequest?.addEventListener("click", () => {
   if (resetRequestEmail && signInEmail?.value) {
@@ -368,8 +789,10 @@ authSignoutBtn?.addEventListener("click", async () => {
 });
 
 fullSignoutBtn?.addEventListener("click", async () => {
+  const session = getSession();
   await signOutCognito();
   clearCognitoIdentity();
+  clearAccountPreferences(session);
   localStorage.removeItem("artizans.last_mode.v1");
   syncSessionFromExisting();
   showToast("Signed out and cleared.", "success");
