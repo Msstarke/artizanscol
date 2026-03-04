@@ -13,3 +13,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Redesigned `/account-settings.html` for production UX with clearer sign-in flow, session metadata, dashboard access cards, and profile summaries.
 - Simplified `/account-settings.html` to a login-first flow with inline sign-up, verification, forgot-password, continue routing, and hidden dashboard switching.
 - Improved global responsive behavior across shared styles so layouts/forms/tables/media scale more cleanly under browser zoom.
+- Removed role selection from account access and updated guards/actions so any signed-in account can both submit jobs and hire without role switching.

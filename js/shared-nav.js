@@ -1,25 +1,17 @@
 import { getDB, resetDB } from "./store.js";
-import { getSession, getRoleHome, logout } from "./session.js";
+import { getSession, logout } from "./session.js";
 import { signOutCognito } from "./cognito-auth.js";
 import { qsa, showToast } from "./utils.js";
 
 function setRoleText(session) {
-  const roleText = (() => {
-    if (!session.cognitoEmail) {
-      return "Session: signed out";
-    }
-    if (session.role === "none") {
-      return `Signed in: ${session.cognitoEmail}`;
-    }
-    return `Role: ${session.role}`;
-  })();
+  const roleText = session.cognitoEmail ? `Signed in: ${session.cognitoEmail}` : "Session: signed out";
 
   qsa("[data-role-chip]").forEach((node) => {
     node.textContent = roleText;
   });
 
   qsa("[data-role-summary]").forEach((node) => {
-    node.textContent = session.role === "none" ? "none" : session.role;
+    node.textContent = session.cognitoEmail ? "signed in" : "signed out";
   });
 }
 
@@ -36,7 +28,8 @@ function setAuthLinks(session) {
     if (!(node instanceof HTMLAnchorElement)) {
       return;
     }
-    node.href = getRoleHome(session.role);
+    node.href = session.cognitoEmail ? "/explore.html" : "/account-settings.html";
+    node.textContent = session.cognitoEmail ? "Continue" : "Sign in";
   });
 }
 

@@ -1,5 +1,6 @@
 import {
   createBooking,
+  ensureUserForCognito,
   getArtistById,
   getDB,
   getServiceById,
@@ -8,14 +9,14 @@ import {
   toggleSaveArtist,
 } from "./store.js";
 import { isCognitoAuthenticated } from "./cognito-auth.js";
-import { getSession } from "./session.js";
+import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, formatMoney, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
 
-const session = getSession();
+let session = getSession();
 let db = getDB();
 
 const artistIdFromQuery = getQueryParam("id");
@@ -47,9 +48,25 @@ function getActiveUserId() {
   if (!isCognitoAuthenticated()) {
     return null;
   }
-  if (session.role !== "user" || !session.activeUserId) {
-    return null;
+
+  if (!session.activeUserId) {
+    const ensuredUser = ensureUserForCognito({
+      sub: session.cognitoSub,
+      email: session.cognitoEmail,
+      username: session.cognitoUsername,
+    });
+
+    if (!ensuredUser) {
+      return null;
+    }
+
+    session = setSession({
+      ...session,
+      role: "none",
+      activeUserId: ensuredUser.id,
+    });
   }
+
   return session.activeUserId;
 }
 

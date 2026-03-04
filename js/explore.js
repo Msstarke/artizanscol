@@ -1,6 +1,6 @@
-import { getDB, toggleSaveArtist } from "./store.js";
+import { ensureUserForCognito, getDB, toggleSaveArtist } from "./store.js";
 import { isCognitoAuthenticated } from "./cognito-auth.js";
-import { getSession } from "./session.js";
+import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, qsa, showToast } from "./utils.js";
@@ -9,7 +9,7 @@ import { artistCardHTML } from "./renderers.js";
 initSharedPage();
 
 let db = getDB();
-const session = getSession();
+let session = getSession();
 
 const searchInput = byId("search-input");
 const categoryFilter = byId("category-filter");
@@ -98,10 +98,30 @@ function getFilteredArtists() {
 }
 
 function handleSaveArtist(artistId) {
-  if (!isCognitoAuthenticated() || session.role !== "user" || !session.activeUserId) {
+  if (!isCognitoAuthenticated()) {
     const next = encodeURIComponent(`/artist-preview.html?id=${artistId}`);
     window.location.href = `/account-settings.html?next=${next}`;
     return;
+  }
+
+  if (!session.activeUserId) {
+    const ensuredUser = ensureUserForCognito({
+      sub: session.cognitoSub,
+      email: session.cognitoEmail,
+      username: session.cognitoUsername,
+    });
+
+    if (!ensuredUser) {
+      const next = encodeURIComponent(`/artist-preview.html?id=${artistId}`);
+      window.location.href = `/account-settings.html?next=${next}`;
+      return;
+    }
+
+    session = setSession({
+      ...session,
+      role: "none",
+      activeUserId: ensuredUser.id,
+    });
   }
 
   if (!assertCanMutate(session)) {

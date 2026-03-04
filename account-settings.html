@@ -36,7 +36,7 @@
           <div class="account-session-meta">
             <p><span>Account</span><strong id="signed-in-email">-</strong></p>
             <p><span>Last activity</span><strong id="last-login-at">-</strong></p>
-            <p><span>Current mode</span><strong id="current-mode-label">Not selected</strong></p>
+            <p><span>Access</span><strong id="current-mode-label">Sign in required</strong></p>
           </div>
 
           <p class="muted" id="role-lock-notice" style="display:none;">Sign in to continue.</p>
@@ -137,14 +137,9 @@
 
           <section data-auth-view="signed_in" hidden>
             <h2 class="section-title" style="font-size:1.2rem;">You are signed in</h2>
-            <p class="section-copy">Continue to your dashboard.</p>
+            <p class="section-copy">Continue to explore artists, submit jobs, and hire.</p>
             <div class="form-actions">
               <button class="btn btn-primary" id="continue-btn" type="button">Continue</button>
-            </div>
-            <button class="auth-text-link" id="toggle-mode-picker" type="button">Switch dashboard</button>
-            <div id="mode-picker" class="mode-picker" hidden>
-              <button class="btn btn-outline" id="open-user-workspace" type="button">Client dashboard</button>
-              <button class="btn btn-outline" id="open-artist-workspace" type="button">Artist dashboard</button>
             </div>
           </section>
 

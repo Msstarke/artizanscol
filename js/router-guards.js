@@ -1,5 +1,11 @@
-import { getArtistById, getDB, getUserById } from "./store.js";
-import { getSession } from "./session.js";
+import {
+  ensureArtistForCognito,
+  ensureUserForCognito,
+  getArtistById,
+  getDB,
+  getUserById,
+} from "./store.js";
+import { getSession, setSession } from "./session.js";
 import { isCognitoAuthenticated } from "./cognito-auth.js";
 
 export function redirectUnauthorized(requiredRoles = []) {
@@ -9,37 +15,58 @@ export function redirectUnauthorized(requiredRoles = []) {
 }
 
 export function requireRole(requiredRoles = []) {
-  const session = getSession();
-  if (!requiredRoles.length) {
-    return session;
-  }
-
+  let session = getSession();
   if (!isCognitoAuthenticated()) {
     const next = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/account-settings.html?next=${next}`;
     return null;
   }
 
-  if (!requiredRoles.includes(session.role)) {
-    redirectUnauthorized(requiredRoles);
-    return null;
+  if (!requiredRoles.length) {
+    return session;
   }
 
   const db = getDB();
-  if (session.role === "user") {
-    if (!session.activeUserId || !getUserById(db, session.activeUserId)) {
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `/account-settings.html?next=${next}`;
-      return null;
+  const normalized = {
+    sub: session.cognitoSub,
+    email: session.cognitoEmail,
+    username: session.cognitoUsername,
+  };
+  let sessionChanged = false;
+
+  if (requiredRoles.includes("user")) {
+    let user = session.activeUserId ? getUserById(db, session.activeUserId) : null;
+    if (!user) {
+      user = ensureUserForCognito(normalized);
+      if (!user) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/account-settings.html?next=${next}`;
+        return null;
+      }
+      session.activeUserId = user.id;
+      sessionChanged = true;
     }
   }
 
-  if (session.role === "artist") {
-    if (!session.activeArtistId || !getArtistById(db, session.activeArtistId)) {
-      const next = encodeURIComponent(window.location.pathname + window.location.search);
-      window.location.href = `/account-settings.html?next=${next}`;
-      return null;
+  if (requiredRoles.includes("artist")) {
+    let artist = session.activeArtistId ? getArtistById(db, session.activeArtistId) : null;
+    if (!artist) {
+      artist = ensureArtistForCognito(normalized);
+      if (!artist) {
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/account-settings.html?next=${next}`;
+        return null;
+      }
+      session.activeArtistId = artist.id;
+      sessionChanged = true;
     }
+  }
+
+  if (sessionChanged) {
+    session = setSession({
+      ...session,
+      role: "none",
+    });
   }
 
   return session;
