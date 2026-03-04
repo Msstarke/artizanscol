@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artizans | Account Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+  </head>
+  <body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">Artizans.CO</a>
+        <nav class="main-nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore</a>
+          <a href="/account-settings.html">Account Settings</a>
+        </nav>
+        <div class="header-actions"><span class="role-chip" data-role-chip>Session: signed out</span></div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section split-grid">
+        <article class="site-card">
+          <p class="site-tag">Cognito Login</p>
+          <h1 class="section-title">Sign in with AWS Cognito</h1>
+          <p class="section-copy" id="auth-status">Not signed in. Sign in with Cognito to continue.</p>
+
+          <form id="signin-form" class="form-grid" style="margin-top:0.8rem;">
+            <label>
+              Email
+              <input id="signin-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Password
+              <input id="signin-password" type="password" autocomplete="current-password" required />
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Sign in</button>
+              <button class="btn btn-outline" id="cognito-logout" type="button">Sign out</button>
+            </div>
+          </form>
+
+          <hr style="margin:1rem 0;border:none;border-top:1px solid rgba(34,34,34,0.1);" />
+
+          <h2 class="section-title" style="font-size:1.15rem;">Create account</h2>
+          <form id="signup-form" class="form-grid">
+            <label>
+              Email
+              <input id="signup-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Password
+              <input id="signup-password" type="password" autocomplete="new-password" required />
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-outline" type="submit">Sign up</button>
+            </div>
+          </form>
+
+          <h2 class="section-title" style="font-size:1.15rem;margin-top:1rem;">Verify email</h2>
+          <form id="confirm-form" class="form-grid">
+            <label>
+              Email
+              <input id="confirm-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Verification code
+              <input id="confirm-code" type="text" inputmode="numeric" required />
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-outline" type="submit">Confirm</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="site-card">
+          <p class="site-tag">Account Picker</p>
+          <h2 class="section-title" style="font-size:1.35rem;">Pick account for booking access</h2>
+          <p class="section-copy">You must sign in first. Then choose user or artist account context.</p>
+          <p class="muted" id="role-lock-notice" style="display:none;">Sign in with Cognito to enable this form.</p>
+
+          <form id="role-form" class="form-grid">
+            <label>
+              Role
+              <select id="role-select">
+                <option value="user">User</option>
+                <option value="artist">Artist</option>
+              </select>
+            </label>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Save account</button>
+            </div>
+          </form>
+
+          <h3 class="section-title" style="font-size:1.05rem;margin-top:1rem;">Linked profiles</h3>
+          <ul class="feature-list" id="profile-summary"></ul>
+
+          <h3 class="section-title" style="font-size:1.05rem;margin-top:1rem;">Quick routes</h3>
+          <ul class="feature-list">
+            <li><a href="/user/discovery.html">User home: Discovery</a></li>
+            <li><a href="/artist/bookings.html">Artist home: Booking management</a></li>
+          </ul>
+
+          <p class="muted">Current role: <strong data-role-summary>none</strong></p>
+          <button class="btn btn-ghost btn-small" data-logout type="button">Sign out and clear account</button>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Cognito login and account context selection</p></div></footer>
+
+    <script type="module" src="/js/auth.js"></script>
+  </body>
+</html>

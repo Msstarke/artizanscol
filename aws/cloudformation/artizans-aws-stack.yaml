@@ -1,0 +1,379 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Artizans AWS stack (S3 + CloudFront + WAF + Cognito + IAM + optional EC2 + optional ACM PCA)
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: artizans
+  EnvironmentName:
+    Type: String
+    Default: prod
+  RegionHint:
+    Type: String
+    Default: ap-southeast-2
+
+  DomainName:
+    Type: String
+    Default: ''
+    Description: Optional custom domain (for CloudFront alias)
+  HostedZoneId:
+    Type: String
+    Default: ''
+    Description: Optional Route53 hosted zone ID for ACM DNS validation
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: Optional ACM certificate ARN (recommended for CloudFront)
+  CreateManagedCertificate:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+
+  EnablePrivateCA:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+
+  EnableCloudFrontWaf:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+
+  EnableEc2Api:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
+  VpcId:
+    Type: String
+    Default: ''
+    Description: Required when EnableEc2Api=true
+  SubnetId:
+    Type: String
+    Default: ''
+    Description: Required when EnableEc2Api=true
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Conditions:
+  HasDomainName: !Not [!Equals [!Ref DomainName, '']]
+  HasHostedZoneId: !Not [!Equals [!Ref HostedZoneId, '']]
+  HasProvidedCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  CreateManagedCertificateCondition: !And
+    - !Equals [!Ref CreateManagedCertificate, 'true']
+    - !Condition HasDomainName
+    - !Condition HasHostedZoneId
+  CanUseCustomDomain: !And
+    - !Condition HasDomainName
+    - !Or
+      - !Condition HasProvidedCertificate
+      - !Condition CreateManagedCertificateCondition
+  UseEc2Api: !Equals [!Ref EnableEc2Api, 'true']
+  UsePrivateCA: !Equals [!Ref EnablePrivateCA, 'true']
+  IsUsEast1: !Equals [!Ref AWS::Region, 'us-east-1']
+  CreateCloudFrontWaf: !And
+    - !Equals [!Ref EnableCloudFrontWaf, 'true']
+    - !Condition IsUsEast1
+
+Resources:
+  ArtizansSiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  ArtizansOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub '${ProjectName}-${EnvironmentName} OAI'
+
+  ArtizansBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtizansSiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontRead
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt ArtizansOriginAccessIdentity.S3CanonicalUserId
+            Action: s3:GetObject
+            Resource: !Sub '${ArtizansSiteBucket.Arn}/*'
+
+  ArtizansManagedCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Condition: CreateManagedCertificateCondition
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+
+  ArtizansWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: CreateCloudFrontWaf
+    Properties:
+      Name: !Sub '${ProjectName}-${EnvironmentName}-web-acl'
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${ProjectName}-${EnvironmentName}-web-acl'
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 0
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub '${ProjectName}-${EnvironmentName}-common-rules'
+            SampledRequestsEnabled: true
+
+  ArtizansDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub '${ProjectName}-${EnvironmentName} distribution'
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: artizans-site-origin
+            DomainName: !GetAtt ArtizansSiteBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${ArtizansOriginAccessIdentity}'
+        DefaultCacheBehavior:
+          TargetOriginId: artizans-site-origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          ForwardedValues:
+            QueryString: true
+            Cookies:
+              Forward: all
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        Aliases: !If
+          - CanUseCustomDomain
+          - [!Ref DomainName]
+          - !Ref AWS::NoValue
+        ViewerCertificate: !If
+          - HasProvidedCertificate
+          -
+            AcmCertificateArn: !Ref CertificateArn
+            SslSupportMethod: sni-only
+            MinimumProtocolVersion: TLSv1.2_2021
+          - !If
+            - CreateManagedCertificateCondition
+            -
+              AcmCertificateArn: !Ref ArtizansManagedCertificate
+              SslSupportMethod: sni-only
+              MinimumProtocolVersion: TLSv1.2_2021
+            -
+              CloudFrontDefaultCertificate: true
+        WebACLId: !If
+          - CreateCloudFrontWaf
+          - !GetAtt ArtizansWebAcl.Arn
+          - !Ref AWS::NoValue
+
+  ArtizansUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub '${ProjectName}-${EnvironmentName}-users'
+      AutoVerifiedAttributes: [email]
+      UsernameAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  ArtizansUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${ProjectName}-${EnvironmentName}-web-client'
+      UserPoolId: !Ref ArtizansUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+
+  ArtizansIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub '${ProjectName}_${EnvironmentName}_identity'
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref ArtizansUserPoolClient
+          ProviderName: !Sub 'cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+
+  ArtizansCognitoAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${EnvironmentName}-cognito-auth-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref ArtizansIdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: !Sub '${ProjectName}-${EnvironmentName}-cognito-auth-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - mobileanalytics:PutEvents
+                  - cognito-sync:*
+                  - cognito-identity:*
+                Resource: '*'
+
+  ArtizansIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref ArtizansIdentityPool
+      Roles:
+        authenticated: !GetAtt ArtizansCognitoAuthRole.Arn
+
+  ArtizansEc2Role:
+    Type: AWS::IAM::Role
+    Condition: UseEc2Api
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+
+  ArtizansEc2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Condition: UseEc2Api
+    Properties:
+      Roles:
+        - !Ref ArtizansEc2Role
+
+  ArtizansEc2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseEc2Api
+    Properties:
+      GroupDescription: !Sub '${ProjectName} EC2 API security group'
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  ArtizansEc2ApiInstance:
+    Type: AWS::EC2::Instance
+    Condition: UseEc2Api
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t3.micro
+      IamInstanceProfile: !Ref ArtizansEc2InstanceProfile
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref ArtizansEc2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-${EnvironmentName}-api'
+
+  ArtizansPrivateCertificateAuthority:
+    Type: AWS::ACMPCA::CertificateAuthority
+    Condition: UsePrivateCA
+    Properties:
+      Type: ROOT
+      KeyAlgorithm: RSA_2048
+      SigningAlgorithm: SHA256WITHRSA
+      Subject:
+        Country: AU
+        Organization: Artizans
+        OrganizationalUnit: Platform
+        State: NSW
+        CommonName: !Sub '${ProjectName}-${EnvironmentName}-private-ca'
+
+Outputs:
+  BucketName:
+    Value: !Ref ArtizansSiteBucket
+  CloudFrontDistributionId:
+    Value: !Ref ArtizansDistribution
+  CloudFrontDomainName:
+    Value: !GetAtt ArtizansDistribution.DomainName
+  WebAclArn:
+    Condition: CreateCloudFrontWaf
+    Value: !GetAtt ArtizansWebAcl.Arn
+  CognitoUserPoolId:
+    Value: !Ref ArtizansUserPool
+  CognitoUserPoolClientId:
+    Value: !Ref ArtizansUserPoolClient
+  CognitoIdentityPoolId:
+    Value: !Ref ArtizansIdentityPool
+
+  ConsoleEC2:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#Instances:'
+  ConsoleBilling:
+    Value: 'https://console.aws.amazon.com/billing/home'
+  ConsoleHealth:
+    Value: 'https://phd.aws.amazon.com/phd/home#/'
+  ConsoleACM:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/acm/home?region=${AWS::Region}#/certificates'
+  ConsoleCloudFront:
+    Value: 'https://us-east-1.console.aws.amazon.com/cloudfront/v4/home#/distributions'
+  ConsolePrivateCA:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/acm-pca/home?region=${AWS::Region}#/authorities'
+  ConsoleCognito:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cognito/v2/idp/user-pools?region=${AWS::Region}'
+  ConsoleWAFShield:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/wafv2/homev2/web-acls?region=${AWS::Region}'
+  ConsoleCloudShell:
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudshell/home?region=${AWS::Region}'
+  ConsoleS3:
+    Value: 'https://s3.console.aws.amazon.com/s3/home'
+  ConsoleIAM:
+    Value: 'https://console.aws.amazon.com/iamv2/home#/home'
+  ConsoleSupport:
+    Value: 'https://console.aws.amazon.com/support/home'

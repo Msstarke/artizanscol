@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artizans | Explore Artists</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
+  </head>
+  <body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">Artizans.CO</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/blog.html">Blog</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/account-settings.html" data-auth-link>Account Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip>Session: signed out</span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html">Account Settings</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section">
+        <div class="page-title-row">
+          <div>
+            <p class="eyebrow">EXPLORE ARTISTS</p>
+            <h1 class="section-title">Browse by category, medium, and availability.</h1>
+          </div>
+          <a class="btn btn-primary" href="/account-settings.html">Sign up to book</a>
+        </div>
+
+        <article class="site-card">
+          <form id="explore-form" class="form-grid" novalidate>
+            <div class="form-row">
+              <label>
+                Search artists
+                <input id="search-input" type="text" placeholder="Name, category, medium..." />
+              </label>
+              <label>
+                Sort
+                <select id="sort-select">
+                  <option value="newest">Newest</option>
+                  <option value="popular">Most popular</option>
+                  <option value="rating">Highest rated</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Category
+                <select id="category-filter">
+                  <option value="">All categories</option>
+                </select>
+              </label>
+              <label>
+                Medium
+                <select id="medium-filter">
+                  <option value="">All mediums</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Location
+                <select id="location-filter">
+                  <option value="">Any location</option>
+                </select>
+              </label>
+              <label>
+                Availability
+                <select id="availability-filter">
+                  <option value="">Any</option>
+                  <option value="open">Open</option>
+                  <option value="limited">Limited</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Max price
+                <input id="price-filter" type="number" min="0" placeholder="e.g. 400" />
+              </label>
+              <div class="form-actions" style="align-items:end;">
+                <button class="btn btn-outline" type="button" id="reset-filters">Reset filters</button>
+              </div>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <section class="container content-section">
+        <div class="page-title-row">
+          <h2 class="section-title">Artist results</h2>
+          <small class="muted" id="result-count">0 artists</small>
+        </div>
+        <div id="artist-results" class="artist-grid"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>Explore Artists</p>
+        <p>Search, filter, sort, save</p>
+      </div>
+    </footer>
+
+    <script type="module" src="/js/explore.js"></script>
+  </body>
+</html>

@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Local agent/runtime state
+.codex_state/
+
+# Build/output artifacts
+output/
+
+# Dependencies
+node_modules/
+
+# Local env/secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log

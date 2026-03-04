@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User | Interaction</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+  </head>
+  <body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+    <header class="site-header"><div class="container header-inner"><a class="brand" href="/index.html">Artizans.CO</a><nav class="main-nav"><a href="/index.html">Home</a><a href="/explore.html">Explore</a><a href="/user/discovery.html">User</a><a href="/account-settings.html" data-auth-link>Account Settings</a></nav><div class="header-actions"><span class="role-chip" data-role-chip>Role: user</span><button class="btn btn-outline btn-small" data-logout>Logout</button></div></div></header>
+
+    <main class="container page-shell app-layout">
+      <aside class="side-nav"><h3>User Account</h3><ul><li><a href="/user/setup.html">Account setup</a></li><li><a href="/user/discovery.html">Discovery</a></li><li><a href="/user/interaction.html">Interaction</a></li><li><a href="/user/account.html">Profile settings</a></li><li><a href="/user/notifications.html">Notifications</a></li><li><a href="/user/history.html">Booking history</a></li></ul></aside>
+      <section class="dashboard-main split-grid">
+        <article class="site-card">
+          <h1 class="section-title" style="font-size:1.35rem;">Messaging</h1>
+          <form id="message-form" class="form-grid">
+            <label>Artist<select id="message-artist"></select></label>
+            <label>Message<textarea id="message-body" required></textarea></label>
+            <div class="form-actions"><button class="btn btn-primary" type="submit">Send message</button></div>
+          </form>
+          <h2 class="section-title" style="font-size:1.1rem;margin-top:1rem;">Recent messages</h2>
+          <ul id="message-list" class="collection"></ul>
+        </article>
+
+        <article class="site-card">
+          <h1 class="section-title" style="font-size:1.35rem;">Booking requests and status</h1>
+          <div class="table-wrap">
+            <table class="compare-table">
+              <thead><tr><th>Booking</th><th>Artist</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="booking-table"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div class="container footer-inner"><p>User interaction</p><p>Messages + booking status transitions</p></div></footer>
+    <script type="module" src="/js/user/interaction.js"></script>
+  </body>
+</html>

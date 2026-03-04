@@ -1,0 +1,93 @@
+name: Deploy AWS Static Site
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "*.html"
+      - "js/**"
+      - "styles/**"
+      - "styles.css"
+      - "artist/**"
+      - "user/**"
+      - "auth.html"
+      - "account-settings.html"
+      - "about.html"
+      - "blog.html"
+      - "contact.html"
+      - "explore.html"
+      - "faq.html"
+      - "index.html"
+      - "legal.html"
+      - "unauthorized.html"
+      - ".github/workflows/deploy-aws-static-site.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      AWS_REGION: ap-southeast-2
+      STACK_NAME: artizans-stack
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION != '' && secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Resolve deployment targets from CloudFormation
+        id: resolve
+        run: |
+          STACK="${{ secrets.AWS_STACK_NAME }}"
+          if [ -z "$STACK" ]; then
+            STACK="$STACK_NAME"
+          fi
+
+          BUCKET=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+            --output text)
+
+          DIST_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK" \
+            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue | [0]" \
+            --output text)
+
+          if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
+            echo "BucketName output missing for stack $STACK"
+            exit 1
+          fi
+
+          if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
+            echo "CloudFrontDistributionId output missing for stack $STACK"
+            exit 1
+          fi
+
+          echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$DIST_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync . "s3://${{ steps.resolve.outputs.bucket }}" \
+            --delete \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude ".codex_state/*" \
+            --exclude "output/*" \
+            --exclude "aws/*"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.resolve.outputs.distribution_id }}" \
+            --paths "/*"

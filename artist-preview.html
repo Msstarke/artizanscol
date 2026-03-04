@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artizans | Artist Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
+  </head>
+  <body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">Artizans.CO</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/artist-preview.html">Artist Preview</a>
+          <a href="/account-settings.html" data-auth-link>Account Settings</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip>Session: signed out</span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html">Account Settings</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section preview-layout">
+        <article class="site-card">
+          <p class="site-tag">Artist Preview</p>
+          <h1 id="artist-name" class="section-title">Artist Name</h1>
+          <p id="artist-bio" class="section-copy"></p>
+          <div id="artist-tags" class="tag-row"></div>
+          <div id="artist-meta" class="meta-row"></div>
+          <div class="hero-actions">
+            <button class="btn btn-outline" type="button" id="save-artist-btn">Save artist</button>
+            <button class="btn btn-ghost" type="button" id="contact-artist-btn">Contact artist</button>
+            <button class="btn btn-primary" type="button" id="open-booking-btn">Sign up to book</button>
+          </div>
+        </article>
+
+        <article class="site-card">
+          <p class="site-tag">Availability</p>
+          <h2 class="section-title" style="font-size:1.35rem;">Next available slots</h2>
+          <ul id="availability-list" class="collection"></ul>
+          <p class="muted" style="margin-top:0.8rem;">Availability and booking actions are interactive once services are published.</p>
+        </article>
+      </section>
+
+      <section class="container content-section">
+        <h2 class="section-title">Portfolio preview</h2>
+        <div id="portfolio-grid" class="artist-grid"></div>
+      </section>
+
+      <section class="container content-section split-grid">
+        <article class="site-card">
+          <h2 class="section-title" style="font-size:1.35rem;">Services and price</h2>
+          <div id="services-list" class="collection"></div>
+        </article>
+
+        <article class="site-card">
+          <h2 class="section-title" style="font-size:1.35rem;">Reviews</h2>
+          <div id="reviews-list" class="collection"></div>
+        </article>
+      </section>
+
+      <section class="container content-section">
+        <article class="site-card">
+          <h2 class="section-title" style="font-size:1.35rem;">Book this artist</h2>
+          <form id="booking-form" class="form-grid" novalidate>
+            <div class="form-row">
+              <label>
+                Service
+                <select id="booking-service" required></select>
+              </label>
+              <label>
+                Deadline
+                <input id="booking-deadline" type="date" required />
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Budget
+                <input id="booking-budget" type="number" min="1" required />
+              </label>
+              <label>
+                Contact preference
+                <select id="booking-contact">
+                  <option value="message">Message thread</option>
+                  <option value="email">Email update</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Project message
+              <textarea id="booking-message" required placeholder="Describe scope, style, and must-have details"></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">Create booking request</button>
+              <button class="btn btn-outline" type="button" id="prefill-booking">Prefill sample</button>
+            </div>
+          </form>
+        </article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>Artist preview flow</p>
+        <p>Portfolio, reviews, services, booking</p>
+      </div>
+    </footer>
+
+    <script type="module" src="/js/artist-preview.js"></script>
+  </body>
+</html>
