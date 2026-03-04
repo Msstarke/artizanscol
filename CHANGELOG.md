@@ -12,3 +12,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Updated all site brand labels from `Artizans.com` / `Artizans.CO` to `ARTIZANS.COLLECTIVE`.
 - Redesigned `/account-settings.html` for production UX with clearer sign-in flow, session metadata, dashboard access cards, and profile summaries.
 - Simplified `/account-settings.html` to a login-first flow with inline sign-up, verification, forgot-password, continue routing, and hidden dashboard switching.
+- Improved global responsive behavior across shared styles so layouts/forms/tables/media scale more cleanly under browser zoom.

@@ -26,6 +26,11 @@ body {
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-main);
   color: var(--color-primary);
@@ -34,10 +39,19 @@ body {
     radial-gradient(circle at 50% 100%, rgba(80, 43, 216, 0.08) 0%, transparent 30%),
     var(--color-bg);
   line-height: 1.45;
+  overflow-x: hidden;
 }
 
 a {
   color: inherit;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
 }
 
 .noise-overlay {
@@ -77,6 +91,10 @@ a {
   gap: 1rem;
 }
 
+.header-inner > * {
+  min-width: 0;
+}
+
 .brand {
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -88,6 +106,7 @@ a {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .main-nav a,
@@ -114,6 +133,8 @@ a {
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .role-chip {

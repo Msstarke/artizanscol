@@ -5,10 +5,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 46px;
+  min-height: 46px;
   border: 1px solid var(--button-border-color);
   border-radius: var(--radius-sm);
-  padding: 0 1rem;
+  padding: 0.55rem 1rem;
   background: var(--button-bg);
   color: var(--button-color);
   text-decoration: none;
@@ -23,7 +23,8 @@
 }
 
 .btn-small {
-  height: 38px;
+  min-height: 38px;
+  padding-block: 0.45rem;
   padding-inline: 0.8rem;
   font-size: 0.8rem;
 }
@@ -62,7 +63,7 @@
 
 .split-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -72,6 +73,7 @@
   border-radius: 15px;
   padding: 1rem;
   box-shadow: var(--shadow-soft);
+  min-width: 0;
 }
 
 .site-card h3 {
@@ -124,7 +126,7 @@
 
 .featured-card {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   background: var(--color-white);
   border: 1px solid rgba(34, 34, 34, 0.1);
@@ -179,12 +181,14 @@
   border: 1px solid rgba(34, 34, 34, 0.1);
   border-radius: 16px;
   box-shadow: var(--shadow-soft);
+  max-width: 100%;
 }
 
 .compare-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .compare-table th,
@@ -194,6 +198,8 @@
   padding: 0.85rem;
   border-bottom: 1px solid rgba(34, 34, 34, 0.12);
   font-size: 0.9rem;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .compare-table th {
@@ -349,8 +355,8 @@ textarea {
 }
 
 .toast {
-  min-width: 220px;
-  max-width: 360px;
+  min-width: 0;
+  width: min(360px, calc(100vw - 24px));
   border-radius: var(--radius-sm);
   padding: 0.7rem 0.85rem;
   background: var(--color-primary);
@@ -455,6 +461,7 @@ textarea {
   }
 
   .compare-table {
-    min-width: 620px;
+    min-width: 100%;
+    table-layout: auto;
   }
 }
