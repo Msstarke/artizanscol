@@ -1,13 +1,9 @@
+import { ensureArtistForCognito, ensureUserForCognito } from "./store.js";
 import {
-  ensureArtistForCognito,
-  ensureUserForCognito,
-  getArtistByCognitoSub,
-  getDB,
-  getUserByCognitoSub,
-} from "./store.js";
-import {
+  confirmForgotPasswordCognito,
   confirmSignUpCognito,
   ensureCognitoSession,
+  forgotPasswordCognito,
   isCognitoAuthenticated,
   signInCognito,
   signOutCognito,
@@ -22,16 +18,18 @@ import {
   setSession,
 } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, escapeHtml, getQueryParam, showToast } from "./utils.js";
+import { byId, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
 
-const openUserWorkspaceBtn = byId("open-user-workspace");
-const openArtistWorkspaceBtn = byId("open-artist-workspace");
+const LAST_MODE_KEY = "artizans.last_mode.v1";
+const ALLOWED_MODES = ["user", "artist"];
+
 const authStatus = byId("auth-status");
-const roleLockNotice = byId("role-lock-notice");
-const profileSummary = byId("profile-summary");
+const signedInEmail = byId("signed-in-email");
 const lastLoginAt = byId("last-login-at");
+const currentModeLabel = byId("current-mode-label");
+const roleLockNotice = byId("role-lock-notice");
 
 const signInForm = byId("signin-form");
 const signInEmail = byId("signin-email");
@@ -45,11 +43,70 @@ const confirmForm = byId("confirm-form");
 const confirmEmail = byId("confirm-email");
 const confirmCode = byId("confirm-code");
 
-const cognitoLogout = byId("cognito-logout");
-const nextParam = getQueryParam("next");
+const resetRequestForm = byId("reset-request-form");
+const resetRequestEmail = byId("reset-request-email");
 
-function setRoleFormEnabled(enabled) {
-  [openUserWorkspaceBtn, openArtistWorkspaceBtn].forEach((button) => {
+const resetConfirmForm = byId("reset-confirm-form");
+const resetConfirmEmail = byId("reset-confirm-email");
+const resetConfirmCode = byId("reset-confirm-code");
+const resetConfirmPassword = byId("reset-confirm-password");
+
+const goSignUp = byId("go-signup");
+const goResetRequest = byId("go-reset-request");
+const goLoginFromSignup = byId("go-login-from-signup");
+const goLoginFromVerify = byId("go-login-from-verify");
+const goLoginFromResetRequest = byId("go-login-from-reset-request");
+const goLoginFromResetConfirm = byId("go-login-from-reset-confirm");
+
+const continueBtn = byId("continue-btn");
+const toggleModePicker = byId("toggle-mode-picker");
+const modePicker = byId("mode-picker");
+const openUserWorkspaceBtn = byId("open-user-workspace");
+const openArtistWorkspaceBtn = byId("open-artist-workspace");
+
+const authSignoutBtn = byId("auth-signout");
+const fullSignoutBtn = byId("full-signout-btn");
+
+const views = Array.from(document.querySelectorAll("[data-auth-view]"));
+
+const nextParam = getQueryParam("next");
+let currentView = "login";
+
+function getLastMode() {
+  const value = localStorage.getItem(LAST_MODE_KEY);
+  return ALLOWED_MODES.includes(value) ? value : null;
+}
+
+function setLastMode(mode) {
+  if (!ALLOWED_MODES.includes(mode)) {
+    return;
+  }
+  localStorage.setItem(LAST_MODE_KEY, mode);
+}
+
+function clearLastMode() {
+  localStorage.removeItem(LAST_MODE_KEY);
+}
+
+function titleRole(role) {
+  if (role === "user") {
+    return "Client";
+  }
+  if (role === "artist") {
+    return "Artist";
+  }
+  return "Not selected";
+}
+
+function showView(nextView) {
+  currentView = nextView;
+  views.forEach((section) => {
+    section.hidden = section.getAttribute("data-auth-view") !== nextView;
+  });
+}
+
+function setSignedInControls(enabled) {
+  [continueBtn, toggleModePicker, openUserWorkspaceBtn, openArtistWorkspaceBtn].forEach((button) => {
     if (button instanceof HTMLButtonElement) {
       button.disabled = !enabled;
     }
@@ -58,18 +115,10 @@ function setRoleFormEnabled(enabled) {
   if (roleLockNotice) {
     roleLockNotice.style.display = enabled ? "none" : "block";
   }
-}
 
-function renderAuthStatus(session) {
-  const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
-
-  if (authStatus) {
-    authStatus.textContent = signedIn
-      ? `Signed in as ${session.cognitoEmail}. Choose a dashboard to continue.`
-      : "You are signed out. Sign in to continue.";
+  if (!enabled && modePicker) {
+    modePicker.hidden = true;
   }
-
-  setRoleFormEnabled(signedIn);
 }
 
 function renderLastLogin(session) {
@@ -96,53 +145,70 @@ function renderLastLogin(session) {
   });
 }
 
-function renderProfileSummary(session) {
-  if (!profileSummary) {
+function renderModeLabel(session) {
+  if (!currentModeLabel) {
     return;
   }
 
-  if (!isCognitoAuthenticated() || !session.cognitoSub) {
-    profileSummary.innerHTML = `
-      <article class="profile-summary-item">
-        <small>Client profile</small>
-        <strong>Sign in to load</strong>
-      </article>
-      <article class="profile-summary-item">
-        <small>Artist profile</small>
-        <strong>Sign in to load</strong>
-      </article>
-    `;
+  if (ALLOWED_MODES.includes(session.role)) {
+    currentModeLabel.textContent = titleRole(session.role);
     return;
   }
 
-  const db = getDB();
-  const user = getUserByCognitoSub(db, session.cognitoSub);
-  const artist = getArtistByCognitoSub(db, session.cognitoSub);
+  const lastMode = getLastMode();
+  currentModeLabel.textContent = lastMode ? `Last used: ${titleRole(lastMode)}` : "Not selected";
+}
 
-  const userLabel = user ? `${user.name} (${user.id})` : "Will be created on first use";
-  const artistLabel = artist ? `${artist.name} (${artist.id})` : "Will be created on first use";
+function renderAuthStatus(session) {
+  const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
 
-  profileSummary.innerHTML = `
-    <article class="profile-summary-item">
-      <small>Client profile</small>
-      <strong>${escapeHtml(userLabel)}</strong>
-    </article>
-    <article class="profile-summary-item">
-      <small>Artist profile</small>
-      <strong>${escapeHtml(artistLabel)}</strong>
-    </article>
-  `;
+  if (authStatus) {
+    authStatus.textContent = signedIn
+      ? "You are signed in. Continue to your dashboard."
+      : "Log in to continue.";
+  }
+
+  if (signedInEmail) {
+    signedInEmail.textContent = signedIn ? session.cognitoEmail : "-";
+  }
+
+  renderLastLogin(session);
+  renderModeLabel(session);
+  setSignedInControls(signedIn);
 }
 
 function syncSessionFromExisting() {
-  const existing = getSession();
+  const session = getSession();
+  const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
 
-  renderAuthStatus(existing);
-  renderLastLogin(existing);
-  renderProfileSummary(existing);
+  renderAuthStatus(session);
+
+  if (signedIn) {
+    if (!ALLOWED_MODES.includes(session.role) && modePicker) {
+      modePicker.hidden = true;
+    }
+
+    if (!ALLOWED_MODES.includes(session.role) && currentView === "login") {
+      showView("signed_in");
+    }
+
+    if (currentView !== "signup" && currentView !== "verify" && currentView !== "reset_request" && currentView !== "reset_confirm") {
+      showView("signed_in");
+    }
+    return;
+  }
+
+  showView("login");
 }
 
-function activateWorkspace(role) {
+function getPreferredMode(session = getSession()) {
+  if (ALLOWED_MODES.includes(session.role)) {
+    return session.role;
+  }
+  return getLastMode();
+}
+
+function activateWorkspace(role, targetOverride = null) {
   if (!isCognitoAuthenticated()) {
     showToast("Sign in before opening a dashboard.", "warning");
     return;
@@ -150,7 +216,7 @@ function activateWorkspace(role) {
 
   const existing = getSession();
   if (!existing.cognitoSub) {
-    showToast("Missing Cognito identity. Please sign in again.", "danger");
+    showToast("Sign in again to continue.", "danger");
     return;
   }
 
@@ -164,7 +230,7 @@ function activateWorkspace(role) {
     });
 
     if (!user) {
-      showToast("Could not create user profile.", "danger");
+      showToast("Could not open client dashboard.", "danger");
       return;
     }
 
@@ -184,7 +250,7 @@ function activateWorkspace(role) {
     });
 
     if (!artist) {
-      showToast("Could not create artist profile.", "danger");
+      showToast("Could not open artist dashboard.", "danger");
       return;
     }
 
@@ -201,51 +267,72 @@ function activateWorkspace(role) {
     return;
   }
 
-  showToast(role === "user" ? "Opening client dashboard..." : "Opening artist dashboard...", "success");
-  syncSessionFromExisting();
+  setLastMode(role);
+  const target = targetOverride || nextParam || getRoleHome(role);
 
-  const target = nextParam || getRoleHome(role);
+  showToast(role === "user" ? "Opening client dashboard..." : "Opening artist dashboard...", "success");
   window.setTimeout(() => {
     window.location.href = target;
   }, 220);
 }
 
+function handleContinue() {
+  if (!isCognitoAuthenticated()) {
+    showToast("Sign in before continuing.", "warning");
+    return;
+  }
+
+  const session = getSession();
+  const preferredMode = getPreferredMode(session);
+
+  if (preferredMode) {
+    const target = nextParam || getRoleHome(preferredMode);
+    activateWorkspace(preferredMode, target);
+    return;
+  }
+
+  if (modePicker) {
+    modePicker.hidden = false;
+  }
+  showToast("Choose a dashboard to continue.", "info");
+}
+
 async function hydrateCognitoState() {
   const identity = await ensureCognitoSession();
 
-  if (identity) {
-    setCognitoIdentity(identity);
-
-    const existing = getSession();
-    if (existing.role === "user") {
-      const user = ensureUserForCognito(identity);
-      if (user) {
-        loginAsRole("user", {
-          activeUserId: user.id,
-          cognitoEmail: identity.email,
-          cognitoSub: identity.sub,
-          cognitoUsername: identity.username,
-        });
-      }
-    }
-
-    if (existing.role === "artist") {
-      const artist = ensureArtistForCognito(identity);
-      if (artist) {
-        loginAsRole("artist", {
-          activeArtistId: artist.id,
-          cognitoEmail: identity.email,
-          cognitoSub: identity.sub,
-          cognitoUsername: identity.username,
-        });
-      }
-    }
-
+  if (!identity) {
+    clearCognitoIdentity();
     syncSessionFromExisting();
     return;
   }
 
-  clearCognitoIdentity();
+  setCognitoIdentity(identity);
+
+  const existing = getSession();
+  if (existing.role === "user") {
+    const user = ensureUserForCognito(identity);
+    if (user) {
+      loginAsRole("user", {
+        activeUserId: user.id,
+        cognitoEmail: identity.email,
+        cognitoSub: identity.sub,
+        cognitoUsername: identity.username,
+      });
+    }
+  }
+
+  if (existing.role === "artist") {
+    const artist = ensureArtistForCognito(identity);
+    if (artist) {
+      loginAsRole("artist", {
+        activeArtistId: artist.id,
+        cognitoEmail: identity.email,
+        cognitoSub: identity.sub,
+        cognitoUsername: identity.username,
+      });
+    }
+  }
+
   syncSessionFromExisting();
 }
 
@@ -278,10 +365,10 @@ signInForm?.addEventListener("submit", async (event) => {
       signInPassword.value = "";
     }
 
-    showToast("Signed in successfully. Choose your dashboard to continue.", "success");
     syncSessionFromExisting();
+    showToast("Signed in. Press Continue.", "success");
   } catch (error) {
-    showToast(error?.message || "Cognito sign-in failed.", "danger");
+    showToast(error?.message || "Log in failed.", "danger");
   }
 });
 
@@ -301,9 +388,13 @@ signUpForm?.addEventListener("submit", async (event) => {
     if (confirmEmail) {
       confirmEmail.value = email;
     }
-    showToast("Sign-up created. Check your email for the verification code.", "success");
+    if (signInEmail) {
+      signInEmail.value = email;
+    }
+    showView("verify");
+    showToast("Check your email for a verification code.", "success");
   } catch (error) {
-    showToast(error?.message || "Cognito sign-up failed.", "danger");
+    showToast(error?.message || "Could not create account.", "danger");
   }
 });
 
@@ -320,21 +411,111 @@ confirmForm?.addEventListener("submit", async (event) => {
 
   try {
     await confirmSignUpCognito({ email, code });
-    showToast("Email verified. You can sign in now.", "success");
+    if (confirmCode) {
+      confirmCode.value = "";
+    }
+    showView("login");
+    showToast("Email verified. You can log in now.", "success");
   } catch (error) {
     showToast(error?.message || "Verification failed.", "danger");
   }
 });
 
-cognitoLogout?.addEventListener("click", async () => {
-  await signOutCognito();
-  clearCognitoIdentity();
-  showToast("Signed out.", "success");
-  syncSessionFromExisting();
+resetRequestForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = (resetRequestEmail?.value || "").trim();
+  if (!email) {
+    showToast("Email is required.", "warning");
+    return;
+  }
+
+  try {
+    await forgotPasswordCognito({ email });
+    if (resetConfirmEmail) {
+      resetConfirmEmail.value = email;
+    }
+    showView("reset_confirm");
+    showToast("Verification code sent. Check your email.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not start password reset.", "danger");
+  }
 });
+
+resetConfirmForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = (resetConfirmEmail?.value || "").trim();
+  const code = (resetConfirmCode?.value || "").trim();
+  const newPassword = resetConfirmPassword?.value || "";
+
+  if (!email || !code || !newPassword) {
+    showToast("Email, verification code, and new password are required.", "warning");
+    return;
+  }
+
+  try {
+    await confirmForgotPasswordCognito({ email, code, newPassword });
+    if (signInEmail) {
+      signInEmail.value = email;
+    }
+    if (resetConfirmCode) {
+      resetConfirmCode.value = "";
+    }
+    if (resetConfirmPassword) {
+      resetConfirmPassword.value = "";
+    }
+    showView("login");
+    showToast("Password updated. You can log in now.", "success");
+  } catch (error) {
+    showToast(error?.message || "Password reset failed.", "danger");
+  }
+});
+
+goSignUp?.addEventListener("click", () => showView("signup"));
+goResetRequest?.addEventListener("click", () => {
+  if (resetRequestEmail && signInEmail?.value) {
+    resetRequestEmail.value = signInEmail.value;
+  }
+  showView("reset_request");
+});
+
+goLoginFromSignup?.addEventListener("click", () => showView("login"));
+goLoginFromVerify?.addEventListener("click", () => showView("login"));
+goLoginFromResetRequest?.addEventListener("click", () => showView("login"));
+goLoginFromResetConfirm?.addEventListener("click", () => showView("login"));
+
+continueBtn?.addEventListener("click", handleContinue);
 
 openUserWorkspaceBtn?.addEventListener("click", () => activateWorkspace("user"));
 openArtistWorkspaceBtn?.addEventListener("click", () => activateWorkspace("artist"));
 
+toggleModePicker?.addEventListener("click", () => {
+  if (!isCognitoAuthenticated()) {
+    showToast("Sign in first.", "warning");
+    return;
+  }
+  if (!modePicker) {
+    return;
+  }
+  modePicker.hidden = !modePicker.hidden;
+});
+
+authSignoutBtn?.addEventListener("click", async () => {
+  await signOutCognito();
+  clearCognitoIdentity();
+  syncSessionFromExisting();
+  showToast("Signed out.", "success");
+});
+
+fullSignoutBtn?.addEventListener("click", async () => {
+  await signOutCognito();
+  clearCognitoIdentity();
+  clearLastMode();
+  syncSessionFromExisting();
+  showToast("Signed out and cleared.", "success");
+});
+
+showView("login");
 syncSessionFromExisting();
 hydrateCognitoState();

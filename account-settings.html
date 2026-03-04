@@ -13,6 +13,7 @@
   </head>
   <body>
     <div class="noise-overlay" aria-hidden="true"></div>
+
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
@@ -26,62 +27,61 @@
     </header>
 
     <main class="page-shell">
-      <section class="container content-section account-settings-hero">
-        <p class="eyebrow">YOUR ACCOUNT</p>
-        <h1 class="section-title">Sign in, secure your account, and continue.</h1>
-        <p class="section-copy">
-          Everything in one place: login, registration, email verification, and direct access to your client or artist dashboard.
-        </p>
-      </section>
+      <section class="container content-section account-access-wrap">
+        <article class="site-card account-access-card">
+          <p class="site-tag">Account Access</p>
+          <h1 class="section-title">Log in to your account</h1>
+          <p class="section-copy" id="auth-status">Log in to continue.</p>
 
-      <section class="container content-section split-grid account-settings-grid">
-        <article class="site-card account-auth-card">
-          <p class="site-tag">Secure Sign In</p>
-          <h2 class="section-title" style="font-size:1.65rem;">Welcome back</h2>
-          <p class="section-copy" id="auth-status">You are signed out. Sign in to continue.</p>
-
-          <div class="account-meta">
-            <p class="account-meta-row"><span>Current mode</span><strong data-role-summary>none</strong></p>
-            <p class="account-meta-row"><span>Last activity</span><strong id="last-login-at">-</strong></p>
+          <div class="account-session-meta">
+            <p><span>Account</span><strong id="signed-in-email">-</strong></p>
+            <p><span>Last activity</span><strong id="last-login-at">-</strong></p>
+            <p><span>Current mode</span><strong id="current-mode-label">Not selected</strong></p>
           </div>
 
-          <form id="signin-form" class="form-grid" style="margin-top:1rem;">
-            <label>
-              Email
-              <input id="signin-email" type="email" autocomplete="email" required />
-            </label>
-            <label>
-              Password
-              <input id="signin-password" type="password" autocomplete="current-password" required />
-            </label>
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Sign in</button>
-              <button class="btn btn-outline" id="cognito-logout" type="button">Sign out</button>
-              <a class="btn btn-ghost" href="/contact.html">Need help?</a>
-            </div>
-          </form>
+          <p class="muted" id="role-lock-notice" style="display:none;">Sign in to continue.</p>
 
-          <hr class="account-divider" />
+          <section data-auth-view="login">
+            <form id="signin-form" class="form-grid">
+              <label>
+                Email
+                <input id="signin-email" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                Password
+                <input id="signin-password" type="password" autocomplete="current-password" required />
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Log in</button>
+                <button class="btn btn-outline" id="go-signup" type="button">Create account</button>
+              </div>
+              <div class="auth-secondary-links">
+                <button class="auth-text-link" id="go-reset-request" type="button">Forgot password?</button>
+              </div>
+            </form>
+          </section>
 
-          <h3 class="section-title" style="font-size:1.2rem;">Create account</h3>
-          <p class="muted">Use a secure password with at least 10 characters, including upper/lowercase letters and a number.</p>
-          <form id="signup-form" class="form-grid">
-            <label>
-              Email
-              <input id="signup-email" type="email" autocomplete="email" required />
-            </label>
-            <label>
-              Password
-              <input id="signup-password" type="password" autocomplete="new-password" required />
-            </label>
-            <div class="form-actions">
-              <button class="btn btn-outline" type="submit">Create account</button>
-            </div>
-          </form>
+          <section data-auth-view="signup" hidden>
+            <h2 class="section-title" style="font-size:1.2rem;">Create account</h2>
+            <form id="signup-form" class="form-grid">
+              <label>
+                Email
+                <input id="signup-email" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                Password
+                <input id="signup-password" type="password" autocomplete="new-password" required />
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Create account</button>
+                <button class="btn btn-outline" id="go-login-from-signup" type="button">Back to log in</button>
+              </div>
+            </form>
+          </section>
 
-          <details class="verify-email-panel" open>
-            <summary>Verify email address</summary>
-            <p class="muted">Enter the code sent to your inbox after sign up.</p>
+          <section data-auth-view="verify" hidden>
+            <h2 class="section-title" style="font-size:1.2rem;">Verify email</h2>
+            <p class="muted">Check your email for a verification code.</p>
             <form id="confirm-form" class="form-grid">
               <label>
                 Email
@@ -92,56 +92,71 @@
                 <input id="confirm-code" type="text" inputmode="numeric" required />
               </label>
               <div class="form-actions">
-                <button class="btn btn-outline" type="submit">Verify email</button>
+                <button class="btn btn-primary" type="submit">Verify email</button>
+                <button class="btn btn-outline" id="go-login-from-verify" type="button">Back to log in</button>
               </div>
             </form>
-          </details>
-        </article>
+          </section>
 
-        <article class="site-card account-mode-card">
-          <p class="site-tag">Access</p>
-          <h2 class="section-title" style="font-size:1.65rem;">Choose where you want to continue</h2>
-          <p class="section-copy">
-            Open the dashboard that matches how you are using the platform right now.
-          </p>
-          <p class="muted" id="role-lock-notice" style="display:none;">Sign in to enable dashboard access.</p>
+          <section data-auth-view="reset_request" hidden>
+            <h2 class="section-title" style="font-size:1.2rem;">Reset password</h2>
+            <p class="muted">Enter your email and we will send a verification code.</p>
+            <form id="reset-request-form" class="form-grid">
+              <label>
+                Email
+                <input id="reset-request-email" type="email" autocomplete="email" required />
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Send code</button>
+                <button class="btn btn-outline" id="go-login-from-reset-request" type="button">Back to log in</button>
+              </div>
+            </form>
+          </section>
 
-          <div class="mode-grid" style="margin-top:0.8rem;">
-            <article class="mode-card">
-              <h3>Client dashboard</h3>
-              <p>Browse artists, save profiles, send messages, and create bookings.</p>
-              <button class="btn btn-primary" id="open-user-workspace" type="button">Continue as Client</button>
-            </article>
-            <article class="mode-card">
-              <h3>Artist dashboard</h3>
-              <p>Manage your profile, services, bookings, earnings, and analytics.</p>
-              <button class="btn btn-outline" id="open-artist-workspace" type="button">Continue as Artist</button>
-            </article>
-          </div>
+          <section data-auth-view="reset_confirm" hidden>
+            <h2 class="section-title" style="font-size:1.2rem;">Create new password</h2>
+            <form id="reset-confirm-form" class="form-grid">
+              <label>
+                Email
+                <input id="reset-confirm-email" type="email" autocomplete="email" required />
+              </label>
+              <label>
+                Verification code
+                <input id="reset-confirm-code" type="text" inputmode="numeric" required />
+              </label>
+              <label>
+                New password
+                <input id="reset-confirm-password" type="password" autocomplete="new-password" required />
+              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Update password</button>
+                <button class="btn btn-outline" id="go-login-from-reset-confirm" type="button">Back to log in</button>
+              </div>
+            </form>
+          </section>
 
-          <h3 class="section-title" style="font-size:1.1rem;margin-top:1rem;">Linked profiles</h3>
-          <div id="profile-summary" class="profile-summary-grid"></div>
+          <section data-auth-view="signed_in" hidden>
+            <h2 class="section-title" style="font-size:1.2rem;">You are signed in</h2>
+            <p class="section-copy">Continue to your dashboard.</p>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="continue-btn" type="button">Continue</button>
+            </div>
+            <button class="auth-text-link" id="toggle-mode-picker" type="button">Switch dashboard</button>
+            <div id="mode-picker" class="mode-picker" hidden>
+              <button class="btn btn-outline" id="open-user-workspace" type="button">Client dashboard</button>
+              <button class="btn btn-outline" id="open-artist-workspace" type="button">Artist dashboard</button>
+            </div>
+          </section>
 
-          <h3 class="section-title" style="font-size:1.1rem;margin-top:1rem;">Quick links</h3>
-          <div class="quick-route-grid">
-            <a class="quick-route" href="/user/discovery.html">
-              <strong>Client home</strong>
-              <small>Discovery, saved artists, messages, booking history</small>
-            </a>
-            <a class="quick-route" href="/artist/bookings.html">
-              <strong>Artist home</strong>
-              <small>Incoming requests, confirmations, cancellations</small>
-            </a>
-          </div>
-
-          <div class="form-actions" style="margin-top:1rem;">
-            <button class="btn btn-ghost btn-small" data-logout type="button">Sign out and clear account</button>
+          <div class="account-bottom-actions">
+            <button class="btn btn-outline btn-small" id="auth-signout" type="button">Sign out</button>
+            <button class="btn btn-ghost btn-small" id="full-signout-btn" type="button">Sign out and clear account</button>
           </div>
         </article>
       </section>
     </main>
 
-    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Secure access and dashboard preferences</p></div></footer>
+    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Access and security</p></div></footer>
 
     <script type="module" src="/js/auth.js"></script>
   </body>

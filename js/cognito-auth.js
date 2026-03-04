@@ -205,6 +205,24 @@ export async function confirmSignUpCognito({ email, code }) {
   });
 }
 
+export async function forgotPasswordCognito({ email }) {
+  const { userPoolClientId } = getCognitoConfig();
+  return callCognito("ForgotPassword", {
+    ClientId: userPoolClientId,
+    Username: email,
+  });
+}
+
+export async function confirmForgotPasswordCognito({ email, code, newPassword }) {
+  const { userPoolClientId } = getCognitoConfig();
+  return callCognito("ConfirmForgotPassword", {
+    ClientId: userPoolClientId,
+    Username: email,
+    ConfirmationCode: code,
+    Password: newPassword,
+  });
+}
+
 export async function signOutCognito() {
   clearStoredSession();
 }
