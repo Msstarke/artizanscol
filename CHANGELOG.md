@@ -7,3 +7,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Added `.gitignore` for local state, secrets, and generated artifacts.
 - Added this changelog to keep a human-readable change history.
 - Baseline committed as `chore: initialize repository and tracking`.
+- Reworked `/account-settings.html` to remove the account picker UI and use workspace settings actions instead.

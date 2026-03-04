@@ -26,8 +26,8 @@ import { byId, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
 
-const form = byId("role-form");
-const roleSelect = byId("role-select");
+const openUserWorkspaceBtn = byId("open-user-workspace");
+const openArtistWorkspaceBtn = byId("open-artist-workspace");
 const authStatus = byId("auth-status");
 const roleLockNotice = byId("role-lock-notice");
 const profileSummary = byId("profile-summary");
@@ -45,15 +45,14 @@ const confirmEmail = byId("confirm-email");
 const confirmCode = byId("confirm-code");
 
 const cognitoLogout = byId("cognito-logout");
+const nextParam = getQueryParam("next");
 
 function setRoleFormEnabled(enabled) {
-  if (form) {
-    Array.from(form.elements).forEach((element) => {
-      if (element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement) {
-        element.disabled = !enabled;
-      }
-    });
-  }
+  [openUserWorkspaceBtn, openArtistWorkspaceBtn].forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = !enabled;
+    }
+  });
 
   if (roleLockNotice) {
     roleLockNotice.style.display = enabled ? "none" : "block";
@@ -89,20 +88,83 @@ function renderProfileSummary(session) {
   profileSummary.innerHTML = [
     `<li>User profile: ${user ? `${user.name} (${user.id})` : "Not created yet"}</li>`,
     `<li>Artist profile: ${artist ? `${artist.name} (${artist.id})` : "Not created yet"}</li>`,
-    `<li>Tip: selecting a role creates the missing profile automatically.</li>`,
+    `<li>Tip: opening a workspace creates the missing profile automatically.</li>`,
   ].join("");
 }
 
 function syncSessionFromExisting() {
   const existing = getSession();
 
-  if (roleSelect) {
-    const allowed = ["user", "artist"];
-    roleSelect.value = allowed.includes(existing.role) ? existing.role : "user";
-  }
-
   renderAuthStatus(existing);
   renderProfileSummary(existing);
+}
+
+function activateWorkspace(role) {
+  if (!isCognitoAuthenticated()) {
+    showToast("Sign in with Cognito before opening a workspace.", "warning");
+    return;
+  }
+
+  const existing = getSession();
+  if (!existing.cognitoSub) {
+    showToast("Missing Cognito identity. Please sign in again.", "danger");
+    return;
+  }
+
+  let session = null;
+
+  if (role === "user") {
+    const user = ensureUserForCognito({
+      sub: existing.cognitoSub,
+      email: existing.cognitoEmail,
+      username: existing.cognitoUsername,
+    });
+
+    if (!user) {
+      showToast("Could not create user profile.", "danger");
+      return;
+    }
+
+    session = loginAsRole("user", {
+      activeUserId: user.id,
+      cognitoEmail: existing.cognitoEmail,
+      cognitoSub: existing.cognitoSub,
+      cognitoUsername: existing.cognitoUsername,
+    });
+  }
+
+  if (role === "artist") {
+    const artist = ensureArtistForCognito({
+      sub: existing.cognitoSub,
+      email: existing.cognitoEmail,
+      username: existing.cognitoUsername,
+    });
+
+    if (!artist) {
+      showToast("Could not create artist profile.", "danger");
+      return;
+    }
+
+    session = loginAsRole("artist", {
+      activeArtistId: artist.id,
+      cognitoEmail: existing.cognitoEmail,
+      cognitoSub: existing.cognitoSub,
+      cognitoUsername: existing.cognitoUsername,
+    });
+  }
+
+  if (!session) {
+    showToast("Please choose a valid workspace.", "warning");
+    return;
+  }
+
+  showToast(`Workspace opened: ${session.role}.`, "success");
+  syncSessionFromExisting();
+
+  const target = nextParam || getRoleHome(role);
+  window.setTimeout(() => {
+    window.location.href = target;
+  }, 220);
 }
 
 async function hydrateCognitoState() {
@@ -228,78 +290,8 @@ cognitoLogout?.addEventListener("click", async () => {
   syncSessionFromExisting();
 });
 
-form?.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  if (!isCognitoAuthenticated()) {
-    showToast("Sign in with Cognito before selecting an account.", "warning");
-    return;
-  }
-
-  const role = roleSelect?.value || "user";
-  const nextParam = getQueryParam("next");
-  const existing = getSession();
-
-  if (!existing.cognitoSub) {
-    showToast("Missing Cognito identity. Please sign in again.", "danger");
-    return;
-  }
-
-  let session = null;
-
-  if (role === "user") {
-    const user = ensureUserForCognito({
-      sub: existing.cognitoSub,
-      email: existing.cognitoEmail,
-      username: existing.cognitoUsername,
-    });
-
-    if (!user) {
-      showToast("Could not create user profile.", "danger");
-      return;
-    }
-
-    session = loginAsRole("user", {
-      activeUserId: user.id,
-      cognitoEmail: existing.cognitoEmail,
-      cognitoSub: existing.cognitoSub,
-      cognitoUsername: existing.cognitoUsername,
-    });
-  }
-
-  if (role === "artist") {
-    const artist = ensureArtistForCognito({
-      sub: existing.cognitoSub,
-      email: existing.cognitoEmail,
-      username: existing.cognitoUsername,
-    });
-
-    if (!artist) {
-      showToast("Could not create artist profile.", "danger");
-      return;
-    }
-
-    session = loginAsRole("artist", {
-      activeArtistId: artist.id,
-      cognitoEmail: existing.cognitoEmail,
-      cognitoSub: existing.cognitoSub,
-      cognitoUsername: existing.cognitoUsername,
-    });
-  }
-
-  if (!session) {
-    showToast("Please select a valid role.", "warning");
-    return;
-  }
-
-  showToast(`Account selected: ${session.role}.`, "success");
-  syncSessionFromExisting();
-
-  const target = nextParam || getRoleHome(role);
-  window.setTimeout(() => {
-    window.location.href = target;
-  }, 220);
-});
+openUserWorkspaceBtn?.addEventListener("click", () => activateWorkspace("user"));
+openArtistWorkspaceBtn?.addEventListener("click", () => activateWorkspace("artist"));
 
 syncSessionFromExisting();
 hydrateCognitoState();

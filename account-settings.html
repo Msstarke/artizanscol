@@ -80,24 +80,15 @@
         </article>
 
         <article class="site-card">
-          <p class="site-tag">Account Picker</p>
-          <h2 class="section-title" style="font-size:1.35rem;">Pick account for booking access</h2>
-          <p class="section-copy">You must sign in first. Then choose user or artist account context.</p>
-          <p class="muted" id="role-lock-notice" style="display:none;">Sign in with Cognito to enable this form.</p>
+          <p class="site-tag">Account Settings</p>
+          <h2 class="section-title" style="font-size:1.35rem;">Manage workspace access</h2>
+          <p class="section-copy">Sign in first, then open the workspace you want to use.</p>
+          <p class="muted" id="role-lock-notice" style="display:none;">Sign in with Cognito to enable workspace actions.</p>
 
-          <form id="role-form" class="form-grid">
-            <label>
-              Role
-              <select id="role-select">
-                <option value="user">User</option>
-                <option value="artist">Artist</option>
-              </select>
-            </label>
-
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Save account</button>
-            </div>
-          </form>
+          <div class="form-actions" style="margin-top:0.8rem;">
+            <button class="btn btn-primary" id="open-user-workspace" type="button">Open User Workspace</button>
+            <button class="btn btn-outline" id="open-artist-workspace" type="button">Open Artist Workspace</button>
+          </div>
 
           <h3 class="section-title" style="font-size:1.05rem;margin-top:1rem;">Linked profiles</h3>
           <ul class="feature-list" id="profile-summary"></ul>
@@ -114,7 +105,7 @@
       </section>
     </main>
 
-    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Cognito login and account context selection</p></div></footer>
+    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Cognito login and workspace preferences</p></div></footer>
 
     <script type="module" src="/js/auth.js"></script>
   </body>
