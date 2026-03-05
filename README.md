@@ -28,8 +28,10 @@ This catalog is the primary index for the repository.
 
 ## Deployment
 - Auto deploy pipeline: `.github/workflows/deploy-aws-static-site.yml`
+- Backend CI/CD pipeline: `.github/workflows/deploy-aws-backend.yml`
 - Infrastructure template: `aws/cloudformation/artizans-aws-stack.yaml`
 - CloudShell deploy script: `aws/scripts/cloudshell-deploy.sh`
+- API smoke script: `aws/scripts/api-smoke.sh`
 - Stack now includes serverless backend scaffolding (HTTP API, Lambda domain functions, DynamoDB tables, SQS, Secrets Manager, CloudWatch alarms).
 
 ## Backend Foundation
@@ -44,3 +46,4 @@ This catalog is the primary index for the repository.
 ## Repo Rules
 - Operational workflow rules: `REPO_RULES.md`
 - Human-readable change history: `CHANGELOG.md`
+- QA/UAT/cutover checklist: `QA_UAT_CUTOVER.md`

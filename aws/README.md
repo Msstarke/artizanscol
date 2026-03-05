@@ -27,15 +27,19 @@ This folder makes your current multi-page prototype AWS-ready.
 - `aws/scripts/cloudshell-deploy.sh`
 - Syncs site to S3 and invalidates CloudFront cache.
 
-3. In-app AWS admin page:
+3. API smoke script:
+- `aws/scripts/api-smoke.sh`
+- Runs public + optional authenticated endpoint health checks.
+
+4. In-app AWS admin page:
 - Route: `/admin/aws.html`
 - Lets you store AWS IDs/ARNs in localStorage and open one-click console links.
 
-4. Secret rotation runbook:
+5. Secret rotation runbook:
 - `aws/STRIPE_SECRETS_ROTATION.md`
 - Covers Stripe/API secret rotation, validation, and rollback steps.
 
-5. Backend rollback playbook:
+6. Backend rollback playbook:
 - `aws/ROLLBACK_PLAYBOOK.md`
 - Covers CloudFormation change set rollback and Lambda version rollback.
 

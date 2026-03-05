@@ -1,6 +1,5 @@
 import { apiRequest } from "./api-client.js";
 
-export const DB_KEY = "artizans.db.v1";
 export const DB_SCHEMA_VERSION = 2;
 
 export const BOOKING_STATUSES = [
@@ -35,14 +34,6 @@ const BOOKING_TRANSITIONS = {
   completed: [],
   cancelled: [],
 };
-
-function safeParse(value) {
-  try {
-    return JSON.parse(value);
-  } catch (_) {
-    return null;
-  }
-}
 
 function nowIso() {
   return new Date().toISOString();
