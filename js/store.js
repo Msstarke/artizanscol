@@ -1,3 +1,5 @@
+import { apiRequest } from "./api-client.js";
+
 export const DB_KEY = "artizans.db.v1";
 export const DB_SCHEMA_VERSION = 2;
 
@@ -202,19 +204,85 @@ function isValidDB(db) {
   return true;
 }
 
-export function getDB() {
-  const cached = safeParse(localStorage.getItem(DB_KEY));
-  if (isValidDB(cached)) {
-    return cached;
+let dbCache = createEmptyDB();
+let dbHydrated = false;
+
+function emitStoreUpdated() {
+  window.dispatchEvent(new CustomEvent("artizans:store-updated"));
+}
+
+function runApiMutation(mutation, fallbackMessage) {
+  Promise.resolve()
+    .then(() => mutation())
+    .catch((error) => {
+      console.warn(fallbackMessage || "API mutation failed", error);
+    });
+}
+
+export async function hydrateDB() {
+  if (dbHydrated) {
+    return dbCache;
   }
 
-  const fresh = createEmptyDB();
-  localStorage.setItem(DB_KEY, JSON.stringify(fresh));
-  return fresh;
+  try {
+    const [categoriesResponse, artistsResponse] = await Promise.all([
+      apiRequest("/v1/categories", { auth: false }),
+      apiRequest("/v1/artists", { auth: false }),
+    ]);
+
+    const next = createEmptyDB();
+    next.categories = asArray(categoriesResponse?.data?.items).map((category) => ({
+      id: category.id,
+      name: category.name,
+      active: category.active !== false,
+    }));
+
+    next.artists = asArray(artistsResponse?.data?.items).map((artist) => ({
+      id: artist.id,
+      cognitoSub: artist.cognitoSub || null,
+      cognitoEmail: artist.cognitoEmail || null,
+      name: artist.name,
+      handle: artist.handle,
+      category: artist.category,
+      mediums: asArray(artist.mediums),
+      location: artist.location || "",
+      verified: Boolean(artist.verified),
+      popularity: Number(artist.popularity || 0),
+      rating: Number(artist.rating || 0),
+      reviewCount: Number(artist.reviewCount || 0),
+      priceFrom: Number(artist.priceFrom || 0),
+      availability: artist.availability || "open",
+      bio: artist.bio || "",
+      profileViews: Number(artist.profileViews || 0),
+      completedBookings: Number(artist.completedBookings || 0),
+      acceptanceRate: Number(artist.acceptanceRate || 0),
+      portfolio: asArray(artist.portfolio).map((item) => ({
+        id: item.id || `p-${Date.now()}`,
+        title: item.title || "Portfolio Item",
+        image: item.imageUrl || item.image || "",
+      })),
+      createdAt: artist.createdAt || nowIso(),
+      updatedAt: artist.updatedAt || nowIso(),
+    }));
+
+    dbCache = next;
+    dbHydrated = true;
+    emitStoreUpdated();
+  } catch (error) {
+    console.warn("Store hydration from API failed; using in-memory fallback.", error);
+    dbHydrated = true;
+  }
+
+  return dbCache;
+}
+
+export function getDB() {
+  return dbCache;
 }
 
 export function saveDB(db) {
-  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  dbCache = isValidDB(db) ? db : dbCache;
+  emitStoreUpdated();
 }
 
 export function resetDB() {
@@ -376,6 +444,40 @@ export function ensureUserForCognito(identity) {
     ensured = { ...user };
   });
 
+  runApiMutation(
+    async () => {
+      const response = await apiRequest("/v1/me", { method: "GET" });
+      const remote = response?.data;
+      if (!remote?.id) {
+        return;
+      }
+
+      updateDB((db) => {
+        const existing = getUserByCognitoSub(db, normalized.sub) || getUserById(db, remote.id);
+        const next = {
+          id: remote.id,
+          cognitoSub: remote.cognitoSub || normalized.sub,
+          cognitoEmail: remote.cognitoEmail || normalized.email || "",
+          name: remote.name || existing?.name || displayNameFromIdentity(normalized, "New User"),
+          email: remote.email || normalized.email || "",
+          location: remote.location || existing?.location || "",
+          emailVerified: Boolean(remote.emailVerified),
+          profileCompleted: Boolean(remote.profileCompleted),
+          savedArtists: asArray(existing?.savedArtists),
+          bookingHistory: asArray(existing?.bookingHistory),
+          deleted: Boolean(existing?.deleted),
+          createdAt: remote.createdAt || existing?.createdAt || nowIso(),
+          updatedAt: remote.updatedAt || nowIso(),
+        };
+
+        db.users = asArray(db.users).filter((user) => user.id !== next.id && user.cognitoSub !== next.cognitoSub);
+        db.users.push(next);
+        ensured = { ...next };
+      });
+    },
+    "Ensuring user via API failed.",
+  );
+
   return ensured;
 }
 
@@ -404,6 +506,55 @@ export function ensureArtistForCognito(identity) {
 
     ensured = { ...artist };
   });
+
+  runApiMutation(
+    async () => {
+      const response = await apiRequest("/v1/artist/me", { method: "GET" });
+      const remote = response?.data;
+      if (!remote?.id) {
+        return;
+      }
+
+      updateDB((db) => {
+        const existing = getArtistByCognitoSub(db, normalized.sub) || getArtistById(db, remote.id);
+        const next = {
+          id: remote.id,
+          cognitoSub: remote.cognitoSub || normalized.sub,
+          cognitoEmail: remote.cognitoEmail || normalized.email || "",
+          name: remote.name || existing?.name || displayNameFromIdentity(normalized, "New Artist"),
+          handle: remote.handle || existing?.handle || uniqueArtistHandle(db, remote.name || "artist"),
+          category: remote.category || existing?.category || "Illustration",
+          mediums: asArray(remote.mediums).length ? asArray(remote.mediums) : asArray(existing?.mediums),
+          location: remote.location || existing?.location || "",
+          verified: Boolean(remote.verified),
+          popularity: Number(remote.popularity || existing?.popularity || 0),
+          rating: Number(remote.rating || existing?.rating || 0),
+          reviewCount: Number(remote.reviewCount || existing?.reviewCount || 0),
+          priceFrom: Number(remote.priceFrom || existing?.priceFrom || 0),
+          availability: remote.availability || existing?.availability || "open",
+          bio: remote.bio || existing?.bio || "",
+          profileViews: Number(remote.profileViews || existing?.profileViews || 0),
+          completedBookings: Number(remote.completedBookings || existing?.completedBookings || 0),
+          acceptanceRate: Number(remote.acceptanceRate || existing?.acceptanceRate || 0),
+          portfolio: asArray(remote.portfolio).map((item) => ({
+            id: item.id || `p-${Date.now()}`,
+            title: item.title || "Portfolio Item",
+            image: item.imageUrl || item.image || "",
+            medium: item.medium || existing?.mediums?.[0] || "Digital",
+          })),
+          createdAt: remote.createdAt || existing?.createdAt || nowIso(),
+          updatedAt: remote.updatedAt || nowIso(),
+        };
+
+        db.artists = asArray(db.artists).filter(
+          (artist) => artist.id !== next.id && artist.cognitoSub !== next.cognitoSub,
+        );
+        db.artists.push(next);
+        ensured = { ...next };
+      });
+    },
+    "Ensuring artist via API failed.",
+  );
 
   return ensured;
 }
@@ -461,6 +612,24 @@ export function toggleSaveArtist(userId, artistId) {
     saved = false;
   });
 
+  if (artistId) {
+    runApiMutation(
+      async () => {
+        if (saved) {
+          await apiRequest(`/v1/me/saved-artists/${encodeURIComponent(artistId)}`, {
+            method: "POST",
+          });
+          return;
+        }
+
+        await apiRequest(`/v1/me/saved-artists/${encodeURIComponent(artistId)}`, {
+          method: "DELETE",
+        });
+      },
+      "Saving artist via API failed.",
+    );
+  }
+
   return saved;
 }
 
@@ -500,6 +669,22 @@ export function sendMessage(payload) {
       detail: body.slice(0, 72),
     });
   });
+
+  if (createdMessage?.threadId && createdMessage?.body) {
+    runApiMutation(
+      async () => {
+        await apiRequest(`/v1/threads/${encodeURIComponent(createdMessage.threadId)}/messages`, {
+          method: "POST",
+          body: {
+            body: createdMessage.body,
+            toId: createdMessage.toId,
+            bookingId: createdMessage.bookingId || undefined,
+          },
+        });
+      },
+      "Sending message via API failed.",
+    );
+  }
 
   return createdMessage;
 }
@@ -605,6 +790,23 @@ export function createBooking(payload) {
     createdBooking = booking;
   });
 
+  if (payload?.serviceId && payload?.deadline && payload?.budget && payload?.message) {
+    runApiMutation(
+      async () => {
+        await apiRequest("/v1/bookings", {
+          method: "POST",
+          body: {
+            serviceId: payload.serviceId,
+            deadline: payload.deadline,
+            budget: payload.budget,
+            message: payload.message,
+          },
+        });
+      },
+      "Creating booking via API failed.",
+    );
+  }
+
   return createdBooking;
 }
 
@@ -689,6 +891,32 @@ export function updateBookingStatus(bookingId, nextStatus, actorRole = "system")
     ok = true;
   });
 
+  if (ok && bookingId && nextStatus) {
+    runApiMutation(
+      async () => {
+        if (actorRole === "artist" && (nextStatus === "accepted" || nextStatus === "declined")) {
+          const action = nextStatus === "accepted" ? "accept" : "decline";
+          await apiRequest(`/v1/artist/me/bookings/${encodeURIComponent(bookingId)}/${action}`, {
+            method: "POST",
+            body: {
+              note: `Updated by ${actorRole}`,
+            },
+          });
+          return;
+        }
+
+        await apiRequest(`/v1/bookings/${encodeURIComponent(bookingId)}/status`, {
+          method: "POST",
+          body: {
+            status: nextStatus,
+            note: `Updated by ${actorRole}`,
+          },
+        });
+      },
+      "Updating booking status via API failed.",
+    );
+  }
+
   return { ok, booking: updatedBooking };
 }
 
@@ -700,6 +928,18 @@ export function markNotificationsRead(role, ownerId) {
       }
     });
   });
+
+  if (role === "user" && ownerId) {
+    runApiMutation(
+      async () => {
+        await apiRequest("/v1/me/notifications/read-all", {
+          method: "POST",
+          body: {},
+        });
+      },
+      "Marking notifications read via API failed.",
+    );
+  }
 }
 
 export function updateArtistVerification(artistId, verified) {
@@ -830,6 +1070,23 @@ export function updateUserProfile(userId, patch) {
       user.bookingHistory = [];
     }
   });
+
+  const name = String(patch?.name || "").trim();
+  const location = String(patch?.location || "").trim();
+  if (name || location) {
+    runApiMutation(
+      async () => {
+        await apiRequest("/v1/me/profile", {
+          method: "PATCH",
+          body: {
+            name,
+            location,
+          },
+        });
+      },
+      "Updating user profile via API failed.",
+    );
+  }
 }
 
 export function updateArtistProfile(artistId, patch) {
@@ -851,6 +1108,52 @@ export function updateArtistProfile(artistId, patch) {
 
     recalcArtistMetrics(db, artist.id);
   });
+
+  const artist = getArtistById(getDB(), artistId);
+  if (!artist) {
+    return;
+  }
+
+  const onboardingPatch =
+    Object.prototype.hasOwnProperty.call(patch || {}, "category")
+    || Object.prototype.hasOwnProperty.call(patch || {}, "mediums")
+    || Object.prototype.hasOwnProperty.call(patch || {}, "priceFrom")
+    || Object.prototype.hasOwnProperty.call(patch || {}, "portfolio");
+
+  runApiMutation(
+    async () => {
+      if (onboardingPatch) {
+        await apiRequest("/v1/artist/me/onboarding", {
+          method: "PUT",
+          body: {
+            category: artist.category,
+            mediums: artist.mediums,
+            priceFrom: artist.priceFrom,
+            availability: artist.availability,
+            portfolio: asArray(artist.portfolio).map((item) => ({
+              id: item.id,
+              title: item.title,
+              medium: item.medium || artist.mediums?.[0] || "Digital",
+              imageUrl: item.image || item.imageUrl || "",
+            })),
+          },
+        });
+        return;
+      }
+
+      await apiRequest("/v1/artist/me/profile", {
+        method: "PATCH",
+        body: {
+          name: artist.name,
+          handle: artist.handle,
+          location: artist.location,
+          bio: artist.bio,
+          availability: artist.availability,
+        },
+      });
+    },
+    "Updating artist profile via API failed.",
+  );
 }
 
 export function upsertService(artistId, servicePatch) {
@@ -908,6 +1211,33 @@ export function upsertService(artistId, servicePatch) {
     artist.updatedAt = nowIso();
   });
 
+  if (saved) {
+    runApiMutation(
+      async () => {
+        const body = {
+          title: saved.title,
+          description: saved.description,
+          price: Number(saved.price || 0),
+          deliveryDays: Number(saved.deliveryDays || 0),
+        };
+
+        if (servicePatch?.id) {
+          await apiRequest(`/v1/artist/me/services/${encodeURIComponent(saved.id)}`, {
+            method: "PATCH",
+            body,
+          });
+          return;
+        }
+
+        await apiRequest("/v1/artist/me/services", {
+          method: "POST",
+          body,
+        });
+      },
+      "Saving service via API failed.",
+    );
+  }
+
   return saved;
 }
 
@@ -957,6 +1287,17 @@ export function removeService(artistId, serviceId) {
 
     recalcArtistMetrics(db, artistId);
   });
+
+  if (serviceId) {
+    runApiMutation(
+      async () => {
+        await apiRequest(`/v1/artist/me/services/${encodeURIComponent(serviceId)}`, {
+          method: "DELETE",
+        });
+      },
+      "Removing service via API failed.",
+    );
+  }
 }
 
 export function deleteUserAccount(userId) {

@@ -1,10 +1,11 @@
-import { deleteUserAccount, getDB, getUserById, updateUserProfile } from "../store.js";
+import { deleteUserAccount, getDB, getUserById, hydrateDB, updateUserProfile } from "../store.js";
 import { logout } from "../session.js";
 import { requireRole, assertCanMutate } from "../router-guards.js";
 import { initSharedPage } from "../shared-nav.js";
 import { byId, showToast } from "../utils.js";
 
 initSharedPage();
+await hydrateDB();
 const session = requireRole(["user"]);
 if (!session) throw new Error("Unauthorized");
 

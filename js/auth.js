@@ -3,6 +3,7 @@ import {
   ensureUserForCognito,
   getArtistById,
   getDB,
+  hydrateDB,
   getUserById,
   updateArtistProfile,
   updateUserProfile,
@@ -22,6 +23,7 @@ import { initSharedPage } from "./shared-nav.js";
 import { byId, getQueryParam, normalizeInternalPath, showToast } from "./utils.js";
 
 initSharedPage();
+await hydrateDB();
 
 const authStatus = byId("auth-status");
 const signedInEmail = byId("signed-in-email");

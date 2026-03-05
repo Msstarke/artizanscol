@@ -3,6 +3,7 @@ import {
   ensureUserForCognito,
   getArtistById,
   getDB,
+  hydrateDB,
   getServiceById,
   getServicesForArtist,
   sendMessage,
@@ -15,6 +16,7 @@ import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, formatMoney, getQueryParam, showToast } from "./utils.js";
 
 initSharedPage();
+await hydrateDB();
 
 let session = getSession();
 let db = getDB();

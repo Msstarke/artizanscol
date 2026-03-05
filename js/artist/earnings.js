@@ -1,9 +1,10 @@
-import { getDB } from "../store.js";
+import { getDB, hydrateDB } from "../store.js";
 import { requireRole } from "../router-guards.js";
 import { initSharedPage } from "../shared-nav.js";
 import { byId, formatDate, formatMoney, statusBadge } from "../utils.js";
 
 initSharedPage();
+await hydrateDB();
 const session = requireRole(["artist"]);
 if (!session) throw new Error("Unauthorized");
 

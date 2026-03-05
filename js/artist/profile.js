@@ -1,6 +1,7 @@
 import {
   getArtistById,
   getDB,
+  hydrateDB,
   getServicesForArtist,
   removeService,
   updateArtistProfile,
@@ -11,6 +12,7 @@ import { initSharedPage } from "../shared-nav.js";
 import { byId, formatMoney, showToast } from "../utils.js";
 
 initSharedPage();
+await hydrateDB();
 const session = requireRole(["artist"]);
 if (!session) throw new Error("Unauthorized");
 

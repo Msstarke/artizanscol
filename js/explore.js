@@ -1,4 +1,4 @@
-import { ensureUserForCognito, getDB, toggleSaveArtist } from "./store.js";
+import { ensureUserForCognito, getDB, hydrateDB, toggleSaveArtist } from "./store.js";
 import { isCognitoAuthenticated } from "./cognito-auth.js";
 import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
@@ -7,6 +7,7 @@ import { byId, qsa, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
 
 initSharedPage();
+await hydrateDB();
 
 let db = getDB();
 let session = getSession();

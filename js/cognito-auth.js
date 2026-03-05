@@ -149,6 +149,11 @@ export function getCognitoIdentity() {
   return session.identity || identityFromIdToken(session.idToken);
 }
 
+export function getCognitoAccessToken() {
+  const session = getStoredSession();
+  return session?.accessToken || null;
+}
+
 export function isCognitoAuthenticated() {
   const session = getStoredSession();
   if (!session?.idToken || !session?.accessToken) {

@@ -1,4 +1,4 @@
-import { getDB, resetDB } from "./store.js";
+import { getDB, hydrateDB, resetDB } from "./store.js";
 import { getSession, logout } from "./session.js";
 import { signOutCognito } from "./cognito-auth.js";
 import { qsa, showToast } from "./utils.js";
@@ -126,6 +126,10 @@ export function initSharedPage() {
   mountMaintenanceBanner(db, session);
   bindGlobalButtons();
   bindToastEvent();
+
+  void hydrateDB().then((freshDb) => {
+    mountMaintenanceBanner(freshDb, session);
+  });
 
   return { session, db };
 }

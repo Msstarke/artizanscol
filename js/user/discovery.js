@@ -1,10 +1,11 @@
-import { getDB, getUserById, toggleSaveArtist } from "../store.js";
+import { getDB, getUserById, hydrateDB, toggleSaveArtist } from "../store.js";
 import { requireRole, assertCanMutate } from "../router-guards.js";
 import { initSharedPage } from "../shared-nav.js";
 import { byId, showToast } from "../utils.js";
 import { artistCardHTML } from "../renderers.js";
 
 initSharedPage();
+await hydrateDB();
 const session = requireRole(["user"]);
 if (!session) throw new Error("Unauthorized");
 

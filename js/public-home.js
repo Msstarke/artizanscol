@@ -1,10 +1,11 @@
-import { getDB } from "./store.js";
+import { getDB, hydrateDB } from "./store.js";
 import { getSession } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
 
 initSharedPage();
+await hydrateDB();
 
 const db = getDB();
 const session = getSession();
