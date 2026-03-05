@@ -3,7 +3,7 @@
 ## Progress Tracker
 - [x] Step 0: Plan file created in repo root
 - [x] Phase 1: Backend foundation and repo structure
-- [ ] Phase 2: AWS infrastructure extension (CloudFormation)
+- [x] Phase 2: AWS infrastructure extension (CloudFormation)
 - [ ] Phase 3: Authentication and authorization
 - [ ] Phase 4: Data model and persistence contracts
 - [ ] Phase 5: Public and discovery APIs

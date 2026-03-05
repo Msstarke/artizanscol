@@ -30,6 +30,7 @@ This catalog is the primary index for the repository.
 - Auto deploy pipeline: `.github/workflows/deploy-aws-static-site.yml`
 - Infrastructure template: `aws/cloudformation/artizans-aws-stack.yaml`
 - CloudShell deploy script: `aws/scripts/cloudshell-deploy.sh`
+- Stack now includes serverless backend scaffolding (HTTP API, Lambda domain functions, DynamoDB tables, SQS, Secrets Manager, CloudWatch alarms).
 
 ## Backend Foundation
 - API response contract: `backend/src/domain/api-response.ts`

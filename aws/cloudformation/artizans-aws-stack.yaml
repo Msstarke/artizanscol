@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Artizans AWS stack (S3 + CloudFront + WAF + Cognito + IAM + optional EC2 + optional ACM PCA)
+Description: Artizans AWS stack (S3 + CloudFront + WAF + Cognito + serverless API + optional EC2 + optional ACM PCA)
 
 Parameters:
   ProjectName:
@@ -55,6 +55,24 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
 
+  EnableServerlessApi:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
+
+  ApiDomainName:
+    Type: String
+    Default: ''
+    Description: Optional custom domain for the backend API (for example api.example.com)
+  ApiCertificateArn:
+    Type: String
+    Default: ''
+    Description: Optional ACM certificate ARN for the API custom domain (same region as API Gateway)
+  ApiHostedZoneId:
+    Type: String
+    Default: ''
+    Description: Optional Route53 hosted zone ID used to create API DNS alias
+
 Conditions:
   HasDomainName: !Not [!Equals [!Ref DomainName, '']]
   HasHostedZoneId: !Not [!Equals [!Ref HostedZoneId, '']]
@@ -70,10 +88,21 @@ Conditions:
       - !Condition CreateManagedCertificateCondition
   UseEc2Api: !Equals [!Ref EnableEc2Api, 'true']
   UsePrivateCA: !Equals [!Ref EnablePrivateCA, 'true']
-  IsUsEast1: !Equals [!Ref AWS::Region, 'us-east-1']
+  IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']
   CreateCloudFrontWaf: !And
     - !Equals [!Ref EnableCloudFrontWaf, 'true']
     - !Condition IsUsEast1
+  UseServerlessApi: !Equals [!Ref EnableServerlessApi, 'true']
+  HasApiDomainName: !Not [!Equals [!Ref ApiDomainName, '']]
+  HasApiCertificateArn: !Not [!Equals [!Ref ApiCertificateArn, '']]
+  HasApiHostedZoneId: !Not [!Equals [!Ref ApiHostedZoneId, '']]
+  EnableApiCustomDomain: !And
+    - !Condition UseServerlessApi
+    - !Condition HasApiDomainName
+    - !Condition HasApiCertificateArn
+  CreateApiDnsRecord: !And
+    - !Condition EnableApiCustomDomain
+    - !Condition HasApiHostedZoneId
 
 Resources:
   ArtizansSiteBucket:
@@ -321,6 +350,1377 @@ Resources:
       Roles:
         authenticated: !GetAtt ArtizansCognitoAuthRole.Arn
 
+  ArtizansEventsQueueDlq:
+    Type: AWS::SQS::Queue
+    Condition: UseServerlessApi
+    Properties:
+      QueueName: !Sub '${ProjectName}-${EnvironmentName}-events-dlq'
+      MessageRetentionPeriod: 1209600
+
+  ArtizansEventsQueue:
+    Type: AWS::SQS::Queue
+    Condition: UseServerlessApi
+    Properties:
+      QueueName: !Sub '${ProjectName}-${EnvironmentName}-events'
+      VisibilityTimeout: 60
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ArtizansEventsQueueDlq.Arn
+        maxReceiveCount: 3
+
+  ArtizansStripeSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: UseServerlessApi
+    Properties:
+      Name: !Sub '${ProjectName}/${EnvironmentName}/stripe/secret-key'
+      Description: Stripe secret key for backend payment operations
+      GenerateSecretString:
+        SecretStringTemplate: '{"provider":"stripe","key":""}'
+        GenerateStringKey: placeholder
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  ArtizansStripeWebhookSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: UseServerlessApi
+    Properties:
+      Name: !Sub '${ProjectName}/${EnvironmentName}/stripe/webhook-secret'
+      Description: Stripe webhook signing secret
+      GenerateSecretString:
+        SecretStringTemplate: '{"provider":"stripe","webhookSecret":""}'
+        GenerateStringKey: placeholder
+        PasswordLength: 32
+        ExcludePunctuation: true
+
+  ArtizansAppSecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: UseServerlessApi
+    Properties:
+      Name: !Sub '${ProjectName}/${EnvironmentName}/app/secret'
+      Description: Shared app secret used for server-side signed operations
+      GenerateSecretString:
+        SecretStringTemplate: '{"name":"artizans-app-secret"}'
+        GenerateStringKey: secret
+        PasswordLength: 64
+        ExcludePunctuation: true
+
+  ArtizansUsersTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-users'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: cognitoSub
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CognitoSubIndex
+          KeySchema:
+            - AttributeName: cognitoSub
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansArtistsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-artists'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: category
+          AttributeType: S
+        - AttributeName: popularity
+          AttributeType: N
+        - AttributeName: location
+          AttributeType: S
+        - AttributeName: rating
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ArtistsByCategoryPopularity
+          KeySchema:
+            - AttributeName: category
+              KeyType: HASH
+            - AttributeName: popularity
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ArtistsByLocationRating
+          KeySchema:
+            - AttributeName: location
+              KeyType: HASH
+            - AttributeName: rating
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansServicesTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-services'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: artistId
+          AttributeType: S
+        - AttributeName: updatedAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ServicesByArtistUpdatedAt
+          KeySchema:
+            - AttributeName: artistId
+              KeyType: HASH
+            - AttributeName: updatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansBookingsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-bookings'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: artistId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: updatedAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: BookingsByUserCreatedAt
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: BookingsByArtistCreatedAt
+          KeySchema:
+            - AttributeName: artistId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: BookingsByStatusUpdatedAt
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: updatedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansMessagesTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-messages'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: threadId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: MessagesByThreadCreatedAt
+          KeySchema:
+            - AttributeName: threadId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansNotificationsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-notifications'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: ownerReadKey
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: NotificationsByOwnerRead
+          KeySchema:
+            - AttributeName: ownerReadKey
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansReportsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-reports'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ReportsByStatusType
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: type
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansCategoriesTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-categories'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: activeStatus
+          AttributeType: S
+        - AttributeName: sortName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CategoriesByActive
+          KeySchema:
+            - AttributeName: activeStatus
+              KeyType: HASH
+            - AttributeName: sortName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansInvoicesTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-invoices'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: bookingId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: InvoicesByBooking
+          KeySchema:
+            - AttributeName: bookingId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansPayoutsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-payouts'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: artistId
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: PayoutsByArtistDate
+          KeySchema:
+            - AttributeName: artistId
+              KeyType: HASH
+            - AttributeName: date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansSystemConfigTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-system-config'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansRoleAssignmentsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-role-assignments'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: subjectId
+          AttributeType: S
+        - AttributeName: role
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: RolesBySubject
+          KeySchema:
+            - AttributeName: subjectId
+              KeyType: HASH
+            - AttributeName: role
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ArtizansApiLambdaRole:
+    Type: AWS::IAM::Role
+    Condition: UseServerlessApi
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: !Sub '${ProjectName}-${EnvironmentName}-api-runtime-policy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource:
+                  - !GetAtt ArtizansUsersTable.Arn
+                  - !Sub '${ArtizansUsersTable.Arn}/index/*'
+                  - !GetAtt ArtizansArtistsTable.Arn
+                  - !Sub '${ArtizansArtistsTable.Arn}/index/*'
+                  - !GetAtt ArtizansServicesTable.Arn
+                  - !Sub '${ArtizansServicesTable.Arn}/index/*'
+                  - !GetAtt ArtizansBookingsTable.Arn
+                  - !Sub '${ArtizansBookingsTable.Arn}/index/*'
+                  - !GetAtt ArtizansMessagesTable.Arn
+                  - !Sub '${ArtizansMessagesTable.Arn}/index/*'
+                  - !GetAtt ArtizansNotificationsTable.Arn
+                  - !Sub '${ArtizansNotificationsTable.Arn}/index/*'
+                  - !GetAtt ArtizansReportsTable.Arn
+                  - !Sub '${ArtizansReportsTable.Arn}/index/*'
+                  - !GetAtt ArtizansCategoriesTable.Arn
+                  - !Sub '${ArtizansCategoriesTable.Arn}/index/*'
+                  - !GetAtt ArtizansInvoicesTable.Arn
+                  - !Sub '${ArtizansInvoicesTable.Arn}/index/*'
+                  - !GetAtt ArtizansPayoutsTable.Arn
+                  - !Sub '${ArtizansPayoutsTable.Arn}/index/*'
+                  - !GetAtt ArtizansSystemConfigTable.Arn
+                  - !GetAtt ArtizansRoleAssignmentsTable.Arn
+                  - !Sub '${ArtizansRoleAssignmentsTable.Arn}/index/*'
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  - !GetAtt ArtizansEventsQueue.Arn
+                  - !GetAtt ArtizansEventsQueueDlq.Arn
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref ArtizansStripeSecret
+                  - !Ref ArtizansStripeWebhookSecret
+                  - !Ref ArtizansAppSecret
+
+  ArtizansPublicApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-public-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: public
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler public is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansUserApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-user-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: user
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler user is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansArtistApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-artist-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: artist
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler artist is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansMessagingApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-messaging-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: messaging
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler messaging is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansAdminApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-admin-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: admin
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler admin is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansPaymentsApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-payments-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: payments
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler payments is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansWebhookApiFunction:
+    Type: AWS::Lambda::Function
+    Condition: UseServerlessApi
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${EnvironmentName}-webhook-api'
+      Runtime: nodejs20.x
+      Handler: index.handler
+      Role: !GetAtt ArtizansApiLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          DOMAIN_AREA: webhook
+          STAGE: !Ref EnvironmentName
+          USERS_TABLE_NAME: !Ref ArtizansUsersTable
+          ARTISTS_TABLE_NAME: !Ref ArtizansArtistsTable
+          SERVICES_TABLE_NAME: !Ref ArtizansServicesTable
+          BOOKINGS_TABLE_NAME: !Ref ArtizansBookingsTable
+          MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
+          NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
+          REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
+          INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
+          PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
+          SYSTEM_CONFIG_TABLE_NAME: !Ref ArtizansSystemConfigTable
+          ROLE_ASSIGNMENTS_TABLE_NAME: !Ref ArtizansRoleAssignmentsTable
+          EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
+          STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
+          STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
+          COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
+          COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+      Code:
+        ZipFile: |
+          exports.handler = async () => {
+            return {
+              statusCode: 501,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store"
+              },
+              body: JSON.stringify({
+                ok: false,
+                error: {
+                  code: "NOT_IMPLEMENTED",
+                  message: "Domain handler webhook is not implemented yet."
+                }
+              })
+            };
+          };
+
+  ArtizansPublicApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansPublicApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansUserApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansUserApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansArtistApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansArtistApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansMessagingApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansMessagingApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansAdminApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansAdminApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansPaymentsApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansPaymentsApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansWebhookApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: UseServerlessApi
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ArtizansWebhookApiFunction}'
+      RetentionInDays: 14
+
+  ArtizansHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Condition: UseServerlessApi
+    Properties:
+      Name: !Sub '${ProjectName}-${EnvironmentName}-http-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+        AllowHeaders: [Authorization, Content-Type, X-Amz-Date, X-Api-Key, X-Amz-Security-Token]
+        MaxAge: 86400
+
+  ArtizansHttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      StageName: '$default'
+      AutoDeploy: true
+
+  ArtizansPublicApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansPublicApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansUserApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansUserApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansArtistApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansArtistApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansMessagingApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansMessagingApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansAdminApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansAdminApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansPaymentsApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansPaymentsApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansWebhookApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt ArtizansWebhookApiFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ArtizansRouteCategories:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/categories'
+      Target: !Sub 'integrations/${ArtizansPublicApiIntegration}'
+
+  ArtizansRouteArtists:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/artists'
+      Target: !Sub 'integrations/${ArtizansPublicApiIntegration}'
+
+  ArtizansRouteArtistById:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/artists/{artistId}'
+      Target: !Sub 'integrations/${ArtizansPublicApiIntegration}'
+
+  ArtizansRouteUserMe:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'ANY /v1/me'
+      Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
+
+  ArtizansRouteUserMeProxy:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'ANY /v1/me/{proxy+}'
+      Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
+
+  ArtizansRouteBookings:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/bookings'
+      Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
+
+  ArtizansRouteBookingStatus:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/bookings/{bookingId}/status'
+      Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
+
+  ArtizansRouteArtistApi:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'ANY /v1/artist/{proxy+}'
+      Target: !Sub 'integrations/${ArtizansArtistApiIntegration}'
+
+  ArtizansRouteThreads:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/threads'
+      Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
+
+  ArtizansRouteThreadMessagesRead:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/threads/{threadId}/messages'
+      Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
+
+  ArtizansRouteThreadMessagesWrite:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/threads/{threadId}/messages'
+      Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
+
+  ArtizansRouteUpdates:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'GET /v1/me/updates'
+      Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
+
+  ArtizansRouteAdminApi:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'ANY /v1/admin/{proxy+}'
+      Target: !Sub 'integrations/${ArtizansAdminApiIntegration}'
+
+  ArtizansRoutePaymentsCheckout:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/payments/checkout-session'
+      Target: !Sub 'integrations/${ArtizansPaymentsApiIntegration}'
+
+  ArtizansRoutePaymentsRefund:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/payments/refunds'
+      Target: !Sub 'integrations/${ArtizansPaymentsApiIntegration}'
+
+  ArtizansRouteStripeWebhook:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'POST /v1/webhooks/stripe'
+      Target: !Sub 'integrations/${ArtizansWebhookApiIntegration}'
+
+  ArtizansPublicApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansPublicApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansUserApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansUserApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansArtistApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansArtistApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansMessagingApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansMessagingApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansAdminApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansAdminApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansPaymentsApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansPaymentsApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansWebhookApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Condition: UseServerlessApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ArtizansWebhookApiFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ArtizansHttpApi}/*/*/*'
+
+  ArtizansHttpApiDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Condition: EnableApiCustomDomain
+    Properties:
+      DomainName: !Ref ApiDomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref ApiCertificateArn
+          EndpointType: REGIONAL
+          SecurityPolicy: TLS_1_2
+
+  ArtizansHttpApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: EnableApiCustomDomain
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      DomainName: !Ref ArtizansHttpApiDomain
+      Stage: !Ref ArtizansHttpApiStage
+
+  ArtizansHttpApiDnsRecord:
+    Type: AWS::Route53::RecordSet
+    Condition: CreateApiDnsRecord
+    Properties:
+      HostedZoneId: !Ref ApiHostedZoneId
+      Name: !Ref ApiDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ArtizansHttpApiDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ArtizansHttpApiDomain.RegionalHostedZoneId
+        EvaluateTargetHealth: false
+
+  ArtizansApi5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-api-5xx'
+      Namespace: AWS/ApiGateway
+      MetricName: 5xx
+      Dimensions:
+        - Name: ApiId
+          Value: !Ref ArtizansHttpApi
+        - Name: Stage
+          Value: '$default'
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansPublicApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-public-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansPublicApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansUserApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-user-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansUserApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansArtistApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-artist-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansArtistApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansMessagingApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-messaging-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansMessagingApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansAdminApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-admin-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansAdminApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansPaymentsApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-payments-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansPaymentsApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansWebhookApiErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-webhook-api-errors'
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ArtizansWebhookApiFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ArtizansEventsQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: UseServerlessApi
+    Properties:
+      AlarmName: !Sub '${ProjectName}-${EnvironmentName}-events-queue-depth'
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ArtizansEventsQueue.QueueName
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 100
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
   ArtizansEc2Role:
     Type: AWS::IAM::Role
     Condition: UseEc2Api
@@ -398,6 +1798,83 @@ Outputs:
     Value: !Ref ArtizansUserPoolClient
   CognitoIdentityPoolId:
     Value: !Ref ArtizansIdentityPool
+  ApiBaseUrl:
+    Condition: UseServerlessApi
+    Value: !Sub 'https://${ArtizansHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  ApiCustomDomainUrl:
+    Condition: EnableApiCustomDomain
+    Value: !Sub 'https://${ApiDomainName}'
+  EventsQueueUrl:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansEventsQueue
+  StripeSecretArn:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansStripeSecret
+  StripeWebhookSecretArn:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansStripeWebhookSecret
+  AppSecretArn:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansAppSecret
+
+  UsersTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansUsersTable
+  ArtistsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansArtistsTable
+  ServicesTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansServicesTable
+  BookingsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansBookingsTable
+  MessagesTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansMessagesTable
+  NotificationsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansNotificationsTable
+  ReportsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansReportsTable
+  CategoriesTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansCategoriesTable
+  InvoicesTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansInvoicesTable
+  PayoutsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansPayoutsTable
+  SystemConfigTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansSystemConfigTable
+  RoleAssignmentsTableName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansRoleAssignmentsTable
+
+  PublicApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansPublicApiFunction
+  UserApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansUserApiFunction
+  ArtistApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansArtistApiFunction
+  MessagingApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansMessagingApiFunction
+  AdminApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansAdminApiFunction
+  PaymentsApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansPaymentsApiFunction
+  WebhookApiFunctionName:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansWebhookApiFunction
 
   ConsoleEC2:
     Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#Instances:'

@@ -20,6 +20,7 @@ This folder makes your current multi-page prototype AWS-ready.
 1. CloudFormation starter stack:
 - `aws/cloudformation/artizans-aws-stack.yaml`
 - Includes S3, CloudFront, WAF, Cognito, IAM roles, optional EC2 API host, optional private CA.
+- Includes serverless backend scaffold: API Gateway HTTP API, domain Lambda stubs, DynamoDB tables, SQS + DLQ, Secrets Manager, CloudWatch log groups and alarms.
 
 2. CloudShell deployment script:
 - `aws/scripts/cloudshell-deploy.sh`
@@ -95,5 +96,6 @@ Optional env vars:
 
 ## Notes
 - For custom domains on CloudFront, use an ACM certificate in `us-east-1` and set `CertificateArn`.
+- For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
 - Billing, Health, CloudShell, IAM, and Support are account-level consoles and are linked from `/admin/aws.html`.
 - This prototype is still frontend/localStorage-first; EC2 is optional if you want to move workflows to a server API.
