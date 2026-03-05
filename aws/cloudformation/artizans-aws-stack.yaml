@@ -1275,6 +1275,20 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
 
+  ArtizansHttpApiJwtAuthorizer:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      AuthorizerType: JWT
+      Name: !Sub '${ProjectName}-${EnvironmentName}-cognito-jwt'
+      IdentitySource:
+        - '$request.header.Authorization'
+      JwtConfiguration:
+        Audience:
+          - !Ref ArtizansUserPoolClient
+        Issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
+
   ArtizansPublicApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
     Condition: UseServerlessApi
@@ -1375,6 +1389,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'ANY /v1/me'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
 
   ArtizansRouteUserMeProxy:
@@ -1383,6 +1399,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'ANY /v1/me/{proxy+}'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
 
   ArtizansRouteBookings:
@@ -1391,6 +1409,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'POST /v1/bookings'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
 
   ArtizansRouteBookingStatus:
@@ -1399,6 +1419,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'POST /v1/bookings/{bookingId}/status'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansUserApiIntegration}'
 
   ArtizansRouteArtistApi:
@@ -1407,6 +1429,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'ANY /v1/artist/{proxy+}'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansArtistApiIntegration}'
 
   ArtizansRouteThreads:
@@ -1415,6 +1439,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'GET /v1/threads'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
 
   ArtizansRouteThreadMessagesRead:
@@ -1423,6 +1449,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'GET /v1/threads/{threadId}/messages'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
 
   ArtizansRouteThreadMessagesWrite:
@@ -1431,6 +1459,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'POST /v1/threads/{threadId}/messages'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
 
   ArtizansRouteUpdates:
@@ -1439,6 +1469,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'GET /v1/me/updates'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansMessagingApiIntegration}'
 
   ArtizansRouteAdminApi:
@@ -1447,6 +1479,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'ANY /v1/admin/{proxy+}'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansAdminApiIntegration}'
 
   ArtizansRoutePaymentsCheckout:
@@ -1455,6 +1489,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'POST /v1/payments/checkout-session'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansPaymentsApiIntegration}'
 
   ArtizansRoutePaymentsRefund:
@@ -1463,6 +1499,8 @@ Resources:
     Properties:
       ApiId: !Ref ArtizansHttpApi
       RouteKey: 'POST /v1/payments/refunds'
+      AuthorizationType: JWT
+      AuthorizerId: !Ref ArtizansHttpApiJwtAuthorizer
       Target: !Sub 'integrations/${ArtizansPaymentsApiIntegration}'
 
   ArtizansRouteStripeWebhook:
@@ -1801,6 +1839,9 @@ Outputs:
   ApiBaseUrl:
     Condition: UseServerlessApi
     Value: !Sub 'https://${ArtizansHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  ApiJwtAuthorizerId:
+    Condition: UseServerlessApi
+    Value: !Ref ArtizansHttpApiJwtAuthorizer
   ApiCustomDomainUrl:
     Condition: EnableApiCustomDomain
     Value: !Sub 'https://${ApiDomainName}'

@@ -37,6 +37,7 @@ This catalog is the primary index for the repository.
 - Runtime environment contract: `backend/src/lib/env.ts`
 - Starter Lambda handler: `backend/src/handlers/health.ts`
 - Execution roadmap: `IMPLEMENTATION_PLAN.md`
+- Auth scaffold: `backend/src/domain/auth.ts`, `backend/src/middleware/auth-context.ts`, `backend/src/middleware/authorization.ts`, `backend/src/repos/role-assignments.ts`
 
 ## Repo Rules
 - Operational workflow rules: `REPO_RULES.md`

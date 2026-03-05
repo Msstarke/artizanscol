@@ -21,6 +21,7 @@ This folder makes your current multi-page prototype AWS-ready.
 - `aws/cloudformation/artizans-aws-stack.yaml`
 - Includes S3, CloudFront, WAF, Cognito, IAM roles, optional EC2 API host, optional private CA.
 - Includes serverless backend scaffold: API Gateway HTTP API, domain Lambda stubs, DynamoDB tables, SQS + DLQ, Secrets Manager, CloudWatch log groups and alarms.
+- Includes API JWT auth scaffold: Cognito-backed API Gateway JWT authorizer attached to protected `/v1/*` routes.
 
 2. CloudShell deployment script:
 - `aws/scripts/cloudshell-deploy.sh`
