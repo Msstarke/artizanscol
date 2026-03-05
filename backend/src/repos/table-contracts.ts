@@ -1,0 +1,31 @@
+export const TABLES = {
+  users: "Users",
+  artists: "Artists",
+  services: "Services",
+  bookings: "Bookings",
+  messages: "Messages",
+  notifications: "Notifications",
+  reports: "Reports",
+  categories: "Categories",
+  invoices: "Invoices",
+  payouts: "Payouts",
+  systemConfig: "SystemConfig",
+  roleAssignments: "RoleAssignments",
+} as const;
+
+export const INDEXES = {
+  usersByCognitoSub: "CognitoSubIndex",
+  artistsByCategoryPopularity: "ArtistsByCategoryPopularity",
+  artistsByLocationRating: "ArtistsByLocationRating",
+  servicesByArtistUpdatedAt: "ServicesByArtistUpdatedAt",
+  bookingsByUserCreatedAt: "BookingsByUserCreatedAt",
+  bookingsByArtistCreatedAt: "BookingsByArtistCreatedAt",
+  bookingsByStatusUpdatedAt: "BookingsByStatusUpdatedAt",
+  messagesByThreadCreatedAt: "MessagesByThreadCreatedAt",
+  notificationsByOwnerRead: "NotificationsByOwnerRead",
+  reportsByStatusType: "ReportsByStatusType",
+  categoriesByActive: "CategoriesByActive",
+  invoicesByBooking: "InvoicesByBooking",
+  payoutsByArtistDate: "PayoutsByArtistDate",
+  rolesBySubject: "RolesBySubject",
+} as const;

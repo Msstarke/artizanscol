@@ -878,6 +878,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -929,6 +930,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -980,6 +982,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -1031,6 +1034,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -1082,6 +1086,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -1133,6 +1138,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -1184,6 +1190,7 @@ Resources:
           EVENTS_QUEUE_URL: !Ref ArtizansEventsQueue
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
+          APP_SECRET_ARN: !Ref ArtizansAppSecret
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'

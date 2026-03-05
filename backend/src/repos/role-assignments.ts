@@ -1,16 +1,6 @@
 import type { AppRole } from "../domain/auth.js";
 import { normalizeRoles } from "../domain/auth.js";
 
-export type RoleAssignmentRecord = {
-  id: string;
-  subjectId: string;
-  role: AppRole;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: string;
-  version: number;
-};
-
 export interface RoleAssignmentsRepository {
   listRolesForSubject(subjectId: string): Promise<AppRole[]>;
 }

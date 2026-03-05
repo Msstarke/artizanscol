@@ -38,6 +38,7 @@ This catalog is the primary index for the repository.
 - Starter Lambda handler: `backend/src/handlers/health.ts`
 - Execution roadmap: `IMPLEMENTATION_PLAN.md`
 - Auth scaffold: `backend/src/domain/auth.ts`, `backend/src/middleware/auth-context.ts`, `backend/src/middleware/authorization.ts`, `backend/src/repos/role-assignments.ts`
+- Data/persistence scaffold: `backend/src/domain/record-meta.ts`, `backend/src/domain/booking.ts`, `backend/src/domain/entities.ts`, `backend/src/domain/index-keys.ts`, `backend/src/repos/contracts.ts`, `backend/src/repos/table-contracts.ts`
 
 ## Repo Rules
 - Operational workflow rules: `REPO_RULES.md`

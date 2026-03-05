@@ -1,7 +1,8 @@
 export type AppEnv = {
   awsRegion: string;
   stage: "dev" | "prod";
-  apiBaseUrl: string;
+  apiBaseUrl?: string;
+  domainArea?: string;
 
   usersTableName: string;
   artistsTableName: string;
@@ -17,8 +18,9 @@ export type AppEnv = {
   roleAssignmentsTableName: string;
 
   eventsQueueUrl: string;
-  stripeSecretKey: string;
-  stripeWebhookSecret: string;
+  stripeSecretArn: string;
+  stripeWebhookSecretArn: string;
+  appSecretArn?: string;
 
   cognitoIssuer: string;
   cognitoUserPoolId: string;
@@ -36,11 +38,15 @@ function requireEnv(name: string, env: NodeJS.ProcessEnv): string {
 export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
   const stageRaw = requireEnv("STAGE", env).toLowerCase();
   const stage = stageRaw === "prod" ? "prod" : "dev";
+  const apiBaseUrl = String(env.API_BASE_URL || "").trim() || undefined;
+  const domainArea = String(env.DOMAIN_AREA || "").trim() || undefined;
+  const appSecretArn = String(env.APP_SECRET_ARN || "").trim() || undefined;
 
   return {
     awsRegion: requireEnv("AWS_REGION", env),
     stage,
-    apiBaseUrl: requireEnv("API_BASE_URL", env),
+    apiBaseUrl,
+    domainArea,
 
     usersTableName: requireEnv("USERS_TABLE_NAME", env),
     artistsTableName: requireEnv("ARTISTS_TABLE_NAME", env),
@@ -56,8 +62,9 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     roleAssignmentsTableName: requireEnv("ROLE_ASSIGNMENTS_TABLE_NAME", env),
 
     eventsQueueUrl: requireEnv("EVENTS_QUEUE_URL", env),
-    stripeSecretKey: requireEnv("STRIPE_SECRET_KEY", env),
-    stripeWebhookSecret: requireEnv("STRIPE_WEBHOOK_SECRET", env),
+    stripeSecretArn: requireEnv("STRIPE_SECRET_ARN", env),
+    stripeWebhookSecretArn: requireEnv("STRIPE_WEBHOOK_SECRET_ARN", env),
+    appSecretArn,
 
     cognitoIssuer: requireEnv("COGNITO_ISSUER", env),
     cognitoUserPoolId: requireEnv("COGNITO_USER_POOL_ID", env),
