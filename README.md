@@ -39,6 +39,7 @@ This catalog is the primary index for the repository.
 - Execution roadmap: `IMPLEMENTATION_PLAN.md`
 - Auth scaffold: `backend/src/domain/auth.ts`, `backend/src/middleware/auth-context.ts`, `backend/src/middleware/authorization.ts`, `backend/src/repos/role-assignments.ts`
 - Data/persistence scaffold: `backend/src/domain/record-meta.ts`, `backend/src/domain/booking.ts`, `backend/src/domain/entities.ts`, `backend/src/domain/index-keys.ts`, `backend/src/repos/contracts.ts`, `backend/src/repos/table-contracts.ts`
+- Public discovery scaffold: `backend/src/handlers/public-api.ts`, `backend/src/repos/public-discovery.ts`
 
 ## Repo Rules
 - Operational workflow rules: `REPO_RULES.md`

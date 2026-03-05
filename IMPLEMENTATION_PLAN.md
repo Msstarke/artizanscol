@@ -6,7 +6,7 @@
 - [x] Phase 2: AWS infrastructure extension (CloudFormation)
 - [x] Phase 3: Authentication and authorization
 - [x] Phase 4: Data model and persistence contracts
-- [ ] Phase 5: Public and discovery APIs
+- [x] Phase 5: Public and discovery APIs
 - [ ] Phase 6: User workspace APIs
 - [ ] Phase 7: Artist workspace APIs
 - [ ] Phase 8: Messaging APIs (near realtime polling)
