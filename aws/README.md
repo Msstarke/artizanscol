@@ -35,6 +35,10 @@ This folder makes your current multi-page prototype AWS-ready.
 - `aws/STRIPE_SECRETS_ROTATION.md`
 - Covers Stripe/API secret rotation, validation, and rollback steps.
 
+5. Backend rollback playbook:
+- `aws/ROLLBACK_PLAYBOOK.md`
+- Covers CloudFormation change set rollback and Lambda version rollback.
+
 ## Quick start (CloudShell)
 1. Upload this repo to CloudShell.
 2. Deploy infrastructure (example):
@@ -85,7 +89,28 @@ Once secrets are set, every qualifying push triggers:
 2. `aws s3 sync` to the site bucket.
 3. CloudFront invalidation.
 
-### Option B: local auto deploy on file save
+### Option B: backend CI + deploy pipeline (dev/prod)
+This repo includes `.github/workflows/deploy-aws-backend.yml`:
+- Runs backend lint/tests on PRs and backend-related pushes.
+- Deploys `dev` from `develop` (or manual dispatch with `environment=dev`).
+- Deploys `prod` from `main` (or manual dispatch with `environment=prod`).
+- Applies CloudFormation updates and then publishes Lambda code versions.
+
+Required GitHub repository secrets:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+
+Recommended additional secrets/vars:
+- `AWS_REGION` (defaults to `ap-southeast-2`)
+- `AWS_STACK_NAME_DEV` (defaults to `artizans-stack-dev`)
+- `AWS_STACK_NAME_PROD` (defaults to `artizans-stack`)
+- Repository variable `AWS_PROJECT_NAME` (defaults to `artizans`)
+
+Recommended GitHub environments:
+- `dev`
+- `prod` (configure required reviewers for protected production deploys)
+
+### Option C: local auto deploy on file save
 Use the watcher script to deploy whenever local files change:
 
 ```bash
@@ -103,5 +128,6 @@ Optional env vars:
 - For custom domains on CloudFront, use an ACM certificate in `us-east-1` and set `CertificateArn`.
 - For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
 - For payment security operations, follow `aws/STRIPE_SECRETS_ROTATION.md`.
+- For rollback procedures, follow `aws/ROLLBACK_PLAYBOOK.md`.
 - Billing, Health, CloudShell, IAM, and Support are account-level consoles and are linked from `/admin/aws.html`.
 - This prototype is still frontend/localStorage-first; EC2 is optional if you want to move workflows to a server API.

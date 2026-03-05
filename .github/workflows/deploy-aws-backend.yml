@@ -1,0 +1,232 @@
+name: Deploy AWS Backend
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - "aws/cloudformation/artizans-aws-stack.yaml"
+      - ".github/workflows/deploy-aws-backend.yml"
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - "backend/**"
+      - "aws/cloudformation/artizans-aws-stack.yaml"
+      - ".github/workflows/deploy-aws-backend.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment target"
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+
+jobs:
+  ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
+
+      - name: Test backend
+        working-directory: backend
+        run: npm test
+
+  deploy-dev:
+    name: Deploy Backend (dev)
+    needs: ci
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev') || (github.event_name == 'push' && github.ref == 'refs/heads/develop') }}
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: deploy-backend-dev
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION != '' && secrets.AWS_REGION || 'ap-southeast-2' }}
+      PROJECT_NAME: ${{ vars.AWS_PROJECT_NAME != '' && vars.AWS_PROJECT_NAME || 'artizans' }}
+      STACK_NAME: ${{ secrets.AWS_STACK_NAME_DEV != '' && secrets.AWS_STACK_NAME_DEV || 'artizans-stack-dev' }}
+      TARGET_ENV: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CloudFormation stack (dev)
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${STACK_NAME}" \
+            --template-file aws/cloudformation/artizans-aws-stack.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              ProjectName="${PROJECT_NAME}" \
+              EnvironmentName="${TARGET_ENV}" \
+              EnableServerlessApi=true \
+              EnableApiWaf=true
+
+      - name: Build Lambda package
+        run: ./backend/scripts/build-lambda-package.sh
+
+      - name: Deploy Lambda artifacts (dev)
+        run: |
+          ZIP_PATH="backend/.artifacts/artizans-backend-lambda.zip"
+          OUTPUT_KEYS=(
+            PublicApiFunctionName
+            UserApiFunctionName
+            ArtistApiFunctionName
+            MessagingApiFunctionName
+            AdminApiFunctionName
+            PaymentsApiFunctionName
+            WebhookApiFunctionName
+          )
+
+          echo "### Backend Lambda deploy (${TARGET_ENV})" >> "$GITHUB_STEP_SUMMARY"
+          for key in "${OUTPUT_KEYS[@]}"; do
+            function_name=$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --query "Stacks[0].Outputs[?OutputKey=='${key}'].OutputValue | [0]" \
+              --output text)
+
+            if [ -z "${function_name}" ] || [ "${function_name}" = "None" ]; then
+              echo "Missing CloudFormation output: ${key}" >&2
+              exit 1
+            fi
+
+            version=$(aws lambda update-function-code \
+              --function-name "${function_name}" \
+              --zip-file "fileb://${ZIP_PATH}" \
+              --publish \
+              --query "Version" \
+              --output text)
+
+            aws lambda wait function-updated --function-name "${function_name}"
+            echo "- ${function_name}: version ${version}" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+  deploy-prod:
+    name: Deploy Backend (prod)
+    needs: ci
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod') || (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+    runs-on: ubuntu-latest
+    environment: prod
+    concurrency:
+      group: deploy-backend-prod
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION != '' && secrets.AWS_REGION || 'ap-southeast-2' }}
+      PROJECT_NAME: ${{ vars.AWS_PROJECT_NAME != '' && vars.AWS_PROJECT_NAME || 'artizans' }}
+      STACK_NAME: ${{ secrets.AWS_STACK_NAME_PROD != '' && secrets.AWS_STACK_NAME_PROD || 'artizans-stack' }}
+      TARGET_ENV: prod
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CloudFormation stack (prod)
+        run: |
+          aws cloudformation deploy \
+            --stack-name "${STACK_NAME}" \
+            --template-file aws/cloudformation/artizans-aws-stack.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              ProjectName="${PROJECT_NAME}" \
+              EnvironmentName="${TARGET_ENV}" \
+              EnableServerlessApi=true \
+              EnableApiWaf=true
+
+      - name: Build Lambda package
+        run: ./backend/scripts/build-lambda-package.sh
+
+      - name: Deploy Lambda artifacts (prod)
+        run: |
+          ZIP_PATH="backend/.artifacts/artizans-backend-lambda.zip"
+          OUTPUT_KEYS=(
+            PublicApiFunctionName
+            UserApiFunctionName
+            ArtistApiFunctionName
+            MessagingApiFunctionName
+            AdminApiFunctionName
+            PaymentsApiFunctionName
+            WebhookApiFunctionName
+          )
+
+          echo "### Backend Lambda deploy (${TARGET_ENV})" >> "$GITHUB_STEP_SUMMARY"
+          for key in "${OUTPUT_KEYS[@]}"; do
+            function_name=$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --query "Stacks[0].Outputs[?OutputKey=='${key}'].OutputValue | [0]" \
+              --output text)
+
+            if [ -z "${function_name}" ] || [ "${function_name}" = "None" ]; then
+              echo "Missing CloudFormation output: ${key}" >&2
+              exit 1
+            fi
+
+            version=$(aws lambda update-function-code \
+              --function-name "${function_name}" \
+              --zip-file "fileb://${ZIP_PATH}" \
+              --publish \
+              --query "Version" \
+              --output text)
+
+            aws lambda wait function-updated --function-name "${function_name}"
+            echo "- ${function_name}: version ${version}" >> "$GITHUB_STEP_SUMMARY"
+          done
