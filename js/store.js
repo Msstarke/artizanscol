@@ -1,6 +1,8 @@
 import { apiRequest } from "./api-client.js";
 
 export const DB_SCHEMA_VERSION = 2;
+const DB_SESSION_CACHE_KEY = "artizans.session.dbcache.v1";
+const DB_LOCAL_CACHE_KEY = "artizans.local.dbcache.v1";
 
 export const BOOKING_STATUSES = [
   "requested",
@@ -37,6 +39,30 @@ const BOOKING_TRANSITIONS = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function safeParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch (_) {
+    return null;
+  }
+}
+
+function getSessionStorage() {
+  try {
+    return window.sessionStorage;
+  } catch (_) {
+    return null;
+  }
+}
+
+function getLocalStorage() {
+  try {
+    return window.localStorage;
+  } catch (_) {
+    return null;
+  }
 }
 
 function isoDaysFromNow(days) {
@@ -195,7 +221,104 @@ function isValidDB(db) {
   return true;
 }
 
-let dbCache = createEmptyDB();
+function parseTime(value) {
+  const time = new Date(value || "").getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function preferRemoteRecord(existing, remote) {
+  if (!existing) {
+    return true;
+  }
+  const remoteTime = parseTime(remote?.updatedAt);
+  const localTime = parseTime(existing?.updatedAt);
+  if (!remoteTime) {
+    return false;
+  }
+  return remoteTime >= localTime;
+}
+
+function loadSessionDBCache() {
+  const storage = getSessionStorage();
+  const raw = storage?.getItem(DB_SESSION_CACHE_KEY);
+  if (!raw) {
+    return null;
+  }
+  const parsed = safeParse(raw);
+  if (!isValidDB(parsed)) {
+    storage?.removeItem(DB_SESSION_CACHE_KEY);
+    return null;
+  }
+  return parsed;
+}
+
+function loadLocalDBCache() {
+  const storage = getLocalStorage();
+  const raw = storage?.getItem(DB_LOCAL_CACHE_KEY);
+  if (!raw) {
+    return null;
+  }
+  const parsed = safeParse(raw);
+  if (!isValidDB(parsed)) {
+    storage?.removeItem(DB_LOCAL_CACHE_KEY);
+    return null;
+  }
+  return parsed;
+}
+
+function loadDBCache() {
+  const sessionCached = loadSessionDBCache();
+  if (sessionCached) {
+    return sessionCached;
+  }
+
+  const localCached = loadLocalDBCache();
+  if (localCached) {
+    const sessionStorage = getSessionStorage();
+    sessionStorage?.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(localCached));
+    return localCached;
+  }
+
+  return null;
+}
+
+function persistSessionDBCache(db) {
+  const storage = getSessionStorage();
+  if (!storage) {
+    return;
+  }
+  storage.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(db));
+}
+
+function persistLocalDBCache(db) {
+  const storage = getLocalStorage();
+  if (!storage) {
+    return;
+  }
+  storage.setItem(DB_LOCAL_CACHE_KEY, JSON.stringify(db));
+}
+
+function persistDBCache(db) {
+  persistSessionDBCache(db);
+  persistLocalDBCache(db);
+}
+
+function clearSessionDBCache() {
+  const storage = getSessionStorage();
+  storage?.removeItem(DB_SESSION_CACHE_KEY);
+}
+
+function clearLocalDBCache() {
+  const storage = getLocalStorage();
+  storage?.removeItem(DB_LOCAL_CACHE_KEY);
+}
+
+function clearDBCache() {
+  clearSessionDBCache();
+  clearLocalDBCache();
+}
+
+let dbCache = loadDBCache() || createEmptyDB();
 let dbHydrated = false;
 
 function emitStoreUpdated() {
@@ -221,29 +344,38 @@ export async function hydrateDB() {
       apiRequest("/v1/artists", { auth: false }),
     ]);
 
-    const next = createEmptyDB();
+    const existing = dbCache;
+    const next = {
+      ...existing,
+      schemaVersion: DB_SCHEMA_VERSION,
+      categories: createDefaultCategories(),
+      artists: [],
+    };
     next.categories = asArray(categoriesResponse?.data?.items).map((category) => ({
       id: category.id,
       name: category.name,
       active: category.active !== false,
     }));
 
+    const localArtistsById = new Map(asArray(existing.artists).map((artist) => [artist.id, artist]));
     next.artists = asArray(artistsResponse?.data?.items).map((artist) => ({
       id: artist.id,
-      cognitoSub: artist.cognitoSub || null,
-      cognitoEmail: artist.cognitoEmail || null,
-      name: artist.name,
-      handle: artist.handle,
-      category: artist.category,
-      mediums: asArray(artist.mediums),
-      location: artist.location || "",
+      cognitoSub: artist.cognitoSub || localArtistsById.get(artist.id)?.cognitoSub || null,
+      cognitoEmail: artist.cognitoEmail || localArtistsById.get(artist.id)?.cognitoEmail || null,
+      name: artist.name || localArtistsById.get(artist.id)?.name || "Artist",
+      handle: artist.handle || localArtistsById.get(artist.id)?.handle || "",
+      category: artist.category || localArtistsById.get(artist.id)?.category || "",
+      mediums: asArray(artist.mediums).length
+        ? asArray(artist.mediums)
+        : asArray(localArtistsById.get(artist.id)?.mediums),
+      location: artist.location || localArtistsById.get(artist.id)?.location || "",
       verified: Boolean(artist.verified),
       popularity: Number(artist.popularity || 0),
       rating: Number(artist.rating || 0),
       reviewCount: Number(artist.reviewCount || 0),
       priceFrom: Number(artist.priceFrom || 0),
-      availability: artist.availability || "open",
-      bio: artist.bio || "",
+      availability: artist.availability || localArtistsById.get(artist.id)?.availability || "open",
+      bio: artist.bio || localArtistsById.get(artist.id)?.bio || "",
       profileViews: Number(artist.profileViews || 0),
       completedBookings: Number(artist.completedBookings || 0),
       acceptanceRate: Number(artist.acceptanceRate || 0),
@@ -252,11 +384,12 @@ export async function hydrateDB() {
         title: item.title || "Portfolio Item",
         image: item.imageUrl || item.image || "",
       })),
-      createdAt: artist.createdAt || nowIso(),
+      createdAt: artist.createdAt || localArtistsById.get(artist.id)?.createdAt || nowIso(),
       updatedAt: artist.updatedAt || nowIso(),
     }));
 
     dbCache = next;
+    persistDBCache(dbCache);
     dbHydrated = true;
     emitStoreUpdated();
   } catch (error) {
@@ -273,10 +406,12 @@ export function getDB() {
 
 export function saveDB(db) {
   dbCache = isValidDB(db) ? db : dbCache;
+  persistDBCache(dbCache);
   emitStoreUpdated();
 }
 
 export function resetDB() {
+  clearDBCache();
   const fresh = createEmptyDB();
   saveDB(fresh);
   return fresh;
@@ -445,20 +580,27 @@ export function ensureUserForCognito(identity) {
 
       updateDB((db) => {
         const existing = getUserByCognitoSub(db, normalized.sub) || getUserById(db, remote.id);
+        const remoteIsPreferred = preferRemoteRecord(existing, remote);
         const next = {
-          id: remote.id,
+          id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("u", db.users),
           cognitoSub: remote.cognitoSub || normalized.sub,
           cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name: remote.name || existing?.name || displayNameFromIdentity(normalized, "New User"),
+          name:
+            (remoteIsPreferred ? remote.name : "") ||
+            existing?.name ||
+            remote.name ||
+            displayNameFromIdentity(normalized, "New User"),
           email: remote.email || normalized.email || "",
-          location: remote.location || existing?.location || "",
-          emailVerified: Boolean(remote.emailVerified),
-          profileCompleted: Boolean(remote.profileCompleted),
+          location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
+          emailVerified: remoteIsPreferred ? Boolean(remote.emailVerified) : Boolean(existing?.emailVerified || remote.emailVerified),
+          profileCompleted: remoteIsPreferred
+            ? Boolean(remote.profileCompleted)
+            : Boolean(existing?.profileCompleted || remote.profileCompleted),
           savedArtists: asArray(existing?.savedArtists),
           bookingHistory: asArray(existing?.bookingHistory),
           deleted: Boolean(existing?.deleted),
           createdAt: remote.createdAt || existing?.createdAt || nowIso(),
-          updatedAt: remote.updatedAt || nowIso(),
+          updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
         };
 
         db.users = asArray(db.users).filter((user) => user.id !== next.id && user.cognitoSub !== next.cognitoSub);
@@ -508,33 +650,64 @@ export function ensureArtistForCognito(identity) {
 
       updateDB((db) => {
         const existing = getArtistByCognitoSub(db, normalized.sub) || getArtistById(db, remote.id);
+        const remoteIsPreferred = preferRemoteRecord(existing, remote);
         const next = {
-          id: remote.id,
+          id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("a", db.artists),
           cognitoSub: remote.cognitoSub || normalized.sub,
           cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name: remote.name || existing?.name || displayNameFromIdentity(normalized, "New Artist"),
-          handle: remote.handle || existing?.handle || uniqueArtistHandle(db, remote.name || "artist"),
-          category: remote.category || existing?.category || "Illustration",
-          mediums: asArray(remote.mediums).length ? asArray(remote.mediums) : asArray(existing?.mediums),
-          location: remote.location || existing?.location || "",
-          verified: Boolean(remote.verified),
-          popularity: Number(remote.popularity || existing?.popularity || 0),
-          rating: Number(remote.rating || existing?.rating || 0),
-          reviewCount: Number(remote.reviewCount || existing?.reviewCount || 0),
-          priceFrom: Number(remote.priceFrom || existing?.priceFrom || 0),
-          availability: remote.availability || existing?.availability || "open",
-          bio: remote.bio || existing?.bio || "",
-          profileViews: Number(remote.profileViews || existing?.profileViews || 0),
-          completedBookings: Number(remote.completedBookings || existing?.completedBookings || 0),
-          acceptanceRate: Number(remote.acceptanceRate || existing?.acceptanceRate || 0),
-          portfolio: asArray(remote.portfolio).map((item) => ({
-            id: item.id || `p-${Date.now()}`,
-            title: item.title || "Portfolio Item",
-            image: item.imageUrl || item.image || "",
-            medium: item.medium || existing?.mediums?.[0] || "Digital",
-          })),
+          name:
+            (remoteIsPreferred ? remote.name : "") ||
+            existing?.name ||
+            remote.name ||
+            displayNameFromIdentity(normalized, "New Artist"),
+          handle:
+            (remoteIsPreferred ? remote.handle : "") ||
+            existing?.handle ||
+            remote.handle ||
+            uniqueArtistHandle(db, remote.name || "artist"),
+          category:
+            (remoteIsPreferred ? remote.category : "") ||
+            existing?.category ||
+            remote.category ||
+            "Illustration",
+          mediums:
+            remoteIsPreferred && asArray(remote.mediums).length
+              ? asArray(remote.mediums)
+              : asArray(existing?.mediums),
+          location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
+          verified: remoteIsPreferred ? Boolean(remote.verified) : Boolean(existing?.verified || remote.verified),
+          popularity: Number(
+            remoteIsPreferred ? remote.popularity || 0 : existing?.popularity || remote.popularity || 0,
+          ),
+          rating: Number(remoteIsPreferred ? remote.rating || 0 : existing?.rating || remote.rating || 0),
+          reviewCount: Number(
+            remoteIsPreferred ? remote.reviewCount || 0 : existing?.reviewCount || remote.reviewCount || 0,
+          ),
+          priceFrom: Number(remoteIsPreferred ? remote.priceFrom || 0 : existing?.priceFrom || remote.priceFrom || 0),
+          availability:
+            (remoteIsPreferred ? remote.availability : "") || existing?.availability || remote.availability || "open",
+          bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
+          profileViews: Number(
+            remoteIsPreferred ? remote.profileViews || 0 : existing?.profileViews || remote.profileViews || 0,
+          ),
+          completedBookings: Number(
+            remoteIsPreferred
+              ? remote.completedBookings || 0
+              : existing?.completedBookings || remote.completedBookings || 0,
+          ),
+          acceptanceRate: Number(
+            remoteIsPreferred ? remote.acceptanceRate || 0 : existing?.acceptanceRate || remote.acceptanceRate || 0,
+          ),
+          portfolio: remoteIsPreferred && asArray(remote.portfolio).length
+            ? asArray(remote.portfolio).map((item) => ({
+                id: item.id || `p-${Date.now()}`,
+                title: item.title || "Portfolio Item",
+                image: item.imageUrl || item.image || "",
+                medium: item.medium || existing?.mediums?.[0] || "Digital",
+              }))
+            : asArray(existing?.portfolio),
           createdAt: remote.createdAt || existing?.createdAt || nowIso(),
-          updatedAt: remote.updatedAt || nowIso(),
+          updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
         };
 
         db.artists = asArray(db.artists).filter(
