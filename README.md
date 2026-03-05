@@ -4,13 +4,13 @@ This catalog is the primary index for the repository.
 
 ## Product
 - Multi-page web app for artist discovery, hiring, and booking flows.
+- Unified signed-in workspace at `/account-settings.html` (user + artist workflows combined).
 - Stack: static frontend (HTML/CSS/JavaScript) + backend workspace (Node.js/TypeScript).
 - Auth: Cognito-based browser auth flows.
 
 ## Top-Level Structure
 - `index.html`, `explore.html`, `artist-preview.html`, `account-settings.html`: main public/app entry pages.
-- `artist/`: artist workspace pages.
-- `user/`: client workspace pages.
+- `artist/`, `user/`: legacy route stubs that redirect into unified workspace.
 - `admin/`: admin/support pages.
 - `js/`: app logic modules.
 - `backend/`: backend API workspace and tests (TypeScript).

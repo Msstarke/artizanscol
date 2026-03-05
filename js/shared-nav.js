@@ -21,7 +21,7 @@ function setAuthLinks(session) {
       return;
     }
     node.href = "/account-settings.html";
-    node.textContent = "Account Settings";
+    node.textContent = "Workspace";
   });
 
   qsa("[data-role-home]").forEach((node) => {

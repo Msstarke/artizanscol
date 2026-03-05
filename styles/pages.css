@@ -214,6 +214,29 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.workspace-panels .account-panel {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workspace-panels .collection {
+  max-height: 260px;
+  overflow: auto;
+  padding-right: 0.2rem;
+}
+
+.workspace-mini-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.workspace-item p {
+  margin: 0.2rem 0;
+}
+
+.workspace-item .form-actions {
+  margin-top: 0.45rem;
+}
+
 .account-panel {
   border: 1px solid rgba(34, 34, 34, 0.12);
   border-radius: var(--radius-sm);
@@ -271,6 +294,10 @@
 
   .account-mini-stats {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-mini-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .account-session-meta strong {

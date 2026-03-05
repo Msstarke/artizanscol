@@ -151,7 +151,7 @@ function renderNoArtistState() {
 
   if (artistMeta) {
     const text = document.createElement("span");
-    text.textContent = "Create an artist account from Account Settings to get listed.";
+    text.textContent = "Create your profile from Workspace to get listed.";
     artistMeta.replaceChildren(text);
   }
 

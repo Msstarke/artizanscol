@@ -3,29 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Artist | Analytics</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <title>ARTIZANS.COLLECTIVE | Workspace</title>
+    <meta http-equiv="refresh" content="0; url=/account-settings.html" />
     <link rel="stylesheet" href="/styles/base.css" />
-    <link rel="stylesheet" href="/styles/components.css" />
   </head>
   <body>
-    <div class="noise-overlay" aria-hidden="true"></div>
-    <header class="site-header"><div class="container header-inner"><a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a><nav class="main-nav"><a href="/index.html">Home</a><a href="/explore.html">Explore</a><a href="/artist/bookings.html">Artist</a><a href="/account-settings.html" data-auth-link>Account Settings</a></nav><div class="header-actions"><span class="role-chip" data-role-chip>Role: artist</span><button class="btn btn-outline btn-small" data-logout>Logout</button></div></div></header>
-
-    <main class="container page-shell app-layout">
-      <aside class="side-nav"><h3>Artist Account</h3><ul><li><a href="/artist/onboarding.html">Onboarding</a></li><li><a href="/artist/profile.html">Profile management</a></li><li><a href="/artist/bookings.html">Booking management</a></li><li><a href="/artist/communication.html">Communication</a></li><li><a href="/artist/earnings.html">Earnings</a></li><li><a href="/artist/analytics.html">Analytics</a></li></ul></aside>
-      <section class="dashboard-main">
+    <main class="page-shell">
+      <section class="container content-section">
         <article class="site-card">
-          <h1 class="section-title">Analytics</h1>
-          <div id="analytics-kpis" class="kpi-grid"></div>
-          <div class="table-wrap" style="margin-top:1rem;"><table class="compare-table"><thead><tr><th>Metric</th><th>Value</th><th>Notes</th></tr></thead><tbody id="analytics-table"></tbody></table></div>
+          <p class="site-tag">Workspace Updated</p>
+          <h1 class="section-title">This page moved</h1>
+          <p class="section-copy">User and artist dashboards are now combined into one workspace.</p>
+          <p><a class="btn btn-primary" href="/account-settings.html">Open workspace</a></p>
         </article>
       </section>
     </main>
-
-    <footer class="site-footer"><div class="container footer-inner"><p>Artist analytics</p><p>Profile views and booking performance</p></div></footer>
-    <script type="module" src="/js/artist/analytics.js"></script>
+    <script>
+      window.location.replace('/account-settings.html');
+    </script>
   </body>
 </html>

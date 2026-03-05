@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ARTIZANS.COLLECTIVE | Account Settings</title>
+    <title>ARTIZANS.COLLECTIVE | Workspace</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,7 +20,7 @@
         <nav class="main-nav">
           <a href="/index.html">Home</a>
           <a href="/explore.html">Explore</a>
-          <a href="/account-settings.html">Account Settings</a>
+          <a href="/account-settings.html">Workspace</a>
         </nav>
         <div class="header-actions"><span class="role-chip" data-role-chip>Session: signed out</span></div>
       </div>
@@ -29,8 +29,8 @@
     <main class="page-shell">
       <section class="container content-section account-access-wrap">
         <article class="site-card account-access-card">
-          <p class="site-tag">Account Access</p>
-          <h1 class="section-title">Log in to your account</h1>
+          <p class="site-tag">Workspace Access</p>
+          <h1 class="section-title">Log in to your workspace</h1>
           <p class="section-copy" id="auth-status">Log in to continue.</p>
 
           <div class="account-session-meta">
@@ -136,13 +136,26 @@
           </section>
 
           <section data-auth-view="signed_in" hidden>
-            <h2 class="section-title" style="font-size:1.2rem;">You are signed in</h2>
-            <p class="section-copy">Continue to explore artists, submit jobs, and hire.</p>
+            <h2 class="section-title" style="font-size:1.2rem;">Unified workspace</h2>
+            <p class="section-copy">Manage hiring and artist workflows in one place.</p>
             <div class="form-actions">
-              <button class="btn btn-primary" id="continue-btn" type="button">Continue</button>
+              <a class="btn btn-primary" href="/explore.html">Explore artists</a>
+              <button class="btn btn-outline" id="workspace-refresh-btn" type="button">Refresh workspace</button>
             </div>
 
-            <div class="account-settings-panels">
+            <div class="account-settings-panels workspace-panels">
+              <section class="account-panel">
+                <p class="site-tag">Overview</p>
+                <h3>Activity snapshot</h3>
+                <div class="account-mini-stats workspace-mini-stats">
+                  <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
+                  <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
+                  <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
+                  <article class="kpi"><small>Services</small><strong id="stat-active-services">0</strong></article>
+                  <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
+                </div>
+              </section>
+
               <section class="account-panel">
                 <p class="site-tag">Profile</p>
                 <h3>Personal details</h3>
@@ -189,30 +202,91 @@
               </section>
 
               <section class="account-panel">
-                <p class="site-tag">Workspace</p>
-                <h3>Quick links</h3>
-                <div class="account-mini-stats">
-                  <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
-                  <article class="kpi"><small>Total bookings</small><strong id="stat-total-bookings">0</strong></article>
-                  <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
-                </div>
-                <ul class="feature-list">
-                  <li><a href="/explore.html">Explore artists</a></li>
-                  <li><a href="/user/discovery.html">Client workspace</a></li>
-                  <li><a href="/artist/profile.html">Artist workspace</a></li>
-                </ul>
+                <p class="site-tag">Saved artists</p>
+                <h3>Saved list</h3>
+                <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
+                <ul class="collection" id="workspace-saved-artists"></ul>
                 <div class="form-actions">
-                  <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
+                  <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+                </div>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Bookings</p>
+                <h3>Bookings board</h3>
+                <p class="muted" id="workspace-bookings-empty">No bookings yet.</p>
+                <ul class="collection" id="workspace-bookings-list"></ul>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Services</p>
+                <h3>Service manager</h3>
+                <form id="workspace-service-form" class="form-grid">
+                  <input id="workspace-service-id" type="hidden" />
+                  <label>
+                    Service title
+                    <input id="workspace-service-title" type="text" maxlength="90" placeholder="Portrait illustration" />
+                  </label>
+                  <label>
+                    Description
+                    <textarea id="workspace-service-description" maxlength="220" placeholder="Describe this offer"></textarea>
+                  </label>
+                  <div class="form-row">
+                    <label>
+                      Price (AUD)
+                      <input id="workspace-service-price" type="number" min="1" step="1" />
+                    </label>
+                    <label>
+                      Delivery days
+                      <input id="workspace-service-delivery" type="number" min="1" step="1" />
+                    </label>
+                  </div>
+                  <div class="form-actions">
+                    <button class="btn btn-outline btn-small" type="submit">Save service</button>
+                    <button class="btn btn-ghost btn-small" id="workspace-service-reset" type="button">Clear</button>
+                  </div>
+                </form>
+                <p class="muted" id="workspace-services-empty">No services yet.</p>
+                <ul class="collection" id="workspace-services-list"></ul>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Messages</p>
+                <h3>Inbox and replies</h3>
+                <form id="workspace-message-form" class="form-grid">
+                  <label>
+                    Booking thread
+                    <select id="workspace-message-booking"></select>
+                  </label>
+                  <label>
+                    Message
+                    <textarea id="workspace-message-body" maxlength="600" placeholder="Write your message"></textarea>
+                  </label>
+                  <div class="form-actions">
+                    <button class="btn btn-outline btn-small" type="submit">Send message</button>
+                  </div>
+                </form>
+                <p class="muted" id="workspace-messages-empty">No messages yet.</p>
+                <ul class="collection" id="workspace-messages-list"></ul>
+              </section>
+
+              <section class="account-panel">
+                <p class="site-tag">Notifications</p>
+                <h3>Recent updates</h3>
+                <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
+                <ul class="collection" id="workspace-notifications-list"></ul>
+                <div class="form-actions">
+                  <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
                 </div>
               </section>
 
               <section class="account-panel">
                 <p class="site-tag">Data controls</p>
-                <h3>Downloads and cleanup</h3>
-                <p class="muted">Manage the local data linked to this browser session.</p>
+                <h3>Downloads and security</h3>
+                <p class="muted">Manage account exports and password access.</p>
                 <div class="form-actions">
                   <button class="btn btn-outline btn-small" id="export-account-data" type="button">Download my data</button>
-                  <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+                  <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
                 </div>
               </section>
             </div>
@@ -226,7 +300,7 @@
       </section>
     </main>
 
-    <footer class="site-footer"><div class="container footer-inner"><p>Account settings</p><p>Access and security</p></div></footer>
+    <footer class="site-footer"><div class="container footer-inner"><p>Unified workspace</p><p>Access and security</p></div></footer>
 
     <script type="module" src="/js/auth.js"></script>
   </body>

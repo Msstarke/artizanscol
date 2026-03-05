@@ -10,11 +10,9 @@ const required = (getQueryParam("required") || "").split(",").filter(Boolean);
 const from = getQueryParam("from") || "/index.html";
 
 if (message) {
-  if (required.length) {
-    message.textContent = `Required role: ${required.join(" or ")}. Current role does not have access.`;
-  } else {
-    message.textContent = "Your current role cannot access this route.";
-  }
+  message.textContent = required.length
+    ? "This role-based route moved to the unified workspace."
+    : "This route moved to the unified workspace.";
 }
 
 if (goAuth) {

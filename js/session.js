@@ -64,12 +64,6 @@ export function isAuthenticatedRole(role) {
 }
 
 export function getRoleHome(role) {
-  if (role === "user") {
-    return "/user/discovery.html";
-  }
-  if (role === "artist") {
-    return "/artist/bookings.html";
-  }
   return "/account-settings.html";
 }
 
