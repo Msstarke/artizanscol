@@ -38,6 +38,10 @@ Parameters:
     Type: String
     AllowedValues: ['true', 'false']
     Default: 'false'
+  EnableApiWaf:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'true'
 
   EnableEc2Api:
     Type: String
@@ -93,6 +97,9 @@ Conditions:
     - !Equals [!Ref EnableCloudFrontWaf, 'true']
     - !Condition IsUsEast1
   UseServerlessApi: !Equals [!Ref EnableServerlessApi, 'true']
+  CreateApiWaf: !And
+    - !Condition UseServerlessApi
+    - !Equals [!Ref EnableApiWaf, 'true']
   HasApiDomainName: !Not [!Equals [!Ref ApiDomainName, '']]
   HasApiCertificateArn: !Not [!Equals [!Ref ApiCertificateArn, '']]
   HasApiHostedZoneId: !Not [!Equals [!Ref ApiHostedZoneId, '']]
@@ -1282,6 +1289,63 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
 
+  ArtizansApiWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Condition: CreateApiWaf
+    Properties:
+      Name: !Sub '${ProjectName}-${EnvironmentName}-api-web-acl'
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-web-acl'
+        SampledRequestsEnabled: true
+      Rules:
+        - Name: AwsManagedRulesCommonRuleSet
+          Priority: 0
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-common-rules'
+            SampledRequestsEnabled: true
+        - Name: AwsManagedRulesKnownBadInputsRuleSet
+          Priority: 1
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-bad-input-rules'
+            SampledRequestsEnabled: true
+        - Name: ApiRateLimitPerIp
+          Priority: 2
+          Action:
+            Block: {}
+          Statement:
+            RateBasedStatement:
+              AggregateKeyType: IP
+              Limit: 1200
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-rate-limit'
+            SampledRequestsEnabled: true
+
+  ArtizansApiWebAclAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    Condition: CreateApiWaf
+    Properties:
+      ResourceArn: !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/${ArtizansHttpApi}/stages/${ArtizansHttpApiStage}'
+      WebACLArn: !GetAtt ArtizansApiWebAcl.Arn
+
   ArtizansHttpApiJwtAuthorizer:
     Type: AWS::ApiGatewayV2::Authorizer
     Condition: UseServerlessApi
@@ -1849,6 +1913,9 @@ Outputs:
   ApiJwtAuthorizerId:
     Condition: UseServerlessApi
     Value: !Ref ArtizansHttpApiJwtAuthorizer
+  ApiWebAclArn:
+    Condition: CreateApiWaf
+    Value: !GetAtt ArtizansApiWebAcl.Arn
   ApiCustomDomainUrl:
     Condition: EnableApiCustomDomain
     Value: !Sub 'https://${ApiDomainName}'

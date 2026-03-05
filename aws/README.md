@@ -31,6 +31,10 @@ This folder makes your current multi-page prototype AWS-ready.
 - Route: `/admin/aws.html`
 - Lets you store AWS IDs/ARNs in localStorage and open one-click console links.
 
+4. Secret rotation runbook:
+- `aws/STRIPE_SECRETS_ROTATION.md`
+- Covers Stripe/API secret rotation, validation, and rollback steps.
+
 ## Quick start (CloudShell)
 1. Upload this repo to CloudShell.
 2. Deploy infrastructure (example):
@@ -98,5 +102,6 @@ Optional env vars:
 ## Notes
 - For custom domains on CloudFront, use an ACM certificate in `us-east-1` and set `CertificateArn`.
 - For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
+- For payment security operations, follow `aws/STRIPE_SECRETS_ROTATION.md`.
 - Billing, Health, CloudShell, IAM, and Support are account-level consoles and are linked from `/admin/aws.html`.
 - This prototype is still frontend/localStorage-first; EC2 is optional if you want to move workflows to a server API.

@@ -11,11 +11,14 @@ import type {
 } from "../domain/entities.js";
 import { ownerReadKey } from "../domain/index-keys.js";
 import { createRecordMeta, touchRecordMeta } from "../domain/record-meta.js";
+import { auditLog } from "../lib/audit.js";
 import { json } from "../lib/http.js";
+import { type JsonSchema, parseJsonRequestBody, validateSchema } from "../lib/schema.js";
 import {
   requireAuthIdentity,
 } from "../middleware/auth-context.js";
 import { requireAnyRole } from "../middleware/authorization.js";
+import { SecurityPolicyError, enforceRequestSecurity } from "../middleware/request-security.js";
 import {
   NoopRoleAssignmentsRepository,
   type RoleAssignmentsRepository,
@@ -27,6 +30,35 @@ import {
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+const USER_PROFILE_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["name"],
+  additionalProperties: true,
+  properties: {
+    name: { type: "string", minLength: 1, maxLength: 80 },
+    location: { type: "string", maxLength: 80, nullable: true },
+  },
+};
+const USER_BOOKING_CREATE_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["serviceId", "deadline", "budget", "message"],
+  additionalProperties: true,
+  properties: {
+    serviceId: { type: "string", minLength: 1, maxLength: 120 },
+    deadline: { type: "string", minLength: 1, maxLength: 64 },
+    budget: { type: "number", minimum: 0.01 },
+    message: { type: "string", minLength: 1, maxLength: 3000 },
+  },
+};
+const USER_BOOKING_STATUS_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["status"],
+  additionalProperties: true,
+  properties: {
+    status: { type: "string", minLength: 1, maxLength: 64 },
+    note: { type: "string", maxLength: 500, nullable: true },
+  },
+};
 
 type PageRequest = {
   limit: number;
@@ -100,20 +132,23 @@ function pageItems<T>(items: T[], page: PageRequest): { items: T[]; nextCursor: 
   };
 }
 
-function parseBody<T>(event: APIGatewayProxyEventV2): T {
-  if (!event.body) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body is required.");
-  }
-
-  const raw = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64").toString("utf8")
-    : event.body;
-
+function parseBody<T>(event: APIGatewayProxyEventV2, schema?: JsonSchema): T {
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as T;
-  } catch (_) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body must be valid JSON.");
+    parsed = parseJsonRequestBody(event);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Request body must be valid JSON.";
+    throw new RequestError(400, "INVALID_REQUEST", message);
   }
+
+  if (schema) {
+    const issues = validateSchema(schema, parsed, "body");
+    if (issues.length) {
+      throw new RequestError(400, "INVALID_REQUEST", issues[0]);
+    }
+  }
+
+  return parsed as T;
 }
 
 function parseSavedArtistId(event: APIGatewayProxyEventV2): string | null {
@@ -280,7 +315,7 @@ async function handlePatchProfile(
   user: UserRecord,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const payload = parseBody<{ name?: unknown; location?: unknown }>(event);
+  const payload = parseBody<{ name?: unknown; location?: unknown }>(event, USER_PROFILE_PATCH_SCHEMA);
 
   const name = normalizeName(payload.name, "name", 80);
   const location = normalizeOptionalText(payload.location, "location", 80);
@@ -390,7 +425,7 @@ async function handleCreateBooking(
     deadline?: unknown;
     budget?: unknown;
     message?: unknown;
-  }>(event);
+  }>(event, USER_BOOKING_CREATE_SCHEMA);
 
   const serviceId = normalizeName(payload.serviceId, "serviceId", 120);
   const deadline = normalizeDeadline(payload.deadline);
@@ -454,6 +489,20 @@ async function handleCreateBooking(
     createdBy: identitySub,
   });
 
+  auditLog({
+    action: "booking.create",
+    actorId: identitySub,
+    actorRoles: ["user"],
+    resourceType: "booking",
+    resourceId: booking.id,
+    outcome: "success",
+    metadata: {
+      artistId: booking.artistId,
+      serviceId: booking.serviceId,
+      status: booking.status,
+    },
+  });
+
   return json(201, success(mapBooking(booking)));
 }
 
@@ -468,7 +517,7 @@ async function handleUpdateBookingStatus(
     throw new RequestError(400, "INVALID_REQUEST", "bookingId is required.");
   }
 
-  const payload = parseBody<{ status?: unknown; note?: unknown }>(event);
+  const payload = parseBody<{ status?: unknown; note?: unknown }>(event, USER_BOOKING_STATUS_SCHEMA);
   const nextStatusRaw = normalizeName(payload.status, "status", 64);
   if (!isBookingStatus(nextStatusRaw)) {
     throw new RequestError(400, "INVALID_REQUEST", "status is invalid.");
@@ -530,6 +579,19 @@ async function handleUpdateBookingStatus(
     createdBy: identitySub,
   });
 
+  auditLog({
+    action: "booking.status.update",
+    actorId: identitySub,
+    actorRoles: ["user"],
+    resourceType: "booking",
+    resourceId: updated.id,
+    outcome: "success",
+    metadata: {
+      from: booking.status,
+      to: updated.status,
+    },
+  });
+
   return json(200, success(mapBooking(updated)));
 }
 
@@ -585,6 +647,7 @@ export function createUserApiHandler(
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAnyRole(identity, ["user", "admin"]);
 
@@ -638,6 +701,10 @@ export function createUserApiHandler(
 
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
+      if (error instanceof SecurityPolicyError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
       if (error instanceof RequestError) {
         return json(error.statusCode, failure(error.code, error.message));
       }

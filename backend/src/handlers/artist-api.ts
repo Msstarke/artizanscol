@@ -13,9 +13,12 @@ import type {
 } from "../domain/entities.js";
 import { ownerReadKey } from "../domain/index-keys.js";
 import { createRecordMeta, touchRecordMeta } from "../domain/record-meta.js";
+import { auditLog } from "../lib/audit.js";
 import { json } from "../lib/http.js";
+import { type JsonSchema, parseJsonRequestBody, validateSchema } from "../lib/schema.js";
 import { requireAuthIdentity } from "../middleware/auth-context.js";
 import { requireAnyRole } from "../middleware/authorization.js";
+import { SecurityPolicyError, enforceRequestSecurity } from "../middleware/request-security.js";
 import {
   NoopRoleAssignmentsRepository,
   type RoleAssignmentsRepository,
@@ -28,6 +31,57 @@ import {
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 const AVAILABILITY_VALUES = ["open", "limited", "unavailable"] as const;
+const ARTIST_PROFILE_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    name: { type: "string", minLength: 1, maxLength: 80, nullable: true },
+    handle: { type: "string", minLength: 1, maxLength: 60, nullable: true },
+    location: { type: "string", minLength: 1, maxLength: 80, nullable: true },
+    bio: { type: "string", maxLength: 1200, nullable: true },
+    availability: { type: "string", enum: AVAILABILITY_VALUES, nullable: true },
+  },
+};
+const ARTIST_ONBOARDING_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["category", "mediums", "priceFrom", "availability"],
+  additionalProperties: true,
+  properties: {
+    category: { type: "string", minLength: 1, maxLength: 80 },
+    mediums: { type: "array", minItems: 1, maxItems: 16 },
+    priceFrom: { type: "number", minimum: 0.01 },
+    availability: { type: "string", enum: AVAILABILITY_VALUES },
+    portfolio: { type: "array", maxItems: 40, nullable: true },
+  },
+};
+const ARTIST_SERVICE_CREATE_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["title", "description", "price", "deliveryDays"],
+  additionalProperties: true,
+  properties: {
+    title: { type: "string", minLength: 1, maxLength: 120 },
+    description: { type: "string", minLength: 1, maxLength: 2000 },
+    price: { type: "number", minimum: 0.01 },
+    deliveryDays: { type: "integer", minimum: 1, maximum: 365 },
+  },
+};
+const ARTIST_SERVICE_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    title: { type: "string", minLength: 1, maxLength: 120, nullable: true },
+    description: { type: "string", minLength: 1, maxLength: 2000, nullable: true },
+    price: { type: "number", minimum: 0.01, nullable: true },
+    deliveryDays: { type: "integer", minimum: 1, maximum: 365, nullable: true },
+  },
+};
+const ARTIST_BOOKING_DECISION_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    note: { type: "string", maxLength: 500, nullable: true },
+  },
+};
 
 type AvailabilityValue = (typeof AVAILABILITY_VALUES)[number];
 
@@ -105,20 +159,23 @@ function pageItems<T>(items: T[], page: PageRequest): { items: T[]; nextCursor: 
   };
 }
 
-function parseBody<T>(event: APIGatewayProxyEventV2): T {
-  if (!event.body) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body is required.");
-  }
-
-  const raw = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64").toString("utf8")
-    : event.body;
-
+function parseBody<T>(event: APIGatewayProxyEventV2, schema?: JsonSchema): T {
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as T;
-  } catch (_) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body must be valid JSON.");
+    parsed = parseJsonRequestBody(event);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Request body must be valid JSON.";
+    throw new RequestError(400, "INVALID_REQUEST", message);
   }
+
+  if (schema) {
+    const issues = validateSchema(schema, parsed, "body");
+    if (issues.length) {
+      throw new RequestError(400, "INVALID_REQUEST", issues[0]);
+    }
+  }
+
+  return parsed as T;
 }
 
 function parseServiceId(event: APIGatewayProxyEventV2): string | null {
@@ -380,7 +437,7 @@ async function handlePatchArtistProfile(
     location?: unknown;
     bio?: unknown;
     availability?: unknown;
-  }>(event);
+  }>(event, ARTIST_PROFILE_PATCH_SCHEMA);
 
   const next = touchRecordMeta(
     {
@@ -412,7 +469,7 @@ async function handlePutOnboarding(
     priceFrom?: unknown;
     availability?: unknown;
     portfolio?: unknown;
-  }>(event);
+  }>(event, ARTIST_ONBOARDING_SCHEMA);
 
   const next = touchRecordMeta(
     {
@@ -441,7 +498,7 @@ async function handleCreateService(
     description?: unknown;
     price?: unknown;
     deliveryDays?: unknown;
-  }>(event);
+  }>(event, ARTIST_SERVICE_CREATE_SCHEMA);
 
   const meta = createRecordMeta({
     id: `s_${randomUUID()}`,
@@ -482,7 +539,7 @@ async function handleUpdateService(
     description?: unknown;
     price?: unknown;
     deliveryDays?: unknown;
-  }>(event);
+  }>(event, ARTIST_SERVICE_PATCH_SCHEMA);
 
   const next = touchRecordMeta(
     {
@@ -585,7 +642,7 @@ async function handleBookingDecision(
     );
   }
 
-  const payload = parseBody<{ note?: unknown }>(event);
+  const payload = parseBody<{ note?: unknown }>(event, ARTIST_BOOKING_DECISION_SCHEMA);
   const note = normalizeOptionalText(payload.note, "note", 500);
 
   const updated = touchRecordMeta(
@@ -624,6 +681,19 @@ async function handleBookingDecision(
     title: `You ${nextStatus} booking ${updated.id}`,
     detail: `Status updated to ${nextStatus}.`,
     createdBy: identitySub,
+  });
+
+  auditLog({
+    action: "booking.status.update",
+    actorId: identitySub,
+    actorRoles: ["artist"],
+    resourceType: "booking",
+    resourceId: updated.id,
+    outcome: "success",
+    metadata: {
+      from: booking.status,
+      to: updated.status,
+    },
   });
 
   return json(200, success(mapBooking(updated)));
@@ -725,6 +795,7 @@ export function createArtistApiHandler(
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAnyRole(identity, ["artist", "admin"]);
 
@@ -778,6 +849,10 @@ export function createArtistApiHandler(
 
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
+      if (error instanceof SecurityPolicyError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
       if (error instanceof RequestError) {
         return json(error.statusCode, failure(error.code, error.message));
       }

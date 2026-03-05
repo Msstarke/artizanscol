@@ -11,9 +11,12 @@ import type {
 } from "../domain/entities.js";
 import { ownerReadKey } from "../domain/index-keys.js";
 import { createRecordMeta, touchRecordMeta } from "../domain/record-meta.js";
+import { auditLog } from "../lib/audit.js";
 import { json } from "../lib/http.js";
+import { type JsonSchema, parseJsonRequestBody, validateSchema } from "../lib/schema.js";
 import { requireAuthIdentity } from "../middleware/auth-context.js";
 import { requireAnyRole } from "../middleware/authorization.js";
+import { SecurityPolicyError, enforceRequestSecurity } from "../middleware/request-security.js";
 import {
   NoopRoleAssignmentsRepository,
   type RoleAssignmentsRepository,
@@ -26,6 +29,27 @@ import {
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
 const MAX_REASON_LENGTH = 500;
 const STRIPE_SIGNATURE_TOLERANCE_SECONDS = 300;
+const CHECKOUT_SESSION_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["bookingId"],
+  additionalProperties: true,
+  properties: {
+    bookingId: { type: "string", minLength: 1, maxLength: 80 },
+    successUrl: { type: "string", minLength: 1, maxLength: 500, nullable: true },
+    cancelUrl: { type: "string", minLength: 1, maxLength: 500, nullable: true },
+    idempotencyKey: { type: "string", minLength: 1, maxLength: MAX_IDEMPOTENCY_KEY_LENGTH, nullable: true },
+  },
+};
+const REFUND_REQUEST_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["bookingId"],
+  additionalProperties: true,
+  properties: {
+    bookingId: { type: "string", minLength: 1, maxLength: 80 },
+    reason: { type: "string", minLength: 1, maxLength: MAX_REASON_LENGTH, nullable: true },
+    idempotencyKey: { type: "string", minLength: 1, maxLength: MAX_IDEMPOTENCY_KEY_LENGTH, nullable: true },
+  },
+};
 
 class RequestError extends Error {
   public readonly statusCode: number;
@@ -66,20 +90,23 @@ function normalizeRequiredText(value: unknown, field: string, max: number): stri
   return trimmed;
 }
 
-function parseBody<T>(event: APIGatewayProxyEventV2): T {
-  if (!event.body) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body is required.");
-  }
-
-  const raw = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64").toString("utf8")
-    : event.body;
-
+function parseBody<T>(event: APIGatewayProxyEventV2, schema?: JsonSchema): T {
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as T;
-  } catch (_) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body must be valid JSON.");
+    parsed = parseJsonRequestBody(event);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Request body must be valid JSON.";
+    throw new RequestError(400, "INVALID_REQUEST", message);
   }
+
+  if (schema) {
+    const issues = validateSchema(schema, parsed, "body");
+    if (issues.length) {
+      throw new RequestError(400, "INVALID_REQUEST", issues[0]);
+    }
+  }
+
+  return parsed as T;
 }
 
 function readRawBody(event: APIGatewayProxyEventV2): string {
@@ -356,11 +383,23 @@ async function handleCheckoutSession(
     successUrl?: unknown;
     cancelUrl?: unknown;
     idempotencyKey?: unknown;
-  }>(event);
+  }>(event, CHECKOUT_SESSION_SCHEMA);
 
   const idempotencyKey = extractIdempotencyKey(event, payload.idempotencyKey);
   const existing = await repository.getCheckoutSessionByIdempotencyKey(idempotencyKey);
   if (existing) {
+    auditLog({
+      action: "payments.checkout_session.reused",
+      actorId: identity.sub,
+      actorRoles: identity.roles,
+      resourceType: "checkout_session",
+      resourceId: existing.sessionId,
+      outcome: "success",
+      metadata: {
+        bookingId: existing.bookingId,
+        idempotencyKey,
+      },
+    });
     return json(200, success({ ...existing, reused: true }));
   }
 
@@ -436,6 +475,21 @@ async function handleCheckoutSession(
     createdBy: identity.sub,
   });
 
+  auditLog({
+    action: "payments.checkout_session.create",
+    actorId: identity.sub,
+    actorRoles: identity.roles,
+    resourceType: "checkout_session",
+    resourceId: snapshot.sessionId,
+    outcome: "success",
+    metadata: {
+      bookingId: snapshot.bookingId,
+      idempotencyKey,
+      amount: snapshot.amount,
+      currency: snapshot.currency,
+    },
+  });
+
   return json(201, success(snapshot));
 }
 
@@ -479,11 +533,23 @@ async function handleRefund(
     bookingId?: unknown;
     reason?: unknown;
     idempotencyKey?: unknown;
-  }>(event);
+  }>(event, REFUND_REQUEST_SCHEMA);
 
   const idempotencyKey = extractIdempotencyKey(event, payload.idempotencyKey);
   const existing = await repository.getRefundByIdempotencyKey(idempotencyKey);
   if (existing) {
+    auditLog({
+      action: "payments.refund.reused",
+      actorId: identity.sub,
+      actorRoles: identity.roles,
+      resourceType: "refund",
+      resourceId: existing.refundId,
+      outcome: "success",
+      metadata: {
+        bookingId: existing.bookingId,
+        idempotencyKey,
+      },
+    });
     return json(200, success({ ...existing, reused: true }));
   }
 
@@ -567,6 +633,21 @@ async function handleRefund(
     createdBy: identity.sub,
   });
 
+  auditLog({
+    action: "payments.refund.create",
+    actorId: identity.sub,
+    actorRoles: identity.roles,
+    resourceType: "refund",
+    resourceId: snapshot.refundId,
+    outcome: "success",
+    metadata: {
+      bookingId: snapshot.bookingId,
+      idempotencyKey,
+      reason: snapshot.reason,
+      voidedInvoices,
+    },
+  });
+
   return json(201, success({ ...snapshot, voidedInvoices }));
 }
 
@@ -640,6 +721,21 @@ async function applyPaymentSucceeded(
     createdBy: `stripe:${eventPayload.id}`,
   });
 
+  auditLog({
+    action: "payments.webhook.payment_succeeded",
+    actorId: `stripe:${eventPayload.id}`,
+    actorRoles: ["system"],
+    resourceType: "booking",
+    resourceId: updatedBooking.id,
+    outcome: "success",
+    metadata: {
+      eventType: eventPayload.type,
+      amount,
+      invoiceId: invoice.id,
+      payoutId: payout.id,
+    },
+  });
+
   return {
     bookingId: updatedBooking.id,
   };
@@ -686,6 +782,19 @@ async function applyPaymentFailed(
     title: "Payment failed",
     detail: `Client payment failed for booking ${updatedBooking.id}.`,
     createdBy: `stripe:${eventPayload.id}`,
+  });
+
+  auditLog({
+    action: "payments.webhook.payment_failed",
+    actorId: `stripe:${eventPayload.id}`,
+    actorRoles: ["system"],
+    resourceType: "booking",
+    resourceId: updatedBooking.id,
+    outcome: "success",
+    metadata: {
+      eventType: eventPayload.type,
+      status: updatedBooking.status,
+    },
   });
 
   return {
@@ -750,6 +859,20 @@ async function applyChargeRefunded(
     createdBy: `stripe:${eventPayload.id}`,
   });
 
+  auditLog({
+    action: "payments.webhook.charge_refunded",
+    actorId: `stripe:${eventPayload.id}`,
+    actorRoles: ["system"],
+    resourceType: "booking",
+    resourceId: updatedBooking.id,
+    outcome: "success",
+    metadata: {
+      eventType: eventPayload.type,
+      status: updatedBooking.status,
+      payoutId: payout.id,
+    },
+  });
+
   return {
     bookingId: updatedBooking.id,
   };
@@ -773,6 +896,19 @@ async function handleStripeWebhook(
 
   const existing = await repository.getProcessedWebhookEvent(stripeEvent.id);
   if (existing) {
+    auditLog({
+      action: "payments.webhook.duplicate",
+      actorId: `stripe:${stripeEvent.id}`,
+      actorRoles: ["system"],
+      resourceType: "webhook_event",
+      resourceId: stripeEvent.id,
+      outcome: "success",
+      metadata: {
+        eventType: stripeEvent.type,
+        previousOutcome: existing.outcome,
+      },
+    });
+
     return json(
       200,
       success({
@@ -811,6 +947,20 @@ async function handleStripeWebhook(
     outcome,
   });
 
+  auditLog({
+    action: "payments.webhook.process",
+    actorId: `stripe:${stripeEvent.id}`,
+    actorRoles: ["system"],
+    resourceType: "webhook_event",
+    resourceId: stripeEvent.id,
+    outcome: "success",
+    metadata: {
+      eventType: stripeEvent.type,
+      outcome,
+      bookingId,
+    },
+  });
+
   return json(
     200,
     success({
@@ -830,6 +980,7 @@ export function createPaymentsApiHandler(
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: true });
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
 
@@ -844,6 +995,10 @@ export function createPaymentsApiHandler(
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof RequestError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
+      if (error instanceof SecurityPolicyError) {
         return json(error.statusCode, failure(error.code, error.message));
       }
 
@@ -865,6 +1020,7 @@ export function createWebhookApiHandler(repository: PaymentsWorkspaceRepository)
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: false });
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
 
@@ -875,6 +1031,10 @@ export function createWebhookApiHandler(repository: PaymentsWorkspaceRepository)
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof RequestError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
+      if (error instanceof SecurityPolicyError) {
         return json(error.statusCode, failure(error.code, error.message));
       }
 

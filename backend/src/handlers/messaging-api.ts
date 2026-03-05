@@ -10,8 +10,10 @@ import type {
 } from "../domain/entities.js";
 import { createRecordMeta } from "../domain/record-meta.js";
 import { json } from "../lib/http.js";
+import { type JsonSchema, validateSchema } from "../lib/schema.js";
 import { requireAuthIdentity } from "../middleware/auth-context.js";
 import { requireAnyRole } from "../middleware/authorization.js";
+import { SecurityPolicyError, enforceRequestSecurity } from "../middleware/request-security.js";
 import {
   NoopRoleAssignmentsRepository,
   type RoleAssignmentsRepository,
@@ -27,6 +29,16 @@ const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 const MAX_MESSAGE_LENGTH = 3000;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX_MESSAGES = 5;
+const THREAD_MESSAGE_CREATE_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["body"],
+  additionalProperties: true,
+  properties: {
+    body: { type: "string", minLength: 1, maxLength: MAX_MESSAGE_LENGTH },
+    toId: { type: "string", maxLength: 80, nullable: true },
+    bookingId: { type: "string", maxLength: 80, nullable: true },
+  },
+};
 
 type PageRequest = {
   limit: number;
@@ -460,6 +472,10 @@ async function handlePostThreadMessage(
   }
 
   const payload = parseBody<{ body?: unknown; toId?: unknown; bookingId?: unknown }>(event);
+  const issues = validateSchema(THREAD_MESSAGE_CREATE_SCHEMA, payload, "body");
+  if (issues.length) {
+    throw new RequestError(400, "INVALID_REQUEST", issues[0]);
+  }
 
   const messageBody = normalizeMessageBody(payload.body);
   const payloadRecipientId = normalizeOptionalText(payload.toId, "toId", 80);
@@ -564,6 +580,7 @@ export function createMessagingApiHandler(
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAnyRole(identity, ["user", "artist", "admin"]);
 
@@ -593,6 +610,10 @@ export function createMessagingApiHandler(
 
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
+      if (error instanceof SecurityPolicyError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
       if (error instanceof RequestError) {
         return json(error.statusCode, failure(error.code, error.message));
       }

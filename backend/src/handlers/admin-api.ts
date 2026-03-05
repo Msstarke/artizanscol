@@ -10,9 +10,12 @@ import type {
 } from "../domain/entities.js";
 import { categoryActiveStatus, categorySortName } from "../domain/index-keys.js";
 import { createRecordMeta, touchRecordMeta } from "../domain/record-meta.js";
+import { auditLog } from "../lib/audit.js";
 import { json } from "../lib/http.js";
+import { type JsonSchema, parseJsonRequestBody, validateSchema } from "../lib/schema.js";
 import { requireAuthIdentity } from "../middleware/auth-context.js";
 import { requireAdmin } from "../middleware/authorization.js";
+import { SecurityPolicyError, enforceRequestSecurity } from "../middleware/request-security.js";
 import {
   NoopRoleAssignmentsRepository,
   type RoleAssignmentsRepository,
@@ -27,6 +30,39 @@ const MAX_LIMIT = 100;
 const REPORT_TYPES = ["spam", "abuse", "copyright", "ai"] as const;
 const REPORT_STATUSES = ["open", "reviewing", "resolved", "dismissed"] as const;
 const SYSTEM_CONFIG_ID = "system";
+const ADMIN_REVIEW_NOTE_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    note: { type: "string", maxLength: 500, nullable: true },
+  },
+};
+const ADMIN_REPORT_STATUS_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["status"],
+  additionalProperties: true,
+  properties: {
+    status: { type: "string", enum: REPORT_STATUSES },
+    note: { type: "string", maxLength: 1000, nullable: true },
+  },
+};
+const ADMIN_CATEGORY_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    name: { type: "string", minLength: 1, maxLength: 80, nullable: true },
+    active: { type: "boolean", nullable: true },
+  },
+};
+const ADMIN_MAINTENANCE_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["maintenanceMode"],
+  additionalProperties: true,
+  properties: {
+    maintenanceMode: { type: "boolean" },
+    note: { type: "string", maxLength: 500, nullable: true },
+  },
+};
 
 type PageRequest = {
   limit: number;
@@ -100,20 +136,23 @@ function pageItems<T>(items: T[], page: PageRequest): { items: T[]; nextCursor: 
   };
 }
 
-function parseBody<T>(event: APIGatewayProxyEventV2): T {
-  if (!event.body) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body is required.");
-  }
-
-  const raw = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64").toString("utf8")
-    : event.body;
-
+function parseBody<T>(event: APIGatewayProxyEventV2, schema?: JsonSchema): T {
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as T;
-  } catch (_) {
-    throw new RequestError(400, "INVALID_REQUEST", "Request body must be valid JSON.");
+    parsed = parseJsonRequestBody(event);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Request body must be valid JSON.";
+    throw new RequestError(400, "INVALID_REQUEST", message);
   }
+
+  if (schema) {
+    const issues = validateSchema(schema, parsed, "body");
+    if (issues.length) {
+      throw new RequestError(400, "INVALID_REQUEST", issues[0]);
+    }
+  }
+
+  return parsed as T;
 }
 
 function normalizeRequiredText(value: unknown, field: string, max: number): string {
@@ -342,7 +381,7 @@ async function handleVerifyOrRejectArtist(
     return json(404, failure("NOT_FOUND", "Artist not found."));
   }
 
-  const payload = parseBody<{ note?: unknown }>(event);
+  const payload = parseBody<{ note?: unknown }>(event, ADMIN_REVIEW_NOTE_SCHEMA);
   const note = normalizeOptionalText(payload.note, "note", 500);
 
   const next = touchRecordMeta(
@@ -357,6 +396,19 @@ async function handleVerifyOrRejectArtist(
   );
 
   await repository.patchArtist(next);
+  auditLog({
+    action: action === "verify" ? "admin.artist.verify" : "admin.artist.reject",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "artist",
+    resourceId: next.id,
+    outcome: "success",
+    metadata: {
+      note: note || null,
+      previousVerified: artist.verified,
+      nextVerified: next.verified,
+    },
+  });
 
   return json(
     200,
@@ -438,7 +490,7 @@ async function handleUpdateReportStatus(
     return json(404, failure("NOT_FOUND", "Report not found."));
   }
 
-  const payload = parseBody<{ status?: unknown; note?: unknown }>(event);
+  const payload = parseBody<{ status?: unknown; note?: unknown }>(event, ADMIN_REPORT_STATUS_SCHEMA);
   const status = parseReportStatus(String(payload.status || ""));
   if (!status) {
     throw new RequestError(400, "INVALID_REQUEST", "status is required.");
@@ -459,6 +511,20 @@ async function handleUpdateReportStatus(
   );
 
   await repository.patchReport(next);
+  auditLog({
+    action: "admin.report.status_update",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "report",
+    resourceId: next.id,
+    outcome: "success",
+    metadata: {
+      previousStatus: report.status,
+      nextStatus: next.status,
+      note: note || null,
+    },
+  });
+
   return json(200, success(mapReport(next)));
 }
 
@@ -507,7 +573,7 @@ async function handlePatchPlatformCategory(
     return json(404, failure("NOT_FOUND", "Category not found."));
   }
 
-  const payload = parseBody<{ name?: unknown; active?: unknown }>(event);
+  const payload = parseBody<{ name?: unknown; active?: unknown }>(event, ADMIN_CATEGORY_PATCH_SCHEMA);
   const hasName = payload.name != null;
   const hasActive = payload.active != null;
 
@@ -530,6 +596,21 @@ async function handlePatchPlatformCategory(
   );
 
   await repository.patchCategory(next);
+  auditLog({
+    action: "admin.category.patch",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "category",
+    resourceId: next.id,
+    outcome: "success",
+    metadata: {
+      previousName: category.name,
+      nextName: next.name,
+      previousActive: category.active,
+      nextActive: next.active,
+    },
+  });
+
   return json(200, success(mapCategory(next)));
 }
 
@@ -566,7 +647,10 @@ async function handlePatchSystemMaintenance(
   repository: AdminWorkspaceRepository,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const payload = parseBody<{ maintenanceMode?: unknown; note?: unknown }>(event);
+  const payload = parseBody<{ maintenanceMode?: unknown; note?: unknown }>(
+    event,
+    ADMIN_MAINTENANCE_PATCH_SCHEMA,
+  );
   const maintenanceMode = parseBoolean(payload.maintenanceMode, "maintenanceMode");
   const note = normalizeOptionalText(payload.note, "note", 500);
 
@@ -593,6 +677,19 @@ async function handlePatchSystemMaintenance(
   );
 
   await repository.patchSystemConfig(next);
+  auditLog({
+    action: "admin.system.maintenance.patch",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "system_config",
+    resourceId: next.id,
+    outcome: "success",
+    metadata: {
+      previousMaintenanceMode: existing.maintenanceMode,
+      nextMaintenanceMode: next.maintenanceMode,
+      note: note || null,
+    },
+  });
 
   return json(
     200,
@@ -651,6 +748,7 @@ export function createAdminApiHandler(
     event: APIGatewayProxyEventV2,
   ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
+      enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAdmin(identity);
 
@@ -700,6 +798,10 @@ export function createAdminApiHandler(
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof RequestError) {
+        return json(error.statusCode, failure(error.code, error.message));
+      }
+
+      if (error instanceof SecurityPolicyError) {
         return json(error.statusCode, failure(error.code, error.message));
       }
 

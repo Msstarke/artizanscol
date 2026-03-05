@@ -13,7 +13,7 @@
 - [x] Phase 9: Admin and system APIs
 - [x] Phase 10: Stripe and financial flow
 - [x] Phase 11: Frontend integration (replace localStorage domain state)
-- [ ] Phase 12: Security hardening and compliance baseline
+- [x] Phase 12: Security hardening and compliance baseline
 - [ ] Phase 13: CI/CD and deployment pipeline
 - [ ] Phase 14: QA, UAT, and cutover
 
