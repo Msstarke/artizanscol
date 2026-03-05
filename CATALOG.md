@@ -4,7 +4,7 @@ This catalog is the primary index for the repository.
 
 ## Product
 - Multi-page web app for artist discovery, hiring, and booking flows.
-- Stack: vanilla HTML, CSS, and JavaScript.
+- Stack: static frontend (HTML/CSS/JavaScript) + backend workspace (Node.js/TypeScript).
 - Auth: Cognito-based browser auth flows.
 
 ## Top-Level Structure
@@ -13,6 +13,7 @@ This catalog is the primary index for the repository.
 - `user/`: client workspace pages.
 - `admin/`: admin/support pages.
 - `js/`: app logic modules.
+- `backend/`: backend API workspace and tests (TypeScript).
 - `styles/`: shared and page-level styles.
 - `aws/`: CloudFormation and deploy scripts for AWS hosting.
 - `.github/workflows/`: CI/CD workflows.
@@ -29,6 +30,12 @@ This catalog is the primary index for the repository.
 - Auto deploy pipeline: `.github/workflows/deploy-aws-static-site.yml`
 - Infrastructure template: `aws/cloudformation/artizans-aws-stack.yaml`
 - CloudShell deploy script: `aws/scripts/cloudshell-deploy.sh`
+
+## Backend Foundation
+- API response contract: `backend/src/domain/api-response.ts`
+- Runtime environment contract: `backend/src/lib/env.ts`
+- Starter Lambda handler: `backend/src/handlers/health.ts`
+- Execution roadmap: `IMPLEMENTATION_PLAN.md`
 
 ## Repo Rules
 - Operational workflow rules: `REPO_RULES.md`

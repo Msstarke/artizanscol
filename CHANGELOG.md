@@ -24,3 +24,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Expanded `/account-settings.html` into a fuller account center with editable profile details, notification preferences, live workspace stats, password-reset shortcut, account data export, saved-artists cleanup, and matching `auth.js` logic/persistence updates.
 - Added root `CATALOG.md` and mirrored it in root `README.md` so GitHub repo landing README displays the catalog content.
 - Upgraded `/index.html` to production-ready metadata/canonical/social tags, removed dev-facing landing copy, and improved shared nav behavior so logout buttons only render when signed in.
+- Added `IMPLEMENTATION_PLAN.md` with phase-by-phase backend execution checklist and implemented Phase 1 backend scaffolding in `backend/` (Node.js/TypeScript workspace, contracts, env loader, starter handler, and tests).

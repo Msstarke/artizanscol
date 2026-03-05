@@ -6,6 +6,7 @@
 
 # Build/output artifacts
 output/
+backend/dist/
 
 # Dependencies
 node_modules/
