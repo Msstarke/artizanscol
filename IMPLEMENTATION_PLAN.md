@@ -9,7 +9,7 @@
 - [x] Phase 5: Public and discovery APIs
 - [x] Phase 6: User workspace APIs
 - [x] Phase 7: Artist workspace APIs
-- [ ] Phase 8: Messaging APIs (near realtime polling)
+- [x] Phase 8: Messaging APIs (near realtime polling)
 - [ ] Phase 9: Admin and system APIs
 - [ ] Phase 10: Stripe and financial flow
 - [ ] Phase 11: Frontend integration (replace localStorage domain state)
