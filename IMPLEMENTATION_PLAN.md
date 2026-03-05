@@ -10,7 +10,7 @@
 - [x] Phase 6: User workspace APIs
 - [x] Phase 7: Artist workspace APIs
 - [x] Phase 8: Messaging APIs (near realtime polling)
-- [ ] Phase 9: Admin and system APIs
+- [x] Phase 9: Admin and system APIs
 - [ ] Phase 10: Stripe and financial flow
 - [ ] Phase 11: Frontend integration (replace localStorage domain state)
 - [ ] Phase 12: Security hardening and compliance baseline
