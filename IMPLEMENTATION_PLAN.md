@@ -7,7 +7,7 @@
 - [x] Phase 3: Authentication and authorization
 - [x] Phase 4: Data model and persistence contracts
 - [x] Phase 5: Public and discovery APIs
-- [ ] Phase 6: User workspace APIs
+- [x] Phase 6: User workspace APIs
 - [ ] Phase 7: Artist workspace APIs
 - [ ] Phase 8: Messaging APIs (near realtime polling)
 - [ ] Phase 9: Admin and system APIs
