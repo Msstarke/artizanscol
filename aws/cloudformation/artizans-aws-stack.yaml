@@ -41,7 +41,11 @@ Parameters:
   EnableCloudFrontWaf:
     Type: String
     AllowedValues: ['true', 'false']
-    Default: 'false'
+    Default: 'true'
+  CloudFrontWebAclArn:
+    Type: String
+    Default: ''
+    Description: Optional existing CloudFront-scope WAF Web ACL ARN (overrides template-created ACL when provided)
   EnableApiWaf:
     Type: String
     AllowedValues: ['true', 'false']
@@ -101,6 +105,7 @@ Conditions:
   UseEc2Api: !Equals [!Ref EnableEc2Api, 'true']
   UsePrivateCA: !Equals [!Ref EnablePrivateCA, 'true']
   IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']
+  HasCloudFrontWebAclArn: !Not [!Equals [!Ref CloudFrontWebAclArn, '']]
   CreateCloudFrontWaf: !And
     - !Equals [!Ref EnableCloudFrontWaf, 'true']
     - !Condition IsUsEast1
@@ -278,6 +283,73 @@ Resources:
           return request;
         }
 
+  ArtizansNoStoreCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${ProjectName}-${EnvironmentName}-no-store-cache'
+        Comment: Disables caching for sensitive auth resources
+        MinTTL: 0
+        DefaultTTL: 0
+        MaxTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          CookiesConfig:
+            CookieBehavior: none
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  ArtizansSensitiveNoStoreHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${ProjectName}-${EnvironmentName}-security-headers-no-store'
+        Comment: Security headers with no-store caching for auth-sensitive resources
+        SecurityHeadersConfig:
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: strict-origin-when-cross-origin
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Preload: false
+            Override: true
+          XSSProtection:
+            ModeBlock: true
+            Protection: true
+            Override: true
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
+            Override: true
+        CustomHeadersConfig:
+          Items:
+            - Header: Permissions-Policy
+              Value: geolocation=(), microphone=(), camera=(), payment=()
+              Override: true
+            - Header: Cache-Control
+              Value: no-store, no-cache, must-revalidate
+              Override: true
+            - Header: Pragma
+              Value: no-cache
+              Override: true
+            - Header: Expires
+              Value: 0
+              Override: true
+        RemoveHeadersConfig:
+          Items:
+            - Header: server
+            - Header: x-amz-version-id
+            - Header: x-amz-id-2
+            - Header: x-amz-request-id
+
   ArtizansDistribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -292,11 +364,51 @@ Resources:
             DomainName: !GetAtt ArtizansSiteBucket.RegionalDomainName
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${ArtizansOriginAccessIdentity}'
+        CacheBehaviors:
+          - PathPattern: /account-settings.html
+            TargetOriginId: artizans-site-origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
+            FunctionAssociations: !If
+              - EnableCanonicalDomainRedirect
+              - - EventType: viewer-request
+                  FunctionARN: !GetAtt ArtizansCanonicalRedirectFunction.FunctionARN
+              - !Ref AWS::NoValue
+          - PathPattern: /js/auth.js
+            TargetOriginId: artizans-site-origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
+            FunctionAssociations: !If
+              - EnableCanonicalDomainRedirect
+              - - EventType: viewer-request
+                  FunctionARN: !GetAtt ArtizansCanonicalRedirectFunction.FunctionARN
+              - !Ref AWS::NoValue
+          - PathPattern: /js/cognito-auth.js
+            TargetOriginId: artizans-site-origin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
+            FunctionAssociations: !If
+              - EnableCanonicalDomainRedirect
+              - - EventType: viewer-request
+                  FunctionARN: !GetAtt ArtizansCanonicalRedirectFunction.FunctionARN
+              - !Ref AWS::NoValue
         DefaultCacheBehavior:
           TargetOriginId: artizans-site-origin
           ViewerProtocolPolicy: redirect-to-https
-          AllowedMethods: [GET, HEAD, OPTIONS]
-          CachedMethods: [GET, HEAD, OPTIONS]
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
           Compress: true
           ResponseHeadersPolicyId: !Ref ArtizansResponseHeadersPolicy
           FunctionAssociations: !If
@@ -339,9 +451,12 @@ Resources:
             -
               CloudFrontDefaultCertificate: true
         WebACLId: !If
-          - CreateCloudFrontWaf
-          - !GetAtt ArtizansWebAcl.Arn
-          - !Ref AWS::NoValue
+          - HasCloudFrontWebAclArn
+          - !Ref CloudFrontWebAclArn
+          - !If
+            - CreateCloudFrontWaf
+            - !GetAtt ArtizansWebAcl.Arn
+            - !Ref AWS::NoValue
 
   ArtizansUserPool:
     Type: AWS::Cognito::UserPool

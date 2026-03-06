@@ -133,6 +133,12 @@ Optional env vars:
 - To enforce canonical host redirect (for example `artizanscollective.com -> www.artizanscollective.com`), set:
   - `DomainName=www.artizanscollective.com`
   - `RedirectFromDomainName=artizanscollective.com`
+- To attach an existing CloudFront WAF (recommended when stack region is not `us-east-1`), set:
+  - `CloudFrontWebAclArn=arn:aws:wafv2:us-east-1:<account-id>:global/webacl/<name>/<id>`
+- This template now applies no-store caching headers and disabled edge caching for:
+  - `account-settings.html`
+  - `js/auth.js`
+  - `js/cognito-auth.js`
 - For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
 - For payment security operations, follow `aws/STRIPE_SECRETS_ROTATION.md`.
 - For rollback procedures, follow `aws/ROLLBACK_PLAYBOOK.md`.

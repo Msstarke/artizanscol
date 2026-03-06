@@ -5,7 +5,7 @@ const DEFAULT_AWS_CONFIG = {
   schemaVersion: AWS_CONFIG_VERSION,
   region: "ap-southeast-2",
   accountId: "",
-  stackName: "artizans-stack",
+  stackName: "",
   s3BucketName: "",
   cloudFrontDistributionId: "",
   cloudFrontDomain: "",
@@ -14,9 +14,20 @@ const DEFAULT_AWS_CONFIG = {
   privateCaArn: "",
   cognitoUserPoolId: "ap-southeast-2_SW8VfLv3l",
   cognitoUserPoolClientId: "2lhd1i7taqjsk298dfsgigl1m2",
-  cognitoIdentityPoolId: "ap-southeast-2:cf8b85b9-605c-43d0-9832-801c2b591568",
+  cognitoIdentityPoolId: "",
   wafWebAclArn: "",
 };
+
+const MUTABLE_CONSOLE_FIELDS = [
+  "accountId",
+  "stackName",
+  "s3BucketName",
+  "cloudFrontDistributionId",
+  "cloudFrontDomain",
+  "certificateArn",
+  "privateCaArn",
+  "wafWebAclArn",
+];
 
 function safeParse(value) {
   try {
@@ -34,24 +45,52 @@ function normalize(config) {
   };
 }
 
+function pickMutableConsoleFields(config) {
+  return MUTABLE_CONSOLE_FIELDS.reduce((acc, key) => {
+    if (Object.prototype.hasOwnProperty.call(config || {}, key)) {
+      acc[key] = config[key];
+    }
+    return acc;
+  }, {});
+}
+
 export function getAWSConfig() {
-  const cached = safeParse(localStorage.getItem(AWS_CONFIG_KEY));
-  if (!cached || cached.schemaVersion !== AWS_CONFIG_VERSION) {
-    const initialConfig = { ...DEFAULT_AWS_CONFIG };
+  const cached = safeParse(localStorage.getItem(AWS_CONFIG_KEY)) || {};
+  if (cached.schemaVersion !== AWS_CONFIG_VERSION) {
+    const initialConfig = {
+      schemaVersion: AWS_CONFIG_VERSION,
+      ...pickMutableConsoleFields(cached),
+    };
     localStorage.setItem(AWS_CONFIG_KEY, JSON.stringify(initialConfig));
-    return initialConfig;
   }
-  return normalize(cached);
+
+  return {
+    ...DEFAULT_AWS_CONFIG,
+    ...pickMutableConsoleFields(cached),
+    schemaVersion: AWS_CONFIG_VERSION,
+  };
 }
 
 export function saveAWSConfig(nextConfig) {
   const normalized = normalize(nextConfig);
-  localStorage.setItem(AWS_CONFIG_KEY, JSON.stringify(normalized));
-  return normalized;
+  const safePersisted = {
+    schemaVersion: AWS_CONFIG_VERSION,
+    ...pickMutableConsoleFields(normalized),
+  };
+  localStorage.setItem(AWS_CONFIG_KEY, JSON.stringify(safePersisted));
+  return {
+    ...DEFAULT_AWS_CONFIG,
+    ...safePersisted,
+  };
 }
 
 export function resetAWSConfig() {
-  localStorage.setItem(AWS_CONFIG_KEY, JSON.stringify(DEFAULT_AWS_CONFIG));
+  localStorage.setItem(
+    AWS_CONFIG_KEY,
+    JSON.stringify({
+      schemaVersion: AWS_CONFIG_VERSION,
+    }),
+  );
   return { ...DEFAULT_AWS_CONFIG };
 }
 

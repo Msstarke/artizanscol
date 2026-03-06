@@ -1,7 +1,8 @@
-import { getAWSConfig } from "./aws-config.js";
 import { ensureCognitoSession, getCognitoAccessToken } from "./cognito-auth.js";
 
 const DEFAULT_RETRIES = 1;
+const STATIC_API_BASE_URL = "";
+const API_BASE_META_NAME = "artizans-api-base-url";
 
 function joinUrl(base, path) {
   const normalizedBase = String(base || "").replace(/\/+$/, "");
@@ -17,10 +18,9 @@ function joinUrl(base, path) {
 }
 
 export function getApiBaseUrl() {
-  const config = getAWSConfig();
-  const fromConfig = String(config.ec2ApiBaseUrl || "").trim();
-  const fromWindow = String(window.__ARTIZANS_API_BASE_URL || "").trim();
-  const base = fromConfig || fromWindow;
+  const metaValue =
+    document.querySelector(`meta[name="${API_BASE_META_NAME}"]`)?.getAttribute("content") || "";
+  const base = String(metaValue || STATIC_API_BASE_URL || "").trim();
   return base.replace(/\/+$/, "");
 }
 
