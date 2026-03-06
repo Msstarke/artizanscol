@@ -19,7 +19,7 @@ if (upcomingRoot) {
   upcomingRoot.innerHTML = upcoming.length
     ? upcoming
         .map((artist) => {
-          const href = `/artist-preview.html?id=${artist.id}`;
+          const href = `/artist-preview.html?id=${encodeURIComponent(String(artist.id || ""))}`;
           return artistCardHTML(artist, {
             actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="${href}">Preview</a></div>`,
           });

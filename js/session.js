@@ -1,4 +1,5 @@
 export const SESSION_KEY = "artizans.session.v1";
+const LEGACY_SESSION_KEY = "artizans.session.v1";
 const ALLOWED_ROLES = ["none", "user", "artist"];
 
 const DEFAULT_SESSION = {
@@ -19,10 +20,42 @@ function safeParse(value) {
   }
 }
 
+function getSessionStorage() {
+  try {
+    return window.sessionStorage;
+  } catch (_) {
+    return null;
+  }
+}
+
+function getLocalStorage() {
+  try {
+    return window.localStorage;
+  } catch (_) {
+    return null;
+  }
+}
+
 export function getSession() {
-  const parsed = safeParse(localStorage.getItem(SESSION_KEY));
+  const sessionStorage = getSessionStorage();
+  const localStorage = getLocalStorage();
+
+  const parsed = safeParse(sessionStorage?.getItem(SESSION_KEY) || "");
+  if (!parsed) {
+    const legacy = safeParse(localStorage?.getItem(LEGACY_SESSION_KEY) || "");
+    if (legacy) {
+      sessionStorage?.setItem(SESSION_KEY, JSON.stringify(legacy));
+      localStorage?.removeItem(LEGACY_SESSION_KEY);
+      return {
+        ...DEFAULT_SESSION,
+        ...legacy,
+      };
+    }
+  }
+
   if (!parsed || typeof parsed.role !== "string" || !ALLOWED_ROLES.includes(parsed.role)) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(DEFAULT_SESSION));
+    sessionStorage?.setItem(SESSION_KEY, JSON.stringify(DEFAULT_SESSION));
+    localStorage?.removeItem(LEGACY_SESSION_KEY);
     return { ...DEFAULT_SESSION };
   }
   return {
@@ -36,7 +69,8 @@ export function setSession(nextSession) {
     ...DEFAULT_SESSION,
     ...nextSession,
   };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+  getSessionStorage()?.setItem(SESSION_KEY, JSON.stringify(merged));
+  getLocalStorage()?.removeItem(LEGACY_SESSION_KEY);
   return merged;
 }
 

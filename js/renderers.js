@@ -1,4 +1,10 @@
-import { formatMoney, statusBadge, escapeHtml } from "./utils.js";
+import {
+  formatMoney,
+  statusBadge,
+  escapeHtml,
+  sanitizeClassToken,
+  sanitizeImageUrl,
+} from "./utils.js";
 
 const FALLBACK_PORTFOLIO_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6efe4'/%3E%3Cstop offset='1' stop-color='%23e3d6c2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='400' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='32' font-family='sans-serif' fill='%235a4937'%3EPortfolio%3C/text%3E%3C/svg%3E";
@@ -6,9 +12,10 @@ const FALLBACK_PORTFOLIO_IMAGE =
 export function artistCardHTML(artist, options = {}) {
   const verifiedLabel = artist.verified ? "Verified" : "Pending verification";
   const actionButtons = options.actionButtons || "";
+  const imageSrc = sanitizeImageUrl(artist.portfolio[0]?.image, FALLBACK_PORTFOLIO_IMAGE);
   return `
     <article class="artist-card">
-      <img src="${escapeHtml(artist.portfolio[0]?.image || FALLBACK_PORTFOLIO_IMAGE)}" alt="${escapeHtml(artist.name)} preview" />
+      <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
       <div class="artist-card-body">
         <h3>${escapeHtml(artist.name)}</h3>
         <p>${escapeHtml(artist.category)} • ${escapeHtml(artist.location)}</p>
@@ -31,10 +38,13 @@ export function bookingActionButtons(booking, actions) {
     return "";
   }
   const buttons = actions
-    .map(
-      (action) =>
-        `<button class="btn ${action.className || "btn-outline"} btn-small" data-booking-action="${action.value}" data-booking-id="${booking.id}" type="button">${action.label}</button>`,
-    )
+    .map((action) => {
+      const classToken = sanitizeClassToken(action.className || "btn-outline", "btn-outline");
+      const actionValue = escapeHtml(String(action.value || ""));
+      const bookingId = escapeHtml(String(booking.id || ""));
+      const label = escapeHtml(String(action.label || "Action"));
+      return `<button class="btn ${classToken} btn-small" data-booking-action="${actionValue}" data-booking-id="${bookingId}" type="button">${label}</button>`;
+    })
     .join(" ");
   return `<div class="form-actions">${buttons}</div>`;
 }

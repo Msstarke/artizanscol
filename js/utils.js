@@ -70,6 +70,37 @@ export function toTitle(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+export function sanitizeClassToken(value, fallback = "unknown") {
+  const cleaned = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned || fallback;
+}
+
+export function sanitizeImageUrl(value, fallbackUrl) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return String(fallbackUrl || "");
+  }
+
+  if (raw.startsWith("data:image/")) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch (_) {
+    return String(fallbackUrl || "");
+  }
+
+  return String(fallbackUrl || "");
+}
+
 function ensureToastRoot() {
   let root = qs(".toast-root");
   if (!root) {
@@ -98,6 +129,7 @@ export function showToast(message, type = "info") {
 }
 
 export function statusBadge(status) {
-  const safe = String(status || "").toLowerCase();
-  return `<span class="status-badge status-${safe}">${toTitle(safe)}</span>`;
+  const safeClass = sanitizeClassToken(status, "unknown");
+  const safeText = escapeHtml(toTitle(safeClass.replaceAll("-", "_")));
+  return `<span class="status-badge status-${safeClass}">${safeText}</span>`;
 }

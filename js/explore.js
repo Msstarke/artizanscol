@@ -164,11 +164,12 @@ function render() {
     } else {
       resultsRoot.innerHTML = artists
         .map((artist) => {
-          const preview = `/artist-preview.html?id=${artist.id}`;
+          const encodedArtistId = encodeURIComponent(String(artist.id || ""));
+          const preview = `/artist-preview.html?id=${encodedArtistId}`;
           const actionButtons = `
             <div class="form-actions">
               <a class="btn btn-outline btn-small" href="${preview}">Preview</a>
-              <button class="btn btn-ghost btn-small" type="button" data-save-artist="${artist.id}">Save artist</button>
+              <button class="btn btn-ghost btn-small" type="button" data-save-artist="${encodedArtistId}">Save artist</button>
             </div>
           `;
           return artistCardHTML(artist, { actionButtons });
@@ -183,7 +184,14 @@ function render() {
 
   qsa("[data-save-artist]").forEach((button) => {
     button.addEventListener("click", () => {
-      handleSaveArtist(button.getAttribute("data-save-artist") || "");
+      const encodedId = button.getAttribute("data-save-artist") || "";
+      let artistId = encodedId;
+      try {
+        artistId = decodeURIComponent(encodedId);
+      } catch (_) {
+        artistId = encodedId;
+      }
+      handleSaveArtist(artistId);
     });
   });
 }
