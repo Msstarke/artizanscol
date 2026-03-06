@@ -130,6 +130,9 @@ Optional env vars:
 
 ## Notes
 - For custom domains on CloudFront, use an ACM certificate in `us-east-1` and set `CertificateArn`.
+- To enforce canonical host redirect (for example `artizanscollective.com -> www.artizanscollective.com`), set:
+  - `DomainName=www.artizanscollective.com`
+  - `RedirectFromDomainName=artizanscollective.com`
 - For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
 - For payment security operations, follow `aws/STRIPE_SECRETS_ROTATION.md`.
 - For rollback procedures, follow `aws/ROLLBACK_PLAYBOOK.md`.
