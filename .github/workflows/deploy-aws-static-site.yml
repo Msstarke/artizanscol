@@ -57,33 +57,40 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION != '' && secrets.AWS_REGION || env.AWS_REGION }}
+          aws-region: ${{ secrets.AWS_REGION || env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
 
       - name: Resolve deployment targets from CloudFormation
         id: resolve
         run: |
-          STACK="${{ secrets.AWS_STACK_NAME }}"
-          if [ -z "$STACK" ]; then
-            STACK="$STACK_NAME"
+          BUCKET="${{ secrets.ARTIZANS_BUCKET }}"
+          DIST_ID="${{ secrets.ARTIZANS_DISTRIBUTION_ID }}"
+          STACK="${{ secrets.AWS_STACK_NAME || env.STACK_NAME }}"
+
+          if [ -z "$BUCKET" ] || [ -z "$DIST_ID" ]; then
+            echo "Resolving deploy targets from stack: $STACK"
+            BUCKET=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK" \
+              --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+              --output text)
+
+            DIST_ID=$(aws cloudformation describe-stacks \
+              --stack-name "$STACK" \
+              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue | [0]" \
+              --output text)
           fi
 
-          BUCKET=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK" \
-            --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
-            --output text)
-
-          DIST_ID=$(aws cloudformation describe-stacks \
-            --stack-name "$STACK" \
-            --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue | [0]" \
-            --output text)
-
           if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
-            echo "BucketName output missing for stack $STACK"
+            echo "BucketName unresolved."
+            echo "Set secret ARTIZANS_BUCKET or ensure stack output BucketName exists for stack $STACK."
             exit 1
           fi
 
           if [ -z "$DIST_ID" ] || [ "$DIST_ID" = "None" ]; then
-            echo "CloudFrontDistributionId output missing for stack $STACK"
+            echo "CloudFrontDistributionId unresolved."
+            echo "Set secret ARTIZANS_DISTRIBUTION_ID or ensure stack output CloudFrontDistributionId exists for stack $STACK."
             exit 1
           fi
 
