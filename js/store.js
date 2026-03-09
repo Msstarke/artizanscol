@@ -351,11 +351,12 @@ export async function hydrateDB() {
       categories: createDefaultCategories(),
       artists: [],
     };
-    next.categories = asArray(categoriesResponse?.data?.items).map((category) => ({
+    const remoteCategories = asArray(categoriesResponse?.data?.items).map((category) => ({
       id: category.id,
       name: category.name,
       active: category.active !== false,
     }));
+    next.categories = remoteCategories.length ? remoteCategories : asArray(existing.categories).length ? existing.categories : createDefaultCategories();
 
     const localArtistsById = new Map(asArray(existing.artists).map((artist) => [artist.id, artist]));
     next.artists = asArray(artistsResponse?.data?.items).map((artist) => ({

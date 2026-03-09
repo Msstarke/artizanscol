@@ -213,6 +213,7 @@ function render() {
   }
 
   if (resultsRoot) {
+    resultsRoot.classList.toggle("has-empty-state", !artists.length);
     if (!artists.length) {
       resultsRoot.innerHTML = db.artists.length
         ? `<div class="empty-state">No artists match this filter set. Reset filters or widen the brief to see more profiles.</div>`

@@ -4,6 +4,10 @@
   gap: 1rem;
 }
 
+.artist-grid.has-empty-state > * {
+  grid-column: 1 / -1;
+}
+
 .artist-card {
   border: 1px solid rgba(24, 24, 24, 0.1);
   border-radius: 18px;

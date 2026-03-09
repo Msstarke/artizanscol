@@ -16,6 +16,7 @@ const upcoming = [...db.artists]
 
 const upcomingRoot = byId("upcoming-artists");
 if (upcomingRoot) {
+  upcomingRoot.classList.toggle("has-empty-state", !upcoming.length);
   upcomingRoot.innerHTML = upcoming.length
     ? upcoming
         .map((artist) => {

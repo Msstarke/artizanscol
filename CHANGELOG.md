@@ -6,6 +6,7 @@ All notable project changes are tracked via Git commits and summarized here.
 - Refreshed the public client journey across `/index.html`, `/explore.html`, and `/artist-preview.html` with stronger trust-first copy, more premium section hierarchy, cleaner browse/filter layout, and a more decision-focused artist profile flow.
 - Extended shared frontend styling in `styles/base.css`, `styles/components.css`, and `styles/pages.css` to support the new public layout system, improved button/card polish, better responsive behavior, and a global `[hidden]` rule so signed-out headers do not leak logout controls.
 - Updated `js/public-home.js`, `js/explore.js`, `js/artist-preview.js`, and `js/renderers.js` to power the new UI hooks, richer artist cards, active filter summaries, improved empty states, and clearer public CTA behavior without changing backend contracts.
+- Normalized the site shell across public pages: shared nav labels now match, signed-out pages show only a sign-in action, mobile now has a menu toggle, public footers use one consistent structure, fallback categories stay populated when the API returns none, and static page titles now use the `ARTIZANS.COLLECTIVE` format.
 
 ## 2026-03-04
 - Initialized Git repository.
