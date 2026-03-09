@@ -319,6 +319,10 @@ function artistProfileStatus(artist) {
   return artist?.profileVisible ? "Live" : "Off";
 }
 
+function artistVisibilityButtonLabel(artist) {
+  return artist?.profileVisible ? "Hide profile" : "Show profile";
+}
+
 function parseMediumsInput(value) {
   return uniqueValues(
     String(value || "")
@@ -529,6 +533,9 @@ function renderArtistAccount(context) {
     if (workspaceArtistPreview instanceof HTMLAnchorElement) {
       workspaceArtistPreview.href = "/artist-preview.html";
     }
+    if (toggleArtistAccountBtn) {
+      toggleArtistAccountBtn.textContent = "Show profile";
+    }
     return;
   }
 
@@ -551,13 +558,16 @@ function renderArtistAccount(context) {
   if (workspaceArtistVisibilityCopy) {
     workspaceArtistVisibilityCopy.textContent = artist.profileVisible
       ? "Clients can find your profile in Explore and send briefs from your public page."
-      : "Your profile is hidden from Explore and booking until you toggle the artist account on.";
+      : "Your profile is hidden from Explore and booking until you choose Show profile.";
   }
   if (workspaceArtistState) {
     workspaceArtistState.dataset.visibility = artist.profileVisible ? "live" : "off";
   }
   if (workspaceArtistPreview instanceof HTMLAnchorElement) {
     workspaceArtistPreview.href = `/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
+  }
+  if (toggleArtistAccountBtn) {
+    toggleArtistAccountBtn.textContent = artistVisibilityButtonLabel(artist);
   }
 }
 

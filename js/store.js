@@ -75,29 +75,6 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function hasMeaningfulArtistBio(artist) {
-  const bio = String(artist?.bio || "").trim();
-  return Boolean(bio) && bio !== "Add your bio to start receiving requests.";
-}
-
-function inferArtistProfileVisible(artist, db) {
-  if (typeof artist?.profileVisible === "boolean") {
-    return artist.profileVisible;
-  }
-
-  const hasProfileWork = asArray(artist?.portfolio).length > 0;
-  const hasProfileSignals =
-    hasMeaningfulArtistBio(artist)
-    || Boolean(String(artist?.location || "").trim())
-    || Number(artist?.priceFrom || 0) > 0
-    || Boolean(artist?.verified);
-  const hasServiceRecords = Boolean(
-    artist?.id && asArray(db?.services).some((service) => service.artistId === artist.id),
-  );
-
-  return hasProfileWork || hasProfileSignals || hasServiceRecords;
-}
-
 function normalizeArtistRecord(artist, db) {
   if (!artist || typeof artist !== "object") {
     return artist;
@@ -112,7 +89,7 @@ function normalizeArtistRecord(artist, db) {
   }
 
   artist.priceFrom = Number(artist.priceFrom || 0);
-  artist.profileVisible = inferArtistProfileVisible(artist, db);
+  artist.profileVisible = Boolean(artist.profileVisible);
   return artist;
 }
 
