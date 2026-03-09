@@ -2,6 +2,11 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-10
+- Refreshed the public client journey across `/index.html`, `/explore.html`, and `/artist-preview.html` with stronger trust-first copy, more premium section hierarchy, cleaner browse/filter layout, and a more decision-focused artist profile flow.
+- Extended shared frontend styling in `styles/base.css`, `styles/components.css`, and `styles/pages.css` to support the new public layout system, improved button/card polish, better responsive behavior, and a global `[hidden]` rule so signed-out headers do not leak logout controls.
+- Updated `js/public-home.js`, `js/explore.js`, `js/artist-preview.js`, and `js/renderers.js` to power the new UI hooks, richer artist cards, active filter summaries, improved empty states, and clearer public CTA behavior without changing backend contracts.
+
 ## 2026-03-04
 - Initialized Git repository.
 - Added `.gitignore` for local state, secrets, and generated artifacts.

@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Artizans | Artist Preview</title>
+    <title>ARTIZANS.COLLECTIVE | Artist Preview</title>
+    <meta
+      name="description"
+      content="Review a complete artist profile with portfolio, services, reviews, availability, and a direct booking request flow."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#f8f8f8" />
+    <link rel="canonical" href="https://www.artizanscollective.com/artist-preview.html" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
     <link rel="stylesheet" href="/styles/pages.css" />
@@ -17,100 +26,167 @@
         <nav class="main-nav" aria-label="Main nav">
           <a href="/index.html">Home</a>
           <a href="/explore.html">Explore Artists</a>
-          <a href="/artist-preview.html">Artist Preview</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
           <a href="/account-settings.html" data-auth-link>Workspace</a>
         </nav>
         <div class="header-actions">
           <span class="role-chip" data-role-chip>Session: signed out</span>
-          <a class="btn btn-outline btn-small" href="/account-settings.html">Workspace</a>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" data-logout hidden>Logout</button>
         </div>
       </div>
     </header>
 
     <main class="page-shell">
-      <section class="container content-section preview-layout">
-        <article class="site-card">
-          <p class="site-tag">Artist Preview</p>
-          <h1 id="artist-name" class="section-title">Artist Name</h1>
-          <p id="artist-bio" class="section-copy"></p>
+      <section class="container content-section preview-hero">
+        <article class="site-card profile-card">
+          <div class="profile-card-head">
+            <div>
+              <p class="site-tag" id="artist-status-label">Artist profile</p>
+              <h1 id="artist-name" class="section-title">Artist Name</h1>
+              <p id="artist-bio" class="section-copy"></p>
+            </div>
+            <div class="profile-pill-stack" id="artist-proof-grid"></div>
+          </div>
           <div id="artist-tags" class="tag-row"></div>
           <div id="artist-meta" class="meta-row"></div>
           <div class="hero-actions">
             <button class="btn btn-outline" type="button" id="save-artist-btn">Save artist</button>
             <button class="btn btn-ghost" type="button" id="contact-artist-btn">Contact artist</button>
-            <button class="btn btn-primary" type="button" id="open-booking-btn">Book this artist</button>
+            <button class="btn btn-primary" type="button" id="open-booking-btn">Start booking</button>
           </div>
         </article>
 
-        <article class="site-card">
-          <p class="site-tag">Availability</p>
-          <h2 class="section-title" style="font-size:1.35rem;">Next available slots</h2>
+        <aside class="site-card booking-rail">
+          <p class="site-tag">Client view</p>
+          <h2 class="section-title rail-title">Everything needed to decide before you submit a brief.</h2>
+          <p class="section-copy">
+            Review the work, compare services, then send a structured project request with deadline, budget, and
+            scope.
+          </p>
           <ul id="availability-list" class="collection"></ul>
-          <p class="muted" style="margin-top:0.8rem;">Availability and booking actions are interactive once services are published.</p>
-        </article>
+          <div class="booking-rail-note">
+            <strong>What happens next</strong>
+            <p>
+              Once you send a request, the artist sees the project details, confirms fit, and continues the booking
+              from the same thread.
+            </p>
+          </div>
+        </aside>
       </section>
 
       <section class="container content-section">
-        <h2 class="section-title">Portfolio preview</h2>
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">PORTFOLIO</p>
+            <h2 class="section-title">Recent work and creative direction.</h2>
+          </div>
+          <p class="section-copy">
+            Portfolio samples help clients understand the artist’s style, level of finish, and suitability for the job.
+          </p>
+        </div>
         <div id="portfolio-grid" class="artist-grid"></div>
       </section>
 
-      <section class="container content-section split-grid">
-        <article class="site-card">
-          <h2 class="section-title" style="font-size:1.35rem;">Services and price</h2>
-          <div id="services-list" class="collection"></div>
+      <section class="container content-section split-grid preview-detail-grid">
+        <article class="site-card detail-card">
+          <div class="section-intro compact-intro">
+            <div>
+              <p class="site-tag">Services</p>
+              <h2 class="section-title detail-title">Bookable offers and starting prices.</h2>
+            </div>
+            <p class="section-copy">Compare what is included before you open the request form.</p>
+          </div>
+          <div id="services-list" class="collection service-collection"></div>
         </article>
 
-        <article class="site-card">
-          <h2 class="section-title" style="font-size:1.35rem;">Reviews</h2>
+        <article class="site-card detail-card">
+          <div class="section-intro compact-intro">
+            <div>
+              <p class="site-tag">Reviews</p>
+              <h2 class="section-title detail-title">Signals from previous client work.</h2>
+            </div>
+            <p class="section-copy">Early credibility matters, even when an artist is still building their reputation.</p>
+          </div>
           <div id="reviews-list" class="collection"></div>
         </article>
       </section>
 
       <section class="container content-section">
-        <article class="site-card">
-          <h2 class="section-title" style="font-size:1.35rem;">Book this artist</h2>
-          <form id="booking-form" class="form-grid">
-            <div class="form-row">
-              <label>
-                Service
-                <select id="booking-service" required></select>
-              </label>
-              <label>
-                Deadline
-                <input id="booking-deadline" type="date" required />
-              </label>
+        <div class="booking-layout">
+          <article class="site-card booking-card">
+            <div class="section-intro compact-intro">
+              <div>
+                <p class="site-tag">Booking request</p>
+                <h2 class="section-title detail-title">Submit a clear brief.</h2>
+              </div>
+              <p class="section-copy">Choose a service, set timing, and give the artist enough detail to respond well.</p>
             </div>
-            <div class="form-row">
+            <form id="booking-form" class="form-grid">
+              <div class="form-row">
+                <label>
+                  Service
+                  <select id="booking-service" required></select>
+                </label>
+                <label>
+                  Deadline
+                  <input id="booking-deadline" type="date" required />
+                </label>
+              </div>
+              <div class="form-row">
+                <label>
+                  Budget
+                  <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
+                </label>
+                <label>
+                  Contact preference
+                  <select id="booking-contact">
+                    <option value="message">Message thread</option>
+                    <option value="email">Email update</option>
+                  </select>
+                </label>
+              </div>
               <label>
-                Budget
-                <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
+                Project message
+                <textarea
+                  id="booking-message"
+                  maxlength="2000"
+                  required
+                  placeholder="Describe the brief, intended use, style references, and anything the artist should know before replying."
+                ></textarea>
               </label>
-              <label>
-                Contact preference
-                <select id="booking-contact">
-                  <option value="message">Message thread</option>
-                  <option value="email">Email update</option>
-                </select>
-              </label>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Send booking request</button>
+                <button class="btn btn-outline" type="button" id="prefill-booking">Prefill example</button>
+              </div>
+            </form>
+          </article>
+
+          <aside class="site-card booking-reassurance">
+            <p class="site-tag">Before you send</p>
+            <h2 class="section-title detail-title">Make the request easy to accept.</h2>
+            <ul class="feature-list feature-list-tight">
+              <li>Pick the closest service so pricing starts from the right place.</li>
+              <li>Add a realistic deadline and budget based on scope.</li>
+              <li>Explain the brief clearly so the artist can respond without back-and-forth.</li>
+            </ul>
+            <div class="booking-reassurance-box">
+              <strong>Tip</strong>
+              <p>
+                Strong requests usually include intended usage, preferred style, must-have deliverables, and any key
+                reference material.
+              </p>
             </div>
-            <label>
-              Project message
-              <textarea id="booking-message" maxlength="2000" required placeholder="Describe scope, style, and must-have details"></textarea>
-            </label>
-            <div class="form-actions">
-              <button class="btn btn-primary" type="submit">Create booking request</button>
-              <button class="btn btn-outline" type="button" id="prefill-booking">Prefill sample</button>
-            </div>
-          </form>
-        </article>
+          </aside>
+        </div>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <p>Artist preview flow</p>
-        <p>Portfolio, reviews, services, booking</p>
+        <p>ARTIZANS.COLLECTIVE</p>
+        <p>Portfolio, services, reviews, and direct booking in one client flow</p>
       </div>
     </footer>
 

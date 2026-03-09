@@ -32,9 +32,11 @@ const artistId = artistIdFromQuery || fallbackArtistId;
 const artist = artistId ? getArtistById(db, artistId) : null;
 
 const artistName = byId("artist-name");
+const artistStatusLabel = byId("artist-status-label");
 const artistBio = byId("artist-bio");
 const artistTags = byId("artist-tags");
 const artistMeta = byId("artist-meta");
+const artistProofGrid = byId("artist-proof-grid");
 const portfolioGrid = byId("portfolio-grid");
 const servicesList = byId("services-list");
 const reviewsList = byId("reviews-list");
@@ -55,7 +57,7 @@ function updateBookingCta() {
   if (!openBookingBtn) {
     return;
   }
-  openBookingBtn.textContent = isCognitoAuthenticated() ? "Book this artist" : "Sign in to book";
+  openBookingBtn.textContent = isCognitoAuthenticated() ? "Start booking" : "Sign in to submit a brief";
 }
 
 function safeImageUrl(value) {
@@ -134,6 +136,10 @@ function redirectToAuth(nextPath = window.location.pathname + window.location.se
 }
 
 function renderNoArtistState() {
+  if (artistStatusLabel) {
+    artistStatusLabel.textContent = "Artist profile";
+  }
+
   if (artistName) {
     artistName.textContent = "No artist selected";
   }
@@ -153,6 +159,10 @@ function renderNoArtistState() {
     const text = document.createElement("span");
     text.textContent = "Create your profile from Workspace to get listed.";
     artistMeta.replaceChildren(text);
+  }
+
+  if (artistProofGrid) {
+    artistProofGrid.replaceChildren();
   }
 
   setEmptyCollection(portfolioGrid, "Portfolio is empty because no artist has onboarded yet.");
@@ -177,6 +187,12 @@ function renderArtistDetails() {
     return;
   }
 
+  document.title = `ARTIZANS.COLLECTIVE | ${artist.name}`;
+
+  if (artistStatusLabel) {
+    artistStatusLabel.textContent = artist.verified ? "Verified artist profile" : "Artist profile";
+  }
+
   if (artistName) {
     artistName.textContent = artist.name;
   }
@@ -186,7 +202,7 @@ function renderArtistDetails() {
   }
 
   if (artistTags) {
-    artistTags.innerHTML = [artist.category, ...(artist.mediums || []), artist.verified ? "Verified" : "Pending"]
+    artistTags.innerHTML = [artist.category, ...(artist.mediums || []), artist.verified ? "Verified presentation" : "Review in progress"]
       .filter(Boolean)
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
       .join("");
@@ -196,10 +212,36 @@ function renderArtistDetails() {
     artistMeta.innerHTML = [
       `Location: ${artist.location || "Not set"}`,
       `From ${formatMoney(artist.priceFrom || 0)}`,
-      `Rating ${artist.rating || 0}`,
-      `Availability: ${artist.availability || "open"}`,
+      `Rating ${Number(artist.rating || 0).toFixed(1)}`,
+      `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`,
     ]
       .map((item) => `<span>${escapeHtml(item)}</span>`)
+      .join("");
+  }
+
+  if (artistProofGrid) {
+    artistProofGrid.innerHTML = [
+      {
+        title: artist.verified ? "Verified" : "Reviewing",
+        label: "profile status",
+      },
+      {
+        title: `${Number(artist.reviewCount || 0)}`,
+        label: "client reviews",
+      },
+      {
+        title: `${Number(artist.popularity || artist.profileViews || 0)}`,
+        label: "interest signals",
+      },
+    ]
+      .map(
+        (item) => `
+          <div class="profile-stat">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.label)}</span>
+          </div>
+        `,
+      )
       .join("");
   }
 
@@ -212,7 +254,7 @@ function renderArtistDetails() {
           <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" />
           <div class="artist-card-body">
             <h3>${escapeHtml(item.title)}</h3>
-            <p>Human-created process evidence available.</p>
+            <p>Portfolio sample from the artist's published body of work.</p>
           </div>
         </article>
       `,
@@ -231,7 +273,7 @@ function renderArtistDetails() {
         <li class="collection-item">
           <h4>${escapeHtml(service.title)}</h4>
           <p>${escapeHtml(service.description)}</p>
-          <p><strong>${formatMoney(service.price)}</strong> • ${service.deliveryDays} days</p>
+          <p><strong>${formatMoney(service.price)}</strong> • ${service.deliveryDays} day delivery window</p>
         </li>
       `,
           )
@@ -246,7 +288,7 @@ function renderArtistDetails() {
       reviewsList.innerHTML = Array.from({ length: rendered })
         .map((_, index) => {
           const score = Number((artist.rating - index * 0.1).toFixed(1));
-          return `<li class="collection-item"><h4>${score} / 5.0</h4><p>Reliable communication and strong attention to brief details.</p></li>`;
+          return `<li class="collection-item"><h4>${score} / 5.0</h4><p>Reliable communication, clear brief handling, and professional follow-through.</p></li>`;
         })
         .join("");
     } else {
@@ -259,9 +301,12 @@ function renderArtistDetails() {
       .map((_, index) => {
         const date = new Date();
         date.setDate(date.getDate() + (index + 1) * 3);
-        return `<li class="collection-item">${escapeHtml(
-          date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
-        )}</li>`;
+        return `<li class="collection-item">
+          <strong>${escapeHtml(
+            date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
+          )}</strong>
+          <p>${escapeHtml(index === 0 ? "Earliest likely start" : "Available project window")}</p>
+        </li>`;
       })
       .join("");
   }
@@ -295,6 +340,7 @@ saveArtistBtn?.addEventListener("click", () => {
 
   const saved = toggleSaveArtist(userId, artist.id);
   showToast(saved ? "Artist saved to your list" : "Artist removed from saved list", "success");
+  saveArtistBtn.textContent = saved ? "Saved" : "Save artist";
 });
 
 contactArtistBtn?.addEventListener("click", () => {
@@ -323,6 +369,7 @@ contactArtistBtn?.addEventListener("click", () => {
   });
 
   showToast("Message sent to artist", "success");
+  contactArtistBtn.textContent = "Message sent";
 });
 
 openBookingBtn?.addEventListener("click", () => {

@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Artizans | Explore Artists</title>
+    <title>ARTIZANS.COLLECTIVE | Explore Artists</title>
+    <meta
+      name="description"
+      content="Browse verified artist profiles, compare categories, filter by medium and availability, and shortlist creative talent with confidence."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#f8f8f8" />
+    <link rel="canonical" href="https://www.artizanscollective.com/explore.html" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
     <link rel="stylesheet" href="/styles/pages.css" />
@@ -17,44 +26,53 @@
         <nav class="main-nav" aria-label="Main nav">
           <a href="/index.html">Home</a>
           <a href="/explore.html">Explore Artists</a>
-          <a href="/blog.html">Blog</a>
-          <a href="/faq.html">FAQ</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
           <a href="/account-settings.html" data-auth-link>Workspace</a>
         </nav>
         <div class="header-actions">
           <span class="role-chip" data-role-chip>Session: signed out</span>
-          <a class="btn btn-outline btn-small" href="/account-settings.html">Workspace</a>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" data-logout hidden>Logout</button>
         </div>
       </div>
     </header>
 
     <main class="page-shell">
       <section class="container content-section">
-        <div class="page-title-row">
+        <div class="browse-hero">
           <div>
-            <p class="eyebrow">EXPLORE ARTISTS</p>
-            <h1 class="section-title">Browse by category, medium, and availability.</h1>
+            <p class="eyebrow">CLIENT DISCOVERY</p>
+            <h1 class="section-title browse-title">Find artists by medium, availability, and fit.</h1>
+            <p class="section-copy browse-copy">
+              Search profiles with visible pricing, working categories, and proof-led portfolio previews so you can
+              move from browse to shortlist without second-guessing the basics.
+            </p>
           </div>
-          <a class="btn btn-primary" id="explore-booking-cta" href="/account-settings.html?next=%2Fexplore.html">Sign in to book</a>
+          <div class="browse-hero-actions">
+            <a class="btn btn-primary" id="explore-booking-cta" href="/artist-preview.html">Open featured profile</a>
+            <a class="btn btn-outline" href="/account-settings.html">Account access</a>
+          </div>
         </div>
+      </section>
 
-        <article class="site-card">
-          <form id="explore-form" class="form-grid" novalidate>
-            <div class="form-row">
-              <label>
-                Search artists
-                <input id="search-input" type="text" placeholder="Name, category, medium..." />
-              </label>
-              <label>
-                Sort
-                <select id="sort-select">
-                  <option value="newest">Newest</option>
-                  <option value="popular">Most popular</option>
-                  <option value="rating">Highest rated</option>
-                </select>
-              </label>
-            </div>
-            <div class="form-row">
+      <section class="container content-section explore-layout">
+        <aside class="site-card explore-sidebar">
+          <div class="sidebar-intro">
+            <p class="site-tag">Refine your search</p>
+            <h2 class="sidebar-title">Search first, then narrow with active filters.</h2>
+          </div>
+          <form id="explore-form" class="form-grid explore-form" novalidate>
+            <label class="field-block">
+              Search artists
+              <input id="search-input" type="text" placeholder="Name, category, medium..." />
+            </label>
+
+            <div class="filter-group">
+              <div class="filter-group-title">
+                <h3>Focus</h3>
+                <p>Start with the type of work and medium you need.</p>
+              </div>
               <label>
                 Category
                 <select id="category-filter">
@@ -68,7 +86,12 @@
                 </select>
               </label>
             </div>
-            <div class="form-row">
+
+            <div class="filter-group">
+              <div class="filter-group-title">
+                <h3>Availability</h3>
+                <p>Use practical signals before you open full profiles.</p>
+              </div>
               <label>
                 Location
                 <select id="location-filter">
@@ -83,33 +106,57 @@
                   <option value="limited">Limited</option>
                 </select>
               </label>
-            </div>
-            <div class="form-row">
               <label>
-                Max price
+                Max starting price
                 <input id="price-filter" type="number" min="0" placeholder="e.g. 400" />
               </label>
-              <div class="form-actions" style="align-items:end;">
-                <button class="btn btn-outline" type="button" id="reset-filters">Reset filters</button>
+            </div>
+
+            <div class="filter-group">
+              <div class="filter-group-title">
+                <h3>Sort</h3>
+                <p>Choose what matters most for your shortlist.</p>
               </div>
+              <label>
+                Results order
+                <select id="sort-select">
+                  <option value="newest">Newest</option>
+                  <option value="popular">Most popular</option>
+                  <option value="rating">Highest rated</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-outline" type="button" id="reset-filters">Reset filters</button>
             </div>
           </form>
-        </article>
-      </section>
+        </aside>
 
-      <section class="container content-section">
-        <div class="page-title-row">
-          <h2 class="section-title">Artist results</h2>
-          <small class="muted" id="result-count">0 artists</small>
+        <div class="results-shell">
+          <div class="results-toolbar site-card">
+            <div class="results-toolbar-head">
+              <div>
+                <p class="site-tag">Artist results</p>
+                <h2 class="section-title results-title">Curated matches for your brief.</h2>
+              </div>
+              <div class="results-toolbar-meta">
+                <strong id="result-count">0 artists</strong>
+                <span class="muted" id="result-summary">Adjust search and filters to refine the shortlist.</span>
+              </div>
+            </div>
+            <div id="active-filter-summary" class="filter-chip-row" aria-label="Active filters"></div>
+          </div>
+
+          <div id="artist-results" class="artist-grid"></div>
         </div>
-        <div id="artist-results" class="artist-grid"></div>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="container footer-inner">
-        <p>Explore Artists</p>
-        <p>Search, filter, sort, save</p>
+        <p>ARTIZANS.COLLECTIVE</p>
+        <p>Browse, shortlist, and hire with more confidence</p>
       </div>
     </footer>
 

@@ -1,9 +1,9 @@
 import {
   formatMoney,
-  statusBadge,
   escapeHtml,
   sanitizeClassToken,
   sanitizeImageUrl,
+  statusBadge,
 } from "./utils.js";
 
 const FALLBACK_PORTFOLIO_IMAGE =
@@ -13,21 +13,47 @@ export function artistCardHTML(artist, options = {}) {
   const verifiedLabel = artist.verified ? "Verified" : "Pending verification";
   const actionButtons = options.actionButtons || "";
   const imageSrc = sanitizeImageUrl(artist.portfolio[0]?.image, FALLBACK_PORTFOLIO_IMAGE);
+  const availabilityLabel = artist.availability === "limited" ? "Limited availability" : "Open for briefs";
+  const mediaSummary = Array.isArray(artist.mediums) && artist.mediums.length
+    ? artist.mediums.slice(0, 2).join(" • ")
+    : "Human-made creative work";
+  const reviewLabel = Number(artist.reviewCount || 0) > 0 ? `${artist.reviewCount} reviews` : "New profile";
+  const profileMomentum = Number(artist.popularity || 0) > 0 ? `${artist.popularity} interest` : "Shortlist ready";
   return `
     <article class="artist-card">
-      <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
+      <div class="artist-card-media">
+        <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
+        <div class="artist-card-badges">
+          <span class="artist-card-badge artist-card-badge-${artist.verified ? "verified" : "pending"}">${escapeHtml(verifiedLabel)}</span>
+          <span class="artist-card-badge">${escapeHtml(availabilityLabel)}</span>
+        </div>
+      </div>
       <div class="artist-card-body">
-        <h3>${escapeHtml(artist.name)}</h3>
-        <p>${escapeHtml(artist.category)} • ${escapeHtml(artist.location)}</p>
+        <div class="artist-card-heading">
+          <div>
+            <h3>${escapeHtml(artist.name)}</h3>
+            <p class="artist-card-subtitle">${escapeHtml(artist.category)} • ${escapeHtml(artist.location)}</p>
+          </div>
+          <span class="artist-card-rating">${escapeHtml(String(Number(artist.rating || 0).toFixed(1)))}</span>
+        </div>
+        <p class="artist-card-copy">${escapeHtml(mediaSummary)}</p>
         <div class="tag-row">
-          <span class="tag">${escapeHtml(verifiedLabel)}</span>
-          <span class="tag">${escapeHtml(artist.mediums.join(", "))}</span>
+          ${Array.isArray(artist.mediums)
+            ? artist.mediums
+                .slice(0, 3)
+                .map((medium) => `<span class="tag">${escapeHtml(medium)}</span>`)
+                .join("")
+            : ""}
+        </div>
+        <div class="artist-card-metrics">
+          <span>From ${formatMoney(artist.priceFrom)}</span>
+          <span>${escapeHtml(reviewLabel)}</span>
+          <span>${escapeHtml(profileMomentum)}</span>
         </div>
         <div class="artist-card-footer">
-          <small class="muted">From ${formatMoney(artist.priceFrom)}</small>
-          <small class="muted">Rating ${artist.rating}</small>
+          <small class="muted">${escapeHtml(artist.location || "Location not set")}</small>
+          ${actionButtons}
         </div>
-        ${actionButtons}
       </div>
     </article>
   `;

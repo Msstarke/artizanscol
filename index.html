@@ -53,58 +53,159 @@
     </header>
 
     <main>
-      <section class="hero container">
-        <p class="eyebrow">HUMAN-MADE CREATIVE MARKETPLACE</p>
-        <h1>Hire verified beginner artists for AI-free creative work.</h1>
-        <p class="lead">
-          Artizans connects clients to up-and-coming artists through trust-first profiles, clear service pricing,
-          and structured bookings.
-        </p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="/explore.html">Explore Artists</a>
-          <a class="btn btn-outline" href="/artist-preview.html">View Artist Preview</a>
-          <a class="btn btn-ghost" href="/account-settings.html">Open Workspace</a>
+      <section class="hero container hero-split public-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">VERIFIED HUMAN-MADE CREATIVE WORK</p>
+          <h1>Find artists you can trust, then hire with a clear brief and price.</h1>
+          <p class="lead">
+            ARTIZANS helps clients discover emerging artists with proof-led profiles, visible service options, and a
+            straightforward path from shortlist to booking.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/explore.html">Explore Artists</a>
+            <a class="btn btn-outline" href="#how-it-works">How it works</a>
+            <a class="btn btn-ghost" href="/artist-preview.html">Preview a profile</a>
+          </div>
+          <div class="hero-proof-row" id="hero-proof-row" aria-label="Platform proof points"></div>
         </div>
+
+        <aside class="hero-panel site-card">
+          <p class="site-tag">Client-ready marketplace</p>
+          <h2 class="hero-panel-title">Built for confident hiring, not endless scrolling.</h2>
+          <p class="section-copy">
+            Start with artists who show their style, pricing, and availability clearly. Save profiles, compare
+            services, and send a brief when one feels right.
+          </p>
+          <ul class="hero-checklist">
+            <li>Artist profiles reviewed for human-made presentation</li>
+            <li>Services and starting prices shown up front</li>
+            <li>Booking begins with a structured brief, not guesswork</li>
+          </ul>
+          <div id="hero-spotlight"></div>
+        </aside>
       </section>
 
-      <section class="container filters" aria-label="Landing highlights">
-        <div class="filter-row">
-          <button class="filter-pill is-active" type="button">Site branding</button>
-          <button class="filter-pill" type="button">Up-and-coming artists</button>
-          <button class="filter-pill" type="button">Top categories</button>
-          <button class="filter-pill" type="button">Mission statement</button>
+      <section class="container content-section" aria-labelledby="trust-strip-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">WHY CLIENTS START HERE</p>
+            <h2 class="section-title" id="trust-strip-title">A cleaner hiring experience from first browse to first brief.</h2>
+          </div>
+          <p class="section-copy">
+            The public flow is designed to reduce uncertainty: clearer profiles, clearer categories, and clearer next
+            steps once you want to hire.
+          </p>
+        </div>
+        <div class="trust-strip">
+          <article class="trust-card">
+            <p class="site-tag">Verified profiles</p>
+            <h3>Human-made work comes first.</h3>
+            <p class="site-desc">
+              Public profiles are framed around real practice, portfolio clarity, and transparent presentation.
+            </p>
+          </article>
+          <article class="trust-card">
+            <p class="site-tag">Clear briefs</p>
+            <h3>Clients know what to send.</h3>
+            <p class="site-desc">
+              Services, budget expectations, and delivery timing are visible before you commit to a request.
+            </p>
+          </article>
+          <article class="trust-card">
+            <p class="site-tag">Direct hiring</p>
+            <h3>From discovery to booking in one flow.</h3>
+            <p class="site-desc">
+              Browse, shortlist, preview, then move into a booking request without leaving the platform context.
+            </p>
+          </article>
         </div>
       </section>
 
       <section class="container content-section" aria-labelledby="upcoming-title">
-        <div class="page-title-row">
-          <h2 class="section-title" id="upcoming-title">Up-and-coming artists</h2>
-          <a class="btn btn-small btn-outline" href="/explore.html">Browse all</a>
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">FEATURED ARTISTS</p>
+            <h2 class="section-title" id="upcoming-title">Emerging artists ready for client work.</h2>
+          </div>
+          <div class="section-intro-actions">
+            <p class="section-copy">
+              Browse a curated mix of styles, mediums, and price points without losing sight of quality signals.
+            </p>
+            <a class="btn btn-small btn-outline" href="/explore.html">Browse all artists</a>
+          </div>
         </div>
         <div id="upcoming-artists" class="artist-grid"></div>
       </section>
 
       <section class="container content-section" aria-labelledby="categories-title">
-        <h2 class="section-title" id="categories-title">Top categories</h2>
-        <div id="top-categories" class="tag-row"></div>
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">BROWSE BY CATEGORY</p>
+            <h2 class="section-title" id="categories-title">Start from the kind of creative work you need.</h2>
+          </div>
+          <p class="section-copy">
+            Jump into active categories and move straight into discovery with artists already matched to that discipline.
+          </p>
+        </div>
+        <div id="top-categories" class="category-grid"></div>
+      </section>
+
+      <section class="container content-section" aria-labelledby="how-it-works-title" id="how-it-works">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">HOW HIRING WORKS</p>
+            <h2 class="section-title" id="how-it-works-title">Discover, shortlist, hire.</h2>
+          </div>
+          <p class="section-copy">The public journey is intentionally simple so clients can make a decision without friction.</p>
+        </div>
+        <div class="journey-grid">
+          <article class="journey-card">
+            <span class="journey-step">01</span>
+            <h3>Discover</h3>
+            <p>Browse categories, filter by medium and availability, and compare artists with consistent profile signals.</p>
+          </article>
+          <article class="journey-card">
+            <span class="journey-step">02</span>
+            <h3>Shortlist</h3>
+            <p>Open full profiles, review portfolio examples, and save the artists that fit your brief and budget.</p>
+          </article>
+          <article class="journey-card">
+            <span class="journey-step">03</span>
+            <h3>Hire</h3>
+            <p>Submit a structured booking request with a service, deadline, budget, and project message in one place.</p>
+          </article>
+        </div>
       </section>
 
       <section class="container content-section" aria-labelledby="mission-title">
-        <article class="featured-card">
+        <article class="featured-card mission-card">
           <div>
-            <p class="site-tag">Mission Statement</p>
-            <h2 id="mission-title" class="section-title">Build trust between clients and beginner artists.</h2>
+            <p class="site-tag">Trust promise</p>
+            <h2 id="mission-title" class="section-title">A better starting point for hiring early-career artists.</h2>
+            <p class="section-copy">
+              ARTIZANS is built to make emerging talent easier to trust. The public experience prioritises proof of
+              practice, clear service offers, and a professional client journey.
+            </p>
             <ul class="feature-list">
-              <li>Promote verified human-created work.</li>
-              <li>Give beginners a fair path to paid opportunities.</li>
-              <li>Provide transparent booking, messaging, and payment workflows.</li>
+              <li>Artist pages foreground their work, mediums, and delivery options.</li>
+              <li>Clients can assess readiness quickly without guessing pricing or availability.</li>
+              <li>Hiring actions stay connected to the same profile and booking context.</li>
             </ul>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="/explore.html">Start hiring</a>
-              <a class="btn btn-outline" href="/account-settings.html">Join as artist</a>
+              <a class="btn btn-primary" href="/explore.html">Start browsing</a>
+              <a class="btn btn-outline" href="/about.html">Read about Artizans</a>
             </div>
           </div>
-          <div class="featured-art" role="img" aria-label="Decorative gradient"></div>
+          <div class="mission-art">
+            <div class="mission-art-panel">
+              <p class="site-tag">Platform focus</p>
+              <h3>Quality signals over marketplace noise.</h3>
+              <p>
+                Clients should feel they are reviewing serious profiles with a direct path to action, not browsing a
+                directory of unfinished listings.
+              </p>
+            </div>
+          </div>
         </article>
       </section>
     </main>

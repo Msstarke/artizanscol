@@ -3,7 +3,7 @@ import { isCognitoAuthenticated } from "./cognito-auth.js";
 import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, qsa, showToast } from "./utils.js";
+import { byId, getQueryParam, qsa, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
 
 initSharedPage();
@@ -22,7 +22,9 @@ const sortSelect = byId("sort-select");
 const resetBtn = byId("reset-filters");
 const resultsRoot = byId("artist-results");
 const resultCount = byId("result-count");
+const resultSummary = byId("result-summary");
 const exploreBookingCta = byId("explore-booking-cta");
+const activeFilterSummary = byId("active-filter-summary");
 
 function unique(list) {
   return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
@@ -43,6 +45,32 @@ function fillSelect(select, values) {
 fillSelect(categoryFilter, unique(db.categories.filter((category) => category.active).map((category) => category.name)));
 fillSelect(mediumFilter, unique(db.artists.flatMap((artist) => artist.mediums || [])));
 fillSelect(locationFilter, unique(db.artists.map((artist) => artist.location).filter(Boolean)));
+
+function seedFiltersFromQuery() {
+  if (searchInput) {
+    searchInput.value = getQueryParam("search") || "";
+  }
+  if (categoryFilter) {
+    categoryFilter.value = getQueryParam("category") || "";
+  }
+  if (mediumFilter) {
+    mediumFilter.value = getQueryParam("medium") || "";
+  }
+  if (locationFilter) {
+    locationFilter.value = getQueryParam("location") || "";
+  }
+  if (availabilityFilter) {
+    availabilityFilter.value = getQueryParam("availability") || "";
+  }
+  if (priceFilter) {
+    priceFilter.value = getQueryParam("maxPrice") || "";
+  }
+  if (sortSelect) {
+    sortSelect.value = getQueryParam("sort") || "newest";
+  }
+}
+
+seedFiltersFromQuery();
 
 function getFilteredArtists() {
   const search = (searchInput?.value || "").trim().toLowerCase();
@@ -99,6 +127,22 @@ function getFilteredArtists() {
   return artists;
 }
 
+function getActiveFilterLabels() {
+  const labels = [];
+  const search = (searchInput?.value || "").trim();
+  if (search) labels.push(`Search: ${search}`);
+  if (categoryFilter?.value) labels.push(`Category: ${categoryFilter.value}`);
+  if (mediumFilter?.value) labels.push(`Medium: ${mediumFilter.value}`);
+  if (locationFilter?.value) labels.push(`Location: ${locationFilter.value}`);
+  if (availabilityFilter?.value) labels.push(`Availability: ${availabilityFilter.value}`);
+  if (priceFilter?.value) labels.push(`Max price: ${priceFilter.value}`);
+  if ((sortSelect?.value || "newest") !== "newest") {
+    const label = sortSelect?.selectedOptions?.[0]?.textContent || sortSelect?.value;
+    labels.push(`Sort: ${label}`);
+  }
+  return labels;
+}
+
 function handleSaveArtist(artistId) {
   if (!isCognitoAuthenticated()) {
     const next = encodeURIComponent(`/artist-preview.html?id=${artistId}`);
@@ -141,26 +185,38 @@ function updateExploreBookingCta(artists = db.artists) {
     return;
   }
 
-  if (!isCognitoAuthenticated()) {
-    exploreBookingCta.textContent = "Sign in to book";
-    exploreBookingCta.href = "/account-settings.html?next=%2Fexplore.html";
-    return;
-  }
-
   const firstArtist = artists[0] || db.artists[0] || null;
-  exploreBookingCta.textContent = "Book this artist";
+  exploreBookingCta.textContent = firstArtist ? "Open featured profile" : "Preview hiring flow";
   exploreBookingCta.href = firstArtist ? `/artist-preview.html?id=${encodeURIComponent(firstArtist.id)}` : "/artist-preview.html";
 }
 
 function render() {
   const artists = getFilteredArtists();
+  const activeLabels = getActiveFilterLabels();
   updateExploreBookingCta(artists);
+
+  if (activeFilterSummary) {
+    activeFilterSummary.replaceChildren();
+    if (!activeLabels.length) {
+      const chip = document.createElement("span");
+      chip.className = "filter-chip";
+      chip.textContent = "No active filters";
+      activeFilterSummary.append(chip);
+    } else {
+      activeLabels.forEach((label) => {
+        const chip = document.createElement("span");
+        chip.className = "filter-chip";
+        chip.textContent = label;
+        activeFilterSummary.append(chip);
+      });
+    }
+  }
 
   if (resultsRoot) {
     if (!artists.length) {
       resultsRoot.innerHTML = db.artists.length
-        ? `<div class="empty-state">No artists match this filter set.</div>`
-        : `<div class="empty-state">No artist profiles are live yet. Sign in as an artist to create the first listing.</div>`;
+        ? `<div class="empty-state">No artists match this filter set. Reset filters or widen the brief to see more profiles.</div>`
+        : `<div class="empty-state">No artist profiles are live yet. Published profiles will appear here once artists start listing their work.</div>`;
     } else {
       resultsRoot.innerHTML = artists
         .map((artist) => {
@@ -180,6 +236,17 @@ function render() {
 
   if (resultCount) {
     resultCount.textContent = `${artists.length} artist${artists.length === 1 ? "" : "s"}`;
+  }
+
+  if (resultSummary) {
+    if (!artists.length) {
+      resultSummary.textContent = "Try widening category, medium, or price filters.";
+    } else if (artists.length <= 2) {
+      resultSummary.textContent = "A narrow shortlist. Open profiles to compare fit before sending a brief.";
+    } else {
+      const verifiedCount = artists.filter((artist) => artist.verified).length;
+      resultSummary.textContent = `${verifiedCount} verified profile${verifiedCount === 1 ? "" : "s"} in this result set.`;
+    }
   }
 
   qsa("[data-save-artist]").forEach((button) => {
