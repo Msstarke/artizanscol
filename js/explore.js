@@ -1,4 +1,4 @@
-import { ensureUserForCognito, getDB, hydrateDB, toggleSaveArtist } from "./store.js";
+import { ensureUserForCognito, getDB, getVisibleArtists, hydrateDB, toggleSaveArtist } from "./store.js";
 import { isCognitoAuthenticated } from "./cognito-auth.js";
 import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
@@ -43,8 +43,8 @@ function fillSelect(select, values) {
 }
 
 fillSelect(categoryFilter, unique(db.categories.filter((category) => category.active).map((category) => category.name)));
-fillSelect(mediumFilter, unique(db.artists.flatMap((artist) => artist.mediums || [])));
-fillSelect(locationFilter, unique(db.artists.map((artist) => artist.location).filter(Boolean)));
+fillSelect(mediumFilter, unique(getVisibleArtists(db).flatMap((artist) => artist.mediums || [])));
+fillSelect(locationFilter, unique(getVisibleArtists(db).map((artist) => artist.location).filter(Boolean)));
 
 function seedFiltersFromQuery() {
   if (searchInput) {
@@ -81,7 +81,7 @@ function getFilteredArtists() {
   const maxPrice = Number(priceFilter?.value || 0);
   const sort = sortSelect?.value || "newest";
 
-  let artists = [...db.artists];
+  let artists = [...getVisibleArtists(db)];
 
   artists = artists.filter((artist) => {
     if (search) {
@@ -185,7 +185,8 @@ function updateExploreBookingCta(artists = db.artists) {
     return;
   }
 
-  const firstArtist = artists[0] || db.artists[0] || null;
+  const liveArtists = artists.length ? artists : getVisibleArtists(db);
+  const firstArtist = liveArtists[0] || null;
   exploreBookingCta.textContent = firstArtist ? "Open featured profile" : "Preview hiring flow";
   exploreBookingCta.href = firstArtist ? `/artist-preview.html?id=${encodeURIComponent(firstArtist.id)}` : "/artist-preview.html";
 }
@@ -215,7 +216,7 @@ function render() {
   if (resultsRoot) {
     resultsRoot.classList.toggle("has-empty-state", !artists.length);
     if (!artists.length) {
-      resultsRoot.innerHTML = db.artists.length
+      resultsRoot.innerHTML = getVisibleArtists(db).length
         ? `<div class="empty-state">No artists match this filter set. Reset filters or widen the brief to see more profiles.</div>`
         : `<div class="empty-state">No artist profiles are live yet. Published profiles will appear here once artists start listing their work.</div>`;
     } else {

@@ -6,7 +6,7 @@
     <title>ARTIZANS.COLLECTIVE | Artist Preview</title>
     <meta
       name="description"
-      content="Review a complete artist profile with portfolio, services, reviews, availability, and a direct booking request flow."
+      content="Review a complete artist profile with portfolio, practice details, reviews, availability, and a direct booking request flow."
     />
     <meta name="robots" content="index,follow" />
     <meta name="theme-color" content="#f8f8f8" />
@@ -62,7 +62,7 @@
           <p class="site-tag">Client view</p>
           <h2 class="section-title rail-title">Everything needed to decide before you submit a brief.</h2>
           <p class="section-copy">
-            Review the work, compare services, then send a structured project request with deadline, budget, and
+            Review the work, understand what they do, then send a structured project request with deadline, budget, and
             scope.
           </p>
           <ul id="availability-list" class="collection"></ul>
@@ -93,10 +93,10 @@
         <article class="site-card detail-card">
           <div class="section-intro compact-intro">
             <div>
-              <p class="site-tag">Services</p>
-              <h2 class="section-title detail-title">Bookable offers and starting prices.</h2>
+              <p class="site-tag">Profile focus</p>
+              <h2 class="section-title detail-title">What this artist does and how they work.</h2>
             </div>
-            <p class="section-copy">Compare what is included before you open the request form.</p>
+            <p class="section-copy">Use the public profile details to decide whether the fit is right before you brief.</p>
           </div>
           <div id="services-list" class="collection service-collection"></div>
         </article>
@@ -121,13 +121,19 @@
                 <p class="site-tag">Booking request</p>
                 <h2 class="section-title detail-title">Submit a clear brief.</h2>
               </div>
-              <p class="section-copy">Choose a service, set timing, and give the artist enough detail to respond well.</p>
+              <p class="section-copy">Describe the type of project, set timing, and give the artist enough detail to respond well.</p>
             </div>
             <form id="booking-form" class="form-grid">
               <div class="form-row">
                 <label>
-                  Service
-                  <select id="booking-service" required></select>
+                  What do you need?
+                  <input
+                    id="booking-service"
+                    type="text"
+                    maxlength="120"
+                    required
+                    placeholder="Brand identity, editorial illustration, portrait commission"
+                  />
                 </label>
                 <label>
                   Deadline
@@ -167,7 +173,7 @@
             <p class="site-tag">Before you send</p>
             <h2 class="section-title detail-title">Make the request easy to accept.</h2>
             <ul class="feature-list feature-list-tight">
-              <li>Pick the closest service so pricing starts from the right place.</li>
+              <li>Name the kind of work you need so the artist can assess fit quickly.</li>
               <li>Add a realistic deadline and budget based on scope.</li>
               <li>Explain the brief clearly so the artist can respond without back-and-forth.</li>
             </ul>
@@ -186,7 +192,7 @@
     <footer class="site-footer">
       <div class="container footer-inner">
         <p>ARTIZANS.COLLECTIVE</p>
-        <p>Portfolio, services, reviews, and direct booking in one client flow</p>
+        <p>Portfolio, profile details, reviews, and direct booking in one client flow</p>
       </div>
     </footer>
 

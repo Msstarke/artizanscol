@@ -703,6 +703,29 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.artist-account-state {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(34, 34, 34, 0.12);
+  background: rgba(24, 24, 24, 0.03);
+}
+
+.artist-account-state strong,
+.artist-account-state p {
+  margin: 0;
+}
+
+.artist-account-state[data-visibility="live"] {
+  background: rgba(67, 170, 104, 0.08);
+  border-color: rgba(67, 170, 104, 0.22);
+}
+
+.artist-account-state[data-visibility="off"] {
+  background: rgba(24, 24, 24, 0.03);
+}
+
 .workspace-item p {
   margin: 0.2rem 0;
 }

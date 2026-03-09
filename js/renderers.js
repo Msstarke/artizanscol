@@ -17,8 +17,10 @@ export function artistCardHTML(artist, options = {}) {
   const mediaSummary = Array.isArray(artist.mediums) && artist.mediums.length
     ? artist.mediums.slice(0, 2).join(" • ")
     : "Human-made creative work";
+  const bioSummary = String(artist.bio || "").trim();
   const reviewLabel = Number(artist.reviewCount || 0) > 0 ? `${artist.reviewCount} reviews` : "New profile";
   const profileMomentum = Number(artist.popularity || 0) > 0 ? `${artist.popularity} interest` : "Shortlist ready";
+  const budgetLabel = Number(artist.priceFrom || 0) > 0 ? `Starts around ${formatMoney(artist.priceFrom)}` : "Budget on request";
   return `
     <article class="artist-card">
       <div class="artist-card-media">
@@ -36,7 +38,7 @@ export function artistCardHTML(artist, options = {}) {
           </div>
           <span class="artist-card-rating">${escapeHtml(String(Number(artist.rating || 0).toFixed(1)))}</span>
         </div>
-        <p class="artist-card-copy">${escapeHtml(mediaSummary)}</p>
+        <p class="artist-card-copy">${escapeHtml(bioSummary || mediaSummary)}</p>
         <div class="tag-row">
           ${Array.isArray(artist.mediums)
             ? artist.mediums
@@ -46,7 +48,7 @@ export function artistCardHTML(artist, options = {}) {
             : ""}
         </div>
         <div class="artist-card-metrics">
-          <span>From ${formatMoney(artist.priceFrom)}</span>
+          <span>${escapeHtml(budgetLabel)}</span>
           <span>${escapeHtml(reviewLabel)}</span>
           <span>${escapeHtml(profileMomentum)}</span>
         </div>

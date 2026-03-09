@@ -75,6 +75,47 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function hasMeaningfulArtistBio(artist) {
+  const bio = String(artist?.bio || "").trim();
+  return Boolean(bio) && bio !== "Add your bio to start receiving requests.";
+}
+
+function inferArtistProfileVisible(artist, db) {
+  if (typeof artist?.profileVisible === "boolean") {
+    return artist.profileVisible;
+  }
+
+  const hasProfileWork = asArray(artist?.portfolio).length > 0;
+  const hasProfileSignals =
+    hasMeaningfulArtistBio(artist)
+    || Boolean(String(artist?.location || "").trim())
+    || Number(artist?.priceFrom || 0) > 0
+    || Boolean(artist?.verified);
+  const hasServiceRecords = Boolean(
+    artist?.id && asArray(db?.services).some((service) => service.artistId === artist.id),
+  );
+
+  return hasProfileWork || hasProfileSignals || hasServiceRecords;
+}
+
+function normalizeArtistRecord(artist, db) {
+  if (!artist || typeof artist !== "object") {
+    return artist;
+  }
+
+  if (!Array.isArray(artist.mediums) || !artist.mediums.length) {
+    artist.mediums = ["Digital"];
+  }
+
+  if (!Array.isArray(artist.portfolio)) {
+    artist.portfolio = [];
+  }
+
+  artist.priceFrom = Number(artist.priceFrom || 0);
+  artist.profileVisible = inferArtistProfileVisible(artist, db);
+  return artist;
+}
+
 function nextId(prefix, collection) {
   let max = 0;
 
@@ -314,11 +355,17 @@ function loadLocalDBCache() {
 function loadDBCache() {
   const sessionCached = loadSessionDBCache();
   if (sessionCached) {
+    if (Array.isArray(sessionCached.artists)) {
+      sessionCached.artists = sessionCached.artists.map((artist) => normalizeArtistRecord(artist, sessionCached));
+    }
     return sessionCached;
   }
 
   const localCached = loadLocalDBCache();
   if (localCached) {
+    if (Array.isArray(localCached.artists)) {
+      localCached.artists = localCached.artists.map((artist) => normalizeArtistRecord(artist, localCached));
+    }
     const sessionStorage = getSessionStorage();
     sessionStorage?.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(localCached));
     return localCached;
@@ -404,35 +451,44 @@ export async function hydrateDB() {
     next.categories = remoteCategories.length ? remoteCategories : asArray(existing.categories).length ? existing.categories : createDefaultCategories();
 
     const localArtistsById = new Map(asArray(existing.artists).map((artist) => [artist.id, artist]));
-    next.artists = asArray(artistsResponse?.data?.items).map((artist) => ({
-      id: artist.id,
-      cognitoSub: artist.cognitoSub || localArtistsById.get(artist.id)?.cognitoSub || null,
-      cognitoEmail: artist.cognitoEmail || localArtistsById.get(artist.id)?.cognitoEmail || null,
-      name: artist.name || localArtistsById.get(artist.id)?.name || "Artist",
-      handle: artist.handle || localArtistsById.get(artist.id)?.handle || "",
-      category: artist.category || localArtistsById.get(artist.id)?.category || "",
-      mediums: asArray(artist.mediums).length
-        ? asArray(artist.mediums)
-        : asArray(localArtistsById.get(artist.id)?.mediums),
-      location: artist.location || localArtistsById.get(artist.id)?.location || "",
-      verified: Boolean(artist.verified),
-      popularity: Number(artist.popularity || 0),
-      rating: Number(artist.rating || 0),
-      reviewCount: Number(artist.reviewCount || 0),
-      priceFrom: Number(artist.priceFrom || 0),
-      availability: artist.availability || localArtistsById.get(artist.id)?.availability || "open",
-      bio: artist.bio || localArtistsById.get(artist.id)?.bio || "",
-      profileViews: Number(artist.profileViews || 0),
-      completedBookings: Number(artist.completedBookings || 0),
-      acceptanceRate: Number(artist.acceptanceRate || 0),
-      portfolio: asArray(artist.portfolio).map((item) => ({
-        id: item.id || `p-${Date.now()}`,
-        title: item.title || "Portfolio Item",
-        image: item.imageUrl || item.image || "",
-      })),
-      createdAt: artist.createdAt || localArtistsById.get(artist.id)?.createdAt || nowIso(),
-      updatedAt: artist.updatedAt || nowIso(),
-    }));
+    next.artists = asArray(artistsResponse?.data?.items).map((artist) =>
+      normalizeArtistRecord(
+        {
+          id: artist.id,
+          cognitoSub: artist.cognitoSub || localArtistsById.get(artist.id)?.cognitoSub || null,
+          cognitoEmail: artist.cognitoEmail || localArtistsById.get(artist.id)?.cognitoEmail || null,
+          name: artist.name || localArtistsById.get(artist.id)?.name || "Artist",
+          handle: artist.handle || localArtistsById.get(artist.id)?.handle || "",
+          category: artist.category || localArtistsById.get(artist.id)?.category || "",
+          mediums: asArray(artist.mediums).length
+            ? asArray(artist.mediums)
+            : asArray(localArtistsById.get(artist.id)?.mediums),
+          location: artist.location || localArtistsById.get(artist.id)?.location || "",
+          verified: Boolean(artist.verified),
+          popularity: Number(artist.popularity || 0),
+          rating: Number(artist.rating || 0),
+          reviewCount: Number(artist.reviewCount || 0),
+          priceFrom: Number(artist.priceFrom || 0),
+          availability: artist.availability || localArtistsById.get(artist.id)?.availability || "open",
+          bio: artist.bio || localArtistsById.get(artist.id)?.bio || "",
+          profileVisible:
+            typeof artist.profileVisible === "boolean"
+              ? artist.profileVisible
+              : localArtistsById.get(artist.id)?.profileVisible,
+          profileViews: Number(artist.profileViews || 0),
+          completedBookings: Number(artist.completedBookings || 0),
+          acceptanceRate: Number(artist.acceptanceRate || 0),
+          portfolio: asArray(artist.portfolio).map((item) => ({
+            id: item.id || `p-${Date.now()}`,
+            title: item.title || "Portfolio Item",
+            image: item.imageUrl || item.image || "",
+          })),
+          createdAt: artist.createdAt || localArtistsById.get(artist.id)?.createdAt || nowIso(),
+          updatedAt: artist.updatedAt || nowIso(),
+        },
+        next,
+      ),
+    );
 
     dbCache = next;
     persistDBCache(dbCache);
@@ -452,6 +508,9 @@ export function getDB() {
 
 export function saveDB(db) {
   dbCache = isValidDB(db) ? db : dbCache;
+  if (Array.isArray(dbCache?.artists)) {
+    dbCache.artists = dbCache.artists.map((artist) => normalizeArtistRecord(artist, dbCache));
+  }
   persistDBCache(dbCache);
   emitStoreUpdated();
 }
@@ -475,6 +534,14 @@ export function getArtistById(db, artistId) {
     return null;
   }
   return asArray(db?.artists).find((artist) => artist.id === artistId) || null;
+}
+
+export function isArtistProfileLive(artist) {
+  return Boolean(artist?.profileVisible);
+}
+
+export function getVisibleArtists(db) {
+  return asArray(db?.artists).filter((artist) => isArtistProfileLive(artist));
 }
 
 export function getUserById(db, userId) {
@@ -558,6 +625,7 @@ function createArtistRecord(db, identity) {
     priceFrom: 0,
     availability: "open",
     bio: "Add your bio to start receiving requests.",
+    profileVisible: false,
     profileViews: 0,
     completedBookings: 0,
     acceptanceRate: 0,
@@ -567,7 +635,7 @@ function createArtistRecord(db, identity) {
   };
 
   db.artists.push(created);
-  return created;
+  return normalizeArtistRecord(created, db);
 }
 
 function syncIdentityFields(record, identity) {
@@ -675,14 +743,7 @@ export function ensureArtistForCognito(identity) {
     } else {
       syncIdentityFields(artist, normalized);
     }
-
-    if (!Array.isArray(artist.mediums) || !artist.mediums.length) {
-      artist.mediums = ["Digital"];
-    }
-    if (!Array.isArray(artist.portfolio)) {
-      artist.portfolio = [];
-    }
-
+    normalizeArtistRecord(artist, db);
     ensured = { ...artist };
   });
 
@@ -733,6 +794,10 @@ export function ensureArtistForCognito(identity) {
           availability:
             (remoteIsPreferred ? remote.availability : "") || existing?.availability || remote.availability || "open",
           bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
+          profileVisible:
+            remoteIsPreferred && typeof remote.profileVisible === "boolean"
+              ? remote.profileVisible
+              : existing?.profileVisible,
           profileViews: Number(
             remoteIsPreferred ? remote.profileViews || 0 : existing?.profileViews || remote.profileViews || 0,
           ),
@@ -755,6 +820,7 @@ export function ensureArtistForCognito(identity) {
           createdAt: remote.createdAt || existing?.createdAt || nowIso(),
           updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
         };
+        normalizeArtistRecord(next, db);
 
         if (existing?.id && existing.id !== next.id) {
           migrateArtistReferences(db, existing.id, next.id);
@@ -927,17 +993,22 @@ export function createBooking(payload) {
     const artist = getArtistById(db, payload?.artistId);
     const user = getUserById(db, payload?.userId);
 
-    if (!service || !artist || !user) {
+    if (!artist || !user) {
       return;
     }
 
-    if (service.artistId !== artist.id) {
+    if (payload?.serviceId && !service) {
+      return;
+    }
+
+    if (service && service.artistId !== artist.id) {
       return;
     }
 
     const messageText = String(payload.message || "").trim();
     const deadline = String(payload.deadline || "").trim();
     const budget = Number(payload.budget || 0);
+    const serviceLabel = String(payload.serviceLabel || "").trim() || artist.category || "Artist profile request";
 
     if (!messageText || !deadline || !Number.isFinite(budget) || budget <= 0) {
       return;
@@ -948,7 +1019,8 @@ export function createBooking(payload) {
       id: nextId("b", db.bookings),
       userId: user.id,
       artistId: artist.id,
-      serviceId: service.id,
+      serviceId: service?.id || null,
+      serviceLabel,
       status: "requested",
       budget,
       deadline,
@@ -977,7 +1049,7 @@ export function createBooking(payload) {
       ownerId: artist.id,
       type: "booking_request",
       title: `New booking request from ${user.name || "User"}`,
-      detail: `${service.title} - ${deadline}`,
+      detail: `${service?.title || serviceLabel} - ${deadline}`,
     });
 
     addNotification(db, {
@@ -1004,13 +1076,14 @@ export function createBooking(payload) {
     createdBooking = booking;
   });
 
-  if (payload?.serviceId && payload?.deadline && payload?.budget && payload?.message) {
+  if (payload?.deadline && payload?.budget && payload?.message) {
     runApiMutation(
       async () => {
         await apiRequest("/v1/bookings", {
           method: "POST",
           body: {
-            serviceId: payload.serviceId,
+            serviceId: payload.serviceId || undefined,
+            serviceLabel: payload.serviceLabel || undefined,
             deadline: payload.deadline,
             budget: payload.budget,
             message: payload.message,
@@ -1311,20 +1384,18 @@ export function updateArtistProfile(artistId, patch) {
     }
 
     Object.assign(artist, patch || {}, { updatedAt: nowIso() });
-
-    if (!Array.isArray(artist.mediums) || !artist.mediums.length) {
-      artist.mediums = ["Digital"];
-    }
-
-    if (!Array.isArray(artist.portfolio)) {
-      artist.portfolio = [];
-    }
-
+    normalizeArtistRecord(artist, db);
     recalcArtistMetrics(db, artist.id);
   });
 
   const artist = getArtistById(getDB(), artistId);
   if (!artist) {
+    return;
+  }
+
+  const patchKeys = Object.keys(patch || {});
+  const visibilityOnlyPatch = Boolean(patchKeys.length) && patchKeys.every((key) => key === "profileVisible");
+  if (visibilityOnlyPatch) {
     return;
   }
 

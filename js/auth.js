@@ -3,15 +3,12 @@ import {
   ensureUserForCognito,
   getArtistById,
   getDB,
-  getServicesForArtist,
   hydrateDB,
   markNotificationsRead,
-  removeService,
   sendMessage,
   toggleSaveArtist,
   updateBookingStatus,
   getUserById,
-  upsertService,
   updateArtistProfile,
   updateUserProfile,
 } from "./store.js";
@@ -81,7 +78,7 @@ const enableBrowserNotificationsBtn = byId("enable-browser-notifications");
 const statSavedArtists = byId("stat-saved-artists");
 const statUserBookings = byId("stat-user-bookings");
 const statArtistBookings = byId("stat-artist-bookings");
-const statActiveServices = byId("stat-active-services");
+const statArtistProfile = byId("stat-artist-profile");
 const statUnreadUpdates = byId("stat-unread-updates");
 
 const openResetFromSettingsBtn = byId("open-reset-from-settings");
@@ -93,15 +90,16 @@ const workspaceSavedArtists = byId("workspace-saved-artists");
 const workspaceSavedEmpty = byId("workspace-saved-empty");
 const workspaceBookingsList = byId("workspace-bookings-list");
 const workspaceBookingsEmpty = byId("workspace-bookings-empty");
-const workspaceServiceForm = byId("workspace-service-form");
-const workspaceServiceId = byId("workspace-service-id");
-const workspaceServiceTitle = byId("workspace-service-title");
-const workspaceServiceDescription = byId("workspace-service-description");
-const workspaceServicePrice = byId("workspace-service-price");
-const workspaceServiceDelivery = byId("workspace-service-delivery");
-const workspaceServiceReset = byId("workspace-service-reset");
-const workspaceServicesList = byId("workspace-services-list");
-const workspaceServicesEmpty = byId("workspace-services-empty");
+const workspaceArtistForm = byId("workspace-artist-form");
+const workspaceArtistCategory = byId("workspace-artist-category");
+const workspaceArtistMediums = byId("workspace-artist-mediums");
+const workspaceArtistPrice = byId("workspace-artist-price");
+const workspaceArtistAvailability = byId("workspace-artist-availability");
+const workspaceArtistState = byId("workspace-artist-state");
+const workspaceArtistVisibilityLabel = byId("workspace-artist-visibility-label");
+const workspaceArtistVisibilityCopy = byId("workspace-artist-visibility-copy");
+const toggleArtistAccountBtn = byId("toggle-artist-account");
+const workspaceArtistPreview = byId("workspace-artist-preview");
 const workspaceMessageForm = byId("workspace-message-form");
 const workspaceMessageBooking = byId("workspace-message-booking");
 const workspaceMessageBody = byId("workspace-message-body");
@@ -230,11 +228,11 @@ function setSettingsInteractive(enabled) {
     openResetFromSettingsBtn,
     exportAccountDataBtn,
     clearSavedArtistsBtn,
-    workspaceServiceTitle,
-    workspaceServiceDescription,
-    workspaceServicePrice,
-    workspaceServiceDelivery,
-    workspaceServiceReset,
+    workspaceArtistCategory,
+    workspaceArtistMediums,
+    workspaceArtistPrice,
+    workspaceArtistAvailability,
+    toggleArtistAccountBtn,
     workspaceMessageBooking,
     workspaceMessageBody,
     workspaceMarkNotificationsRead,
@@ -313,22 +311,41 @@ function setCollectionEmptyState(node, emptyNode, isEmpty, emptyText) {
   }
 }
 
-function resetServiceEditor() {
-  if (workspaceServiceId instanceof HTMLInputElement) {
-    workspaceServiceId.value = "";
+function uniqueValues(list) {
+  return [...new Set((list || []).filter(Boolean))];
+}
+
+function artistProfileStatus(artist) {
+  return artist?.profileVisible ? "Live" : "Off";
+}
+
+function parseMediumsInput(value) {
+  return uniqueValues(
+    String(value || "")
+      .split(/[,\n]/)
+      .map((part) => titleize(part))
+      .filter(Boolean),
+  );
+}
+
+function renderArtistCategoryOptions(db, selectedValue = "") {
+  if (!(workspaceArtistCategory instanceof HTMLSelectElement)) {
+    return;
   }
-  if (workspaceServiceTitle instanceof HTMLInputElement) {
-    workspaceServiceTitle.value = "";
-  }
-  if (workspaceServiceDescription instanceof HTMLTextAreaElement) {
-    workspaceServiceDescription.value = "";
-  }
-  if (workspaceServicePrice instanceof HTMLInputElement) {
-    workspaceServicePrice.value = "";
-  }
-  if (workspaceServiceDelivery instanceof HTMLInputElement) {
-    workspaceServiceDelivery.value = "";
-  }
+
+  const options = db.categories
+    .filter((category) => category.active)
+    .map((category) => category.name);
+  const current = selectedValue || options[0] || "Illustration";
+  const values = uniqueValues([current, ...options]);
+  workspaceArtistCategory.replaceChildren();
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value;
+    option.selected = value === current;
+    workspaceArtistCategory.appendChild(option);
+  });
 }
 
 function bookingActionsForContext(booking, context) {
@@ -433,12 +450,13 @@ function renderBookings(context) {
     const artist = context.db.artists.find((item) => item.id === booking.artistId);
     const user = context.db.users.find((item) => item.id === booking.userId);
     const service = context.db.services.find((item) => item.id === booking.serviceId);
+    const bookingLabel = service?.title || booking.serviceLabel || artist?.category || "Profile request";
 
     const item = document.createElement("li");
     item.className = "collection-item workspace-item";
 
     const heading = document.createElement("h4");
-    heading.textContent = `${service?.title || "Service"} · ${booking.id}`;
+    heading.textContent = `${bookingLabel} · ${booking.id}`;
     item.appendChild(heading);
 
     const detail = document.createElement("p");
@@ -485,88 +503,62 @@ function renderBookings(context) {
   });
 }
 
-function renderServices(context) {
-  clearNode(workspaceServicesList);
+function renderArtistAccount(context) {
+  const artist = context.artist;
 
-  const artistId = context.artist?.id;
-  if (!artistId) {
-    setCollectionEmptyState(
-      workspaceServicesList,
-      workspaceServicesEmpty,
-      true,
-      "Artist profile unavailable. Re-sign in to manage services.",
-    );
+  if (!artist) {
+    renderArtistCategoryOptions(context.db);
+    if (workspaceArtistMediums instanceof HTMLInputElement) {
+      workspaceArtistMediums.value = "";
+    }
+    if (workspaceArtistPrice instanceof HTMLInputElement) {
+      workspaceArtistPrice.value = "";
+    }
+    if (workspaceArtistAvailability instanceof HTMLSelectElement) {
+      workspaceArtistAvailability.value = "open";
+    }
+    if (workspaceArtistVisibilityLabel) {
+      workspaceArtistVisibilityLabel.textContent = "Artist account unavailable";
+    }
+    if (workspaceArtistVisibilityCopy) {
+      workspaceArtistVisibilityCopy.textContent = "Re-sign in to connect your artist profile.";
+    }
+    if (workspaceArtistState) {
+      workspaceArtistState.dataset.visibility = "off";
+    }
+    if (workspaceArtistPreview instanceof HTMLAnchorElement) {
+      workspaceArtistPreview.href = "/artist-preview.html";
+    }
     return;
   }
 
-  const services = getServicesForArtist(context.db, artistId).sort((a, b) =>
-    String(a.title || "").localeCompare(String(b.title || ""), "en"),
-  );
+  renderArtistCategoryOptions(context.db, artist.category || "");
 
-  const empty = services.length === 0;
-  setCollectionEmptyState(workspaceServicesList, workspaceServicesEmpty, empty, "No services yet.");
-  if (empty || !workspaceServicesList) {
-    return;
+  if (workspaceArtistMediums instanceof HTMLInputElement) {
+    workspaceArtistMediums.value = Array.isArray(artist.mediums) ? artist.mediums.join(", ") : "";
   }
-
-  services.forEach((service) => {
-    const item = document.createElement("li");
-    item.className = "collection-item workspace-item";
-
-    const title = document.createElement("h4");
-    title.textContent = service.title;
-    item.appendChild(title);
-
-    const detail = document.createElement("p");
-    detail.className = "muted";
-    detail.textContent = `${formatCurrency(service.price)} · ${service.deliveryDays} day delivery`;
-    item.appendChild(detail);
-
-    const description = document.createElement("p");
-    description.textContent = service.description || "";
-    item.appendChild(description);
-
-    const actions = document.createElement("div");
-    actions.className = "form-actions";
-
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "btn btn-outline btn-small";
-    editBtn.textContent = "Edit";
-    editBtn.addEventListener("click", () => {
-      if (workspaceServiceId instanceof HTMLInputElement) {
-        workspaceServiceId.value = service.id;
-      }
-      if (workspaceServiceTitle instanceof HTMLInputElement) {
-        workspaceServiceTitle.value = service.title || "";
-      }
-      if (workspaceServiceDescription instanceof HTMLTextAreaElement) {
-        workspaceServiceDescription.value = service.description || "";
-      }
-      if (workspaceServicePrice instanceof HTMLInputElement) {
-        workspaceServicePrice.value = String(service.price || "");
-      }
-      if (workspaceServiceDelivery instanceof HTMLInputElement) {
-        workspaceServiceDelivery.value = String(service.deliveryDays || "");
-      }
-      workspaceServiceTitle?.focus();
-    });
-    actions.appendChild(editBtn);
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "btn btn-ghost btn-small";
-    removeBtn.textContent = "Delete";
-    removeBtn.addEventListener("click", () => {
-      removeService(artistId, service.id);
-      syncSessionFromExisting();
-      showToast("Service removed.", "success");
-    });
-    actions.appendChild(removeBtn);
-
-    item.appendChild(actions);
-    workspaceServicesList.appendChild(item);
-  });
+  if (workspaceArtistPrice instanceof HTMLInputElement) {
+    workspaceArtistPrice.value = artist.priceFrom ? String(artist.priceFrom) : "";
+  }
+  if (workspaceArtistAvailability instanceof HTMLSelectElement) {
+    workspaceArtistAvailability.value = artist.availability || "open";
+  }
+  if (workspaceArtistVisibilityLabel) {
+    workspaceArtistVisibilityLabel.textContent = artist.profileVisible
+      ? "Artist account is live"
+      : "Artist account is off";
+  }
+  if (workspaceArtistVisibilityCopy) {
+    workspaceArtistVisibilityCopy.textContent = artist.profileVisible
+      ? "Clients can find your profile in Explore and send briefs from your public page."
+      : "Your profile is hidden from Explore and booking until you toggle the artist account on.";
+  }
+  if (workspaceArtistState) {
+    workspaceArtistState.dataset.visibility = artist.profileVisible ? "live" : "off";
+  }
+  if (workspaceArtistPreview instanceof HTMLAnchorElement) {
+    workspaceArtistPreview.href = `/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
+  }
 }
 
 function renderMessageOptions(context, relatedBookings) {
@@ -594,7 +586,7 @@ function renderMessageOptions(context, relatedBookings) {
     const service = context.db.services.find((item) => item.id === booking.serviceId);
     const option = document.createElement("option");
     option.value = booking.id;
-    option.textContent = `${booking.id} · ${service?.title || "Service"} · ${normalizeStatusLabel(booking.status)}`;
+    option.textContent = `${booking.id} · ${service?.title || booking.serviceLabel || "Profile request"} · ${normalizeStatusLabel(booking.status)}`;
     workspaceMessageBooking.appendChild(option);
   });
 }
@@ -706,23 +698,42 @@ function renderAccountPanels(session) {
     if (prefMarketingEmails instanceof HTMLInputElement) {
       prefMarketingEmails.checked = DEFAULT_ACCOUNT_PREFERENCES.marketingEmails;
     }
-    resetServiceEditor();
     writeText(statSavedArtists, 0);
     writeText(statUserBookings, 0);
     writeText(statArtistBookings, 0);
-    writeText(statActiveServices, 0);
+    writeText(statArtistProfile, "Off");
     writeText(statUnreadUpdates, 0);
     clearNode(workspaceSavedArtists);
     clearNode(workspaceBookingsList);
-    clearNode(workspaceServicesList);
     clearNode(workspaceMessagesList);
     clearNode(workspaceNotificationsList);
     clearNode(workspaceMessageBooking);
     setCollectionEmptyState(workspaceSavedArtists, workspaceSavedEmpty, true, "No saved artists yet.");
     setCollectionEmptyState(workspaceBookingsList, workspaceBookingsEmpty, true, "No bookings yet.");
-    setCollectionEmptyState(workspaceServicesList, workspaceServicesEmpty, true, "No services yet.");
     setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, true, "No messages yet.");
     setCollectionEmptyState(workspaceNotificationsList, workspaceNotificationsEmpty, true, "No notifications yet.");
+    renderArtistCategoryOptions(getDB());
+    if (workspaceArtistMediums instanceof HTMLInputElement) {
+      workspaceArtistMediums.value = "";
+    }
+    if (workspaceArtistPrice instanceof HTMLInputElement) {
+      workspaceArtistPrice.value = "";
+    }
+    if (workspaceArtistAvailability instanceof HTMLSelectElement) {
+      workspaceArtistAvailability.value = "open";
+    }
+    if (workspaceArtistVisibilityLabel) {
+      workspaceArtistVisibilityLabel.textContent = "Artist account unavailable";
+    }
+    if (workspaceArtistVisibilityCopy) {
+      workspaceArtistVisibilityCopy.textContent = "Sign in to manage a public artist profile.";
+    }
+    if (workspaceArtistState) {
+      workspaceArtistState.dataset.visibility = "off";
+    }
+    if (workspaceArtistPreview instanceof HTMLAnchorElement) {
+      workspaceArtistPreview.href = "/artist-preview.html";
+    }
     return;
   }
 
@@ -766,8 +777,7 @@ function renderAccountPanels(session) {
   writeText(statUserBookings, userBookings.length);
   writeText(statArtistBookings, artistBookings.length);
 
-  const servicesCount = artist ? getServicesForArtist(db, artist.id).length : 0;
-  writeText(statActiveServices, servicesCount);
+  writeText(statArtistProfile, artistProfileStatus(artist));
 
   const unreadCount = db.notifications.filter(
     (notification) =>
@@ -779,7 +789,7 @@ function renderAccountPanels(session) {
 
   renderSavedArtists(context);
   renderBookings(context);
-  renderServices(context);
+  renderArtistAccount(context);
   const messageBookings = Array.from(
     new Map([...userBookings, ...artistBookings].map((booking) => [booking.id, booking])).values(),
   );
@@ -1245,41 +1255,49 @@ workspaceRefreshBtn?.addEventListener("click", async () => {
   showToast("Workspace refreshed.", "success");
 });
 
-workspaceServiceForm?.addEventListener("submit", (event) => {
+workspaceArtistForm?.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const context = signedInContext(ensureLinkedProfiles(getSession()));
   if (!context?.artist?.id) {
-    showToast("Sign in to manage services.", "warning");
+    showToast("Sign in to manage your artist profile.", "warning");
     return;
   }
 
-  const serviceId = (workspaceServiceId?.value || "").trim();
-  const title = (workspaceServiceTitle?.value || "").trim();
-  const description = (workspaceServiceDescription?.value || "").trim();
-  const price = Number(workspaceServicePrice?.value || 0);
-  const deliveryDays = Number(workspaceServiceDelivery?.value || 0);
+  const category = String(workspaceArtistCategory?.value || "").trim();
+  const mediums = parseMediumsInput(workspaceArtistMediums?.value || "");
+  const priceFrom = Math.max(0, Number(workspaceArtistPrice?.value || 0));
+  const availability = String(workspaceArtistAvailability?.value || "open").trim() || "open";
 
-  const saved = upsertService(context.artist.id, {
-    id: serviceId || undefined,
-    title,
-    description,
-    price,
-    deliveryDays,
+  if (!category) {
+    showToast("Choose what you do before saving the artist profile.", "warning");
+    return;
+  }
+
+  updateArtistProfile(context.artist.id, {
+    category,
+    mediums,
+    priceFrom,
+    availability,
   });
 
-  if (!saved) {
-    showToast("Enter title, description, price, and delivery days.", "warning");
+  syncSessionFromExisting();
+  showToast("Artist profile updated.", "success");
+});
+
+toggleArtistAccountBtn?.addEventListener("click", () => {
+  const context = signedInContext(ensureLinkedProfiles(getSession()));
+  if (!context?.artist?.id) {
+    showToast("Sign in to manage your artist profile.", "warning");
     return;
   }
 
-  resetServiceEditor();
+  const nextVisible = !Boolean(context.artist.profileVisible);
+  updateArtistProfile(context.artist.id, {
+    profileVisible: nextVisible,
+  });
   syncSessionFromExisting();
-  showToast(serviceId ? "Service updated." : "Service created.", "success");
-});
-
-workspaceServiceReset?.addEventListener("click", () => {
-  resetServiceEditor();
+  showToast(nextVisible ? "Artist account is now live." : "Artist account has been turned off.", "success");
 });
 
 workspaceMessageForm?.addEventListener("submit", (event) => {

@@ -4,8 +4,7 @@ import {
   getArtistById,
   getDB,
   hydrateDB,
-  getServiceById,
-  getServicesForArtist,
+  isArtistProfileLive,
   sendMessage,
   toggleSaveArtist,
 } from "./store.js";
@@ -27,7 +26,7 @@ const FALLBACK_PORTFOLIO_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='560' viewBox='0 0 800 560'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6efe4'/%3E%3Cstop offset='1' stop-color='%23dccab1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='560' fill='url(%23bg)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='sans-serif' fill='%23614d3a'%3EPortfolio%20Preview%3C/text%3E%3C/svg%3E";
 
 const artistIdFromQuery = getQueryParam("id");
-const fallbackArtistId = session.activeArtistId || db.artists[0]?.id || null;
+const fallbackArtistId = session.activeArtistId || db.artists.find((item) => isArtistProfileLive(item))?.id || null;
 const artistId = artistIdFromQuery || fallbackArtistId;
 const artist = artistId ? getArtistById(db, artistId) : null;
 
@@ -45,19 +44,43 @@ const saveArtistBtn = byId("save-artist-btn");
 const contactArtistBtn = byId("contact-artist-btn");
 const openBookingBtn = byId("open-booking-btn");
 const bookingForm = byId("booking-form");
-const bookingService = byId("booking-service");
+const bookingFocus = byId("booking-service");
 const bookingDeadline = byId("booking-deadline");
 const bookingBudget = byId("booking-budget");
 const bookingMessage = byId("booking-message");
 const prefillBooking = byId("prefill-booking");
 
-const services = artist ? getServicesForArtist(db, artist.id) : [];
+function viewerOwnsArtistProfile() {
+  return Boolean(artist && session.activeArtistId === artist.id && isCognitoAuthenticated());
+}
+
+function profileIsPublic() {
+  return Boolean(artist && isArtistProfileLive(artist));
+}
+
+function profileIsAccessible() {
+  return Boolean(artist) && (profileIsPublic() || viewerOwnsArtistProfile());
+}
 
 function updateBookingCta() {
   if (!openBookingBtn) {
     return;
   }
+
+  if (!artist) {
+    openBookingBtn.textContent = "No artist available";
+    openBookingBtn.disabled = true;
+    return;
+  }
+
+  if (!profileIsPublic()) {
+    openBookingBtn.textContent = viewerOwnsArtistProfile() ? "Profile is hidden" : "Booking unavailable";
+    openBookingBtn.disabled = true;
+    return;
+  }
+
   openBookingBtn.textContent = isCognitoAuthenticated() ? "Start booking" : "Sign in to submit a brief";
+  openBookingBtn.disabled = false;
 }
 
 function safeImageUrl(value) {
@@ -95,6 +118,18 @@ function minBookingDateISO() {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return now.toISOString().slice(0, 10);
+}
+
+function setBookingFormEnabled(enabled) {
+  if (!bookingForm) {
+    return;
+  }
+
+  bookingForm.querySelectorAll("input, select, textarea, button").forEach((field) => {
+    if (field instanceof HTMLElement && "disabled" in field) {
+      field.disabled = !enabled;
+    }
+  });
 }
 
 if (bookingDeadline) {
@@ -135,29 +170,29 @@ function redirectToAuth(nextPath = window.location.pathname + window.location.se
   window.location.href = `/account-settings.html?next=${encodeURIComponent(nextPath)}`;
 }
 
-function renderNoArtistState() {
+function renderUnavailableProfile(title, message) {
   if (artistStatusLabel) {
     artistStatusLabel.textContent = "Artist profile";
   }
 
   if (artistName) {
-    artistName.textContent = "No artist selected";
+    artistName.textContent = title;
   }
 
   if (artistBio) {
-    artistBio.textContent = "No artist profile is currently available. Sign in as an artist to publish a profile.";
+    artistBio.textContent = message;
   }
 
   if (artistTags) {
     const tag = document.createElement("span");
     tag.className = "tag";
-    tag.textContent = "No profile";
+    tag.textContent = "Unavailable";
     artistTags.replaceChildren(tag);
   }
 
   if (artistMeta) {
     const text = document.createElement("span");
-    text.textContent = "Create your profile from Workspace to get listed.";
+    text.textContent = "Open account settings to publish or update an artist profile.";
     artistMeta.replaceChildren(text);
   }
 
@@ -165,10 +200,10 @@ function renderNoArtistState() {
     artistProofGrid.replaceChildren();
   }
 
-  setEmptyCollection(portfolioGrid, "Portfolio is empty because no artist has onboarded yet.");
-  setEmptyCollection(servicesList, "No services available.", "li");
-  setEmptyCollection(reviewsList, "No reviews available.", "li");
-  setEmptyCollection(availabilityList, "No availability available.", "li");
+  setEmptyCollection(portfolioGrid, "Portfolio samples will appear here once the profile is live.");
+  setEmptyCollection(servicesList, "Profile details are unavailable right now.", "li");
+  setEmptyCollection(reviewsList, "No client reviews available.", "li");
+  setEmptyCollection(availabilityList, "No availability published.", "li");
 
   [saveArtistBtn, contactArtistBtn, openBookingBtn].forEach((button) => {
     if (button) {
@@ -176,21 +211,34 @@ function renderNoArtistState() {
     }
   });
 
-  if (bookingForm) {
-    setEmptyCollection(bookingForm, "No artist is available to book yet.");
-  }
+  setBookingFormEnabled(false);
 }
 
 function renderArtistDetails() {
   if (!artist) {
-    renderNoArtistState();
+    renderUnavailableProfile(
+      "No artist selected",
+      "No artist profile is currently available. Turn on an artist account from account settings to publish one.",
+    );
+    return;
+  }
+
+  if (!profileIsAccessible()) {
+    renderUnavailableProfile(
+      "Artist profile unavailable",
+      "This artist has turned their public profile off and is not currently available for discovery or booking.",
+    );
     return;
   }
 
   document.title = `ARTIZANS.COLLECTIVE | ${artist.name}`;
 
   if (artistStatusLabel) {
-    artistStatusLabel.textContent = artist.verified ? "Verified artist profile" : "Artist profile";
+    if (!profileIsPublic()) {
+      artistStatusLabel.textContent = "Artist account off";
+    } else {
+      artistStatusLabel.textContent = artist.verified ? "Verified artist profile" : "Artist profile";
+    }
   }
 
   if (artistName) {
@@ -198,11 +246,15 @@ function renderArtistDetails() {
   }
 
   if (artistBio) {
-    artistBio.textContent = artist.bio;
+    artistBio.textContent = artist.bio || "This artist has not added a profile summary yet.";
   }
 
   if (artistTags) {
-    artistTags.innerHTML = [artist.category, ...(artist.mediums || []), artist.verified ? "Verified presentation" : "Review in progress"]
+    artistTags.innerHTML = [
+      artist.category,
+      ...(artist.mediums || []),
+      profileIsPublic() ? (artist.verified ? "Verified presentation" : "Review in progress") : "Profile hidden",
+    ]
       .filter(Boolean)
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
       .join("");
@@ -211,7 +263,7 @@ function renderArtistDetails() {
   if (artistMeta) {
     artistMeta.innerHTML = [
       `Location: ${artist.location || "Not set"}`,
-      `From ${formatMoney(artist.priceFrom || 0)}`,
+      Number(artist.priceFrom || 0) > 0 ? `Starting budgets from ${formatMoney(artist.priceFrom || 0)}` : "Budget shaped around the brief",
       `Rating ${Number(artist.rating || 0).toFixed(1)}`,
       `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`,
     ]
@@ -222,8 +274,8 @@ function renderArtistDetails() {
   if (artistProofGrid) {
     artistProofGrid.innerHTML = [
       {
-        title: artist.verified ? "Verified" : "Reviewing",
-        label: "profile status",
+        title: profileIsPublic() ? (artist.verified ? "Verified" : "Live") : "Hidden",
+        label: "profile visibility",
       },
       {
         title: `${Number(artist.reviewCount || 0)}`,
@@ -266,19 +318,35 @@ function renderArtistDetails() {
   }
 
   if (servicesList) {
-    servicesList.innerHTML = services.length
-      ? services
-          .map(
-            (service) => `
-        <li class="collection-item">
-          <h4>${escapeHtml(service.title)}</h4>
-          <p>${escapeHtml(service.description)}</p>
-          <p><strong>${formatMoney(service.price)}</strong> • ${service.deliveryDays} day delivery window</p>
-        </li>
-      `,
-          )
-          .join("")
-      : `<li class="empty-state">${escapeHtml("No services listed yet.")}</li>`;
+    const focusItems = [
+      {
+        title: "What they do",
+        detail: artist.category || "Creative practice",
+      },
+      {
+        title: "Works across",
+        detail: (artist.mediums || []).join(", ") || "Human-made creative work",
+      },
+      {
+        title: "Starting budget",
+        detail: Number(artist.priceFrom || 0) > 0 ? formatMoney(artist.priceFrom || 0) : "Discussed per brief",
+      },
+      {
+        title: "Availability",
+        detail: artist.availability === "limited" ? "Limited availability" : "Open for briefs",
+      },
+    ];
+
+    servicesList.innerHTML = focusItems
+      .map(
+        (item) => `
+          <li class="collection-item">
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.detail)}</p>
+          </li>
+        `,
+      )
+      .join("");
   }
 
   if (reviewsList) {
@@ -311,20 +379,22 @@ function renderArtistDetails() {
       .join("");
   }
 
-  if (bookingService) {
-    bookingService.innerHTML = services.length
-      ? services
-          .map(
-            (service) =>
-              `<option value="${escapeHtml(service.id)}">${escapeHtml(service.title)} (${escapeHtml(formatMoney(service.price))})</option>`,
-          )
-          .join("")
-      : `<option value="">No services available</option>`;
+  if (bookingFocus instanceof HTMLInputElement) {
+    bookingFocus.value = "";
   }
+
+  const publicActionsEnabled = profileIsPublic();
+  [saveArtistBtn, contactArtistBtn].forEach((button) => {
+    if (button) {
+      button.disabled = !publicActionsEnabled;
+    }
+  });
+  setBookingFormEnabled(publicActionsEnabled);
 }
 
 saveArtistBtn?.addEventListener("click", () => {
-  if (!artist) {
+  if (!artist || !profileIsPublic()) {
+    showToast("This artist profile is not available to save right now.", "warning");
     return;
   }
 
@@ -344,7 +414,8 @@ saveArtistBtn?.addEventListener("click", () => {
 });
 
 contactArtistBtn?.addEventListener("click", () => {
-  if (!artist) {
+  if (!artist || !profileIsPublic()) {
+    showToast("This artist is not accepting public enquiries right now.", "warning");
     return;
   }
 
@@ -365,7 +436,7 @@ contactArtistBtn?.addEventListener("click", () => {
     fromId: userId,
     toRole: "artist",
     toId: artist.id,
-    body: "Hi, I would like to discuss a potential booking.",
+    body: "Hi, I would like to discuss a potential project.",
   });
 
   showToast("Message sent to artist", "success");
@@ -373,7 +444,8 @@ contactArtistBtn?.addEventListener("click", () => {
 });
 
 openBookingBtn?.addEventListener("click", () => {
-  if (!artist) {
+  if (!artist || !profileIsPublic()) {
+    showToast("This artist profile is not currently open for booking.", "warning");
     return;
   }
 
@@ -383,22 +455,21 @@ openBookingBtn?.addEventListener("click", () => {
     return;
   }
 
-  if (!services.length) {
-    showToast("This artist has not published services yet.", "warning");
-    return;
-  }
-
   bookingForm?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 prefillBooking?.addEventListener("click", () => {
-  if (!artist || !services.length) {
-    showToast("No services available to prefill.", "warning");
+  if (!artist || !profileIsAccessible()) {
+    showToast("No profile details are available to prefill.", "warning");
     return;
   }
 
+  if (bookingFocus instanceof HTMLInputElement) {
+    bookingFocus.value = artist.category || (artist.mediums || [])[0] || "Creative project";
+  }
+
   if (bookingBudget) {
-    bookingBudget.value = String(services[0]?.price || artist.priceFrom || 0);
+    bookingBudget.value = String(artist.priceFrom || 0);
   }
 
   if (bookingMessage) {
@@ -415,8 +486,8 @@ prefillBooking?.addEventListener("click", () => {
 bookingForm?.addEventListener("submit", (event) => {
   event.preventDefault();
 
-  if (!artist) {
-    showToast("No artist selected.", "warning");
+  if (!artist || !profileIsPublic()) {
+    showToast("This artist profile is not currently available for booking.", "warning");
     return;
   }
 
@@ -430,18 +501,13 @@ bookingForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  if (!services.length) {
-    showToast("This artist has no bookable services yet.", "warning");
-    return;
-  }
-
-  const serviceId = bookingService?.value;
+  const projectFocus = String(bookingFocus?.value || "").trim();
   const deadline = bookingDeadline?.value;
   const budget = Number(bookingBudget?.value || 0);
   const message = (bookingMessage?.value || "").trim();
 
-  if (!serviceId || !deadline || !budget || !message) {
-    showToast("Service, deadline, budget, and message are required.", "warning");
+  if (!projectFocus || !deadline || !budget || !message) {
+    showToast("Project focus, deadline, budget, and message are required.", "warning");
     return;
   }
 
@@ -461,16 +527,10 @@ bookingForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  const service = getServiceById(db, serviceId);
-  if (!service) {
-    showToast("Invalid service selected.", "danger");
-    return;
-  }
-
   const booking = createBooking({
     userId,
     artistId: artist.id,
-    serviceId,
+    serviceLabel: projectFocus,
     budget,
     deadline,
     message,

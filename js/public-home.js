@@ -1,4 +1,4 @@
-import { getDB, hydrateDB } from "./store.js";
+import { getDB, getVisibleArtists, hydrateDB } from "./store.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, formatMoney, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
@@ -7,10 +7,11 @@ initSharedPage();
 await hydrateDB();
 
 const db = getDB();
+const visibleArtists = getVisibleArtists(db);
 const heroProofRow = byId("hero-proof-row");
 const heroSpotlight = byId("hero-spotlight");
 
-const upcoming = [...db.artists]
+const upcoming = [...visibleArtists]
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   .slice(0, 6);
 
@@ -41,7 +42,7 @@ if (upcomingRoot) {
 
 const topCategoriesRoot = byId("top-categories");
 if (topCategoriesRoot) {
-  const categoryCounts = db.artists.reduce((acc, artist) => {
+  const categoryCounts = visibleArtists.reduce((acc, artist) => {
     acc[artist.category] = (acc[artist.category] || 0) + 1;
     return acc;
   }, {});
@@ -86,13 +87,13 @@ if (topCategoriesRoot) {
 }
 
 if (heroProofRow) {
-  const verifiedCount = db.artists.filter((artist) => artist.verified).length;
-  const servicesCount = db.services.length;
+  const verifiedCount = visibleArtists.filter((artist) => artist.verified).length;
+  const visibleProfileCount = visibleArtists.length;
   const activeCategories = db.categories.filter((category) => category.active).length;
 
   heroProofRow.innerHTML = [
-    { value: verifiedCount || db.artists.length, label: "artist profiles ready to review" },
-    { value: servicesCount || db.artists.length, label: "visible service offers" },
+    { value: verifiedCount || visibleArtists.length, label: "published artist profiles" },
+    { value: visibleProfileCount || db.artists.length, label: "public artist accounts live" },
     { value: activeCategories, label: "creative categories to browse" },
   ]
     .map(
@@ -107,7 +108,7 @@ if (heroProofRow) {
 }
 
 if (heroSpotlight) {
-  const spotlightArtist = upcoming[0] || db.artists[0] || null;
+  const spotlightArtist = upcoming[0] || visibleArtists[0] || null;
   if (spotlightArtist) {
     heroSpotlight.innerHTML = `
       <article class="spotlight-card">

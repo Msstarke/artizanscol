@@ -3,6 +3,8 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-10
+- Reworked the unified `/account-settings.html` artist controls around a public-profile model instead of service listings: artists now edit category/mediums/budget/availability in one panel, can toggle their public artist account on or off, and get a direct profile preview link from settings.
+- Updated the public discovery flow to respect artist-profile visibility by only surfacing live artist accounts in home/explore listings and by shifting `/artist-preview.html` from service offers to a profile-first booking request flow based on what the artist does.
 - Refreshed the public client journey across `/index.html`, `/explore.html`, and `/artist-preview.html` with stronger trust-first copy, more premium section hierarchy, cleaner browse/filter layout, and a more decision-focused artist profile flow.
 - Extended shared frontend styling in `styles/base.css`, `styles/components.css`, and `styles/pages.css` to support the new public layout system, improved button/card polish, better responsive behavior, and a global `[hidden]` rule so signed-out headers do not leak logout controls.
 - Updated `js/public-home.js`, `js/explore.js`, `js/artist-preview.js`, and `js/renderers.js` to power the new UI hooks, richer artist cards, active filter summaries, improved empty states, and clearer public CTA behavior without changing backend contracts.

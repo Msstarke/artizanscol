@@ -136,7 +136,7 @@
 
           <section data-auth-view="signed_in" hidden>
             <h2 class="section-title" style="font-size:1.2rem;">Unified workspace</h2>
-            <p class="section-copy">Manage hiring and artist workflows in one place.</p>
+            <p class="section-copy">Manage hiring activity and your public artist profile in one place.</p>
             <div class="form-actions">
               <a class="btn btn-primary" href="/explore.html">Explore artists</a>
               <button class="btn btn-outline" id="workspace-refresh-btn" type="button">Refresh workspace</button>
@@ -150,7 +150,7 @@
                   <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
                   <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
                   <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
-                  <article class="kpi"><small>Services</small><strong id="stat-active-services">0</strong></article>
+                  <article class="kpi"><small>Artist profile</small><strong id="stat-artist-profile">Off</strong></article>
                   <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
                 </div>
               </section>
@@ -218,35 +218,47 @@
               </section>
 
               <section class="account-panel">
-                <p class="site-tag">Services</p>
-                <h3>Service manager</h3>
-                <form id="workspace-service-form" class="form-grid">
-                  <input id="workspace-service-id" type="hidden" />
+                <p class="site-tag">Artist account</p>
+                <h3>Public profile settings</h3>
+                <div class="artist-account-state" id="workspace-artist-state" data-visibility="off">
+                  <strong id="workspace-artist-visibility-label">Artist account is off</strong>
+                  <p class="muted" id="workspace-artist-visibility-copy">
+                    Your profile is hidden from Explore and booking until you turn the artist account on.
+                  </p>
+                </div>
+                <form id="workspace-artist-form" class="form-grid">
                   <label>
-                    Service title
-                    <input id="workspace-service-title" type="text" maxlength="90" placeholder="Portrait illustration" />
+                    What you do
+                    <select id="workspace-artist-category"></select>
                   </label>
                   <label>
-                    Description
-                    <textarea id="workspace-service-description" maxlength="220" placeholder="Describe this offer"></textarea>
+                    Mediums
+                    <input
+                      id="workspace-artist-mediums"
+                      type="text"
+                      maxlength="140"
+                      placeholder="Illustration, branding, editorial"
+                    />
                   </label>
                   <div class="form-row">
                     <label>
-                      Price (AUD)
-                      <input id="workspace-service-price" type="number" min="1" step="1" />
+                      Starting budget (AUD)
+                      <input id="workspace-artist-price" type="number" min="0" step="1" />
                     </label>
                     <label>
-                      Delivery days
-                      <input id="workspace-service-delivery" type="number" min="1" step="1" />
+                      Availability
+                      <select id="workspace-artist-availability">
+                        <option value="open">Open</option>
+                        <option value="limited">Limited</option>
+                      </select>
                     </label>
                   </div>
                   <div class="form-actions">
-                    <button class="btn btn-outline btn-small" type="submit">Save service</button>
-                    <button class="btn btn-ghost btn-small" id="workspace-service-reset" type="button">Clear</button>
+                    <button class="btn btn-outline btn-small" type="submit">Save artist profile</button>
+                    <button class="btn btn-ghost btn-small" id="toggle-artist-account" type="button">Toggle artist account</button>
+                    <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview profile</a>
                   </div>
                 </form>
-                <p class="muted" id="workspace-services-empty">No services yet.</p>
-                <ul class="collection" id="workspace-services-list"></ul>
               </section>
 
               <section class="account-panel">
