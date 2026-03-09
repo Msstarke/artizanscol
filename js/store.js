@@ -238,6 +238,51 @@ function preferRemoteRecord(existing, remote) {
   return remoteTime >= localTime;
 }
 
+function migrateArtistReferences(db, fromArtistId, toArtistId) {
+  if (!fromArtistId || !toArtistId || fromArtistId === toArtistId) {
+    return;
+  }
+
+  asArray(db.services).forEach((service) => {
+    if (service.artistId === fromArtistId) {
+      service.artistId = toArtistId;
+    }
+  });
+
+  asArray(db.bookings).forEach((booking) => {
+    if (booking.artistId === fromArtistId) {
+      booking.artistId = toArtistId;
+    }
+  });
+
+  asArray(db.messages).forEach((message) => {
+    if (message.fromRole === "artist" && message.fromId === fromArtistId) {
+      message.fromId = toArtistId;
+    }
+    if (message.toRole === "artist" && message.toId === fromArtistId) {
+      message.toId = toArtistId;
+    }
+  });
+
+  asArray(db.notifications).forEach((notification) => {
+    if (notification.role === "artist" && notification.ownerId === fromArtistId) {
+      notification.ownerId = toArtistId;
+    }
+  });
+
+  asArray(db.invoices).forEach((invoice) => {
+    if (invoice.artistId === fromArtistId) {
+      invoice.artistId = toArtistId;
+    }
+  });
+
+  asArray(db.payouts).forEach((payout) => {
+    if (payout.artistId === fromArtistId) {
+      payout.artistId = toArtistId;
+    }
+  });
+}
+
 function loadSessionDBCache() {
   const storage = getSessionStorage();
   const raw = storage?.getItem(DB_SESSION_CACHE_KEY);
@@ -710,6 +755,10 @@ export function ensureArtistForCognito(identity) {
           createdAt: remote.createdAt || existing?.createdAt || nowIso(),
           updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
         };
+
+        if (existing?.id && existing.id !== next.id) {
+          migrateArtistReferences(db, existing.id, next.id);
+        }
 
         db.artists = asArray(db.artists).filter(
           (artist) => artist.id !== next.id && artist.cognitoSub !== next.cognitoSub,

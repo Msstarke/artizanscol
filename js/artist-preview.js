@@ -27,7 +27,7 @@ const FALLBACK_PORTFOLIO_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='560' viewBox='0 0 800 560'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6efe4'/%3E%3Cstop offset='1' stop-color='%23dccab1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='560' fill='url(%23bg)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='sans-serif' fill='%23614d3a'%3EPortfolio%20Preview%3C/text%3E%3C/svg%3E";
 
 const artistIdFromQuery = getQueryParam("id");
-const fallbackArtistId = db.artists[0]?.id || null;
+const fallbackArtistId = session.activeArtistId || db.artists[0]?.id || null;
 const artistId = artistIdFromQuery || fallbackArtistId;
 const artist = artistId ? getArtistById(db, artistId) : null;
 
