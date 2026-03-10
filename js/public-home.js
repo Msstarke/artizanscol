@@ -30,8 +30,8 @@ if (upcomingRoot) {
     : `
         <article class="site-card spotlight-card">
           <p class="site-tag">Profiles opening soon</p>
-          <h3>Artist listings are not live yet.</h3>
-          <p>Use the preview flow to review the public experience while the first profiles are being published.</p>
+          <h3>Profiles are coming soon.</h3>
+          <p>Use the preview flow while the first live accounts are being published.</p>
           <div class="form-actions">
             <a class="btn btn-outline btn-small" href="/artist-preview.html">Preview the profile flow</a>
             <a class="btn btn-ghost btn-small" href="/account-settings.html">Open account access</a>
@@ -92,9 +92,9 @@ if (heroProofRow) {
   const activeCategories = db.categories.filter((category) => category.active).length;
 
   heroProofRow.innerHTML = [
-    { value: verifiedCount || visibleArtists.length, label: "published artist profiles" },
-    { value: visibleProfileCount || db.artists.length, label: "public artist accounts live" },
-    { value: activeCategories, label: "creative categories to browse" },
+    { value: verifiedCount || visibleArtists.length, label: "published profiles" },
+    { value: visibleProfileCount || db.artists.length, label: "live artist accounts" },
+    { value: activeCategories, label: "browseable categories" },
   ]
     .map(
       (item) => `
@@ -125,8 +125,8 @@ if (heroSpotlight) {
     heroSpotlight.innerHTML = `
       <article class="spotlight-card">
         <p class="site-tag">Preview the flow</p>
-        <h3>The public hiring journey is ready before the first listings go live.</h3>
-        <p>Browse the category entry points, then use the artist preview page to review how clients will assess a profile and send a brief.</p>
+        <h3>The hiring flow is ready.</h3>
+        <p>Browse categories, then open the profile preview to see the client journey.</p>
         <a class="btn btn-outline btn-small" href="/artist-preview.html">Open preview flow</a>
       </article>
     `;

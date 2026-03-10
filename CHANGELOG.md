@@ -32,6 +32,8 @@ All notable project changes are tracked via Git commits and summarized here.
 - Improved zoom/overflow behavior for account and header UI by truncating long session chips, allowing account metadata wrapping, and removing extra bottom section spacing.
 - Stabilized account-settings layout to prevent post-load flicker into extra footer-bar space by using consistent card height and tighter account-page spacing.
 
+- Tightened `/index.html` landing page copy to be more direct and less text-heavy, and shortened landing fallback copy/proof labels in `js/public-home.js` so the homepage reads faster.
+
 ## 2026-03-05
 - Expanded `/account-settings.html` into a fuller account center with editable profile details, notification preferences, live workspace stats, password-reset shortcut, account data export, saved-artists cleanup, and matching `auth.js` logic/persistence updates.
 - Added root `CATALOG.md` and mirrored it in root `README.md` so GitHub repo landing README displays the catalog content.
