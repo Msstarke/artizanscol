@@ -229,7 +229,14 @@
                 <form id="workspace-artist-form" class="form-grid">
                   <label>
                     What you do
-                    <select id="workspace-artist-category"></select>
+                    <input
+                      id="workspace-artist-category"
+                      type="text"
+                      maxlength="80"
+                      list="workspace-artist-category-options"
+                      placeholder="Illustration, branding, photography"
+                    />
+                    <datalist id="workspace-artist-category-options"></datalist>
                   </label>
                   <label>
                     Mediums

@@ -92,6 +92,7 @@ const workspaceBookingsList = byId("workspace-bookings-list");
 const workspaceBookingsEmpty = byId("workspace-bookings-empty");
 const workspaceArtistForm = byId("workspace-artist-form");
 const workspaceArtistCategory = byId("workspace-artist-category");
+const workspaceArtistCategoryOptions = byId("workspace-artist-category-options");
 const workspaceArtistMediums = byId("workspace-artist-mediums");
 const workspaceArtistPrice = byId("workspace-artist-price");
 const workspaceArtistAvailability = byId("workspace-artist-availability");
@@ -333,7 +334,7 @@ function parseMediumsInput(value) {
 }
 
 function renderArtistCategoryOptions(db, selectedValue = "") {
-  if (!(workspaceArtistCategory instanceof HTMLSelectElement)) {
+  if (!(workspaceArtistCategory instanceof HTMLInputElement)) {
     return;
   }
 
@@ -342,13 +343,17 @@ function renderArtistCategoryOptions(db, selectedValue = "") {
     .map((category) => category.name);
   const current = selectedValue || options[0] || "Illustration";
   const values = uniqueValues([current, ...options]);
-  workspaceArtistCategory.replaceChildren();
+  workspaceArtistCategory.value = current;
+
+  if (!(workspaceArtistCategoryOptions instanceof HTMLDataListElement)) {
+    return;
+  }
+
+  workspaceArtistCategoryOptions.replaceChildren();
   values.forEach((value) => {
     const option = document.createElement("option");
     option.value = value;
-    option.textContent = value;
-    option.selected = value === current;
-    workspaceArtistCategory.appendChild(option);
+    workspaceArtistCategoryOptions.appendChild(option);
   });
 }
 

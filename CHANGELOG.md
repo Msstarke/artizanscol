@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-10
+- Replaced the brittle `What you do` dropdown in `/account-settings.html` with a free-text field plus category suggestions so artists can always enter a practice area even when category options fail to load.
 - Made artist profile visibility fully explicit instead of inferred, and updated the account settings control to a clearer `Show profile` / `Hide profile` action so profile publishing state switches predictably across pages.
 - Reworked the unified `/account-settings.html` artist controls around a public-profile model instead of service listings: artists now edit category/mediums/budget/availability in one panel, can toggle their public artist account on or off, and get a direct profile preview link from settings.
 - Updated the public discovery flow to respect artist-profile visibility by only surfacing live artist accounts in home/explore listings and by shifting `/artist-preview.html` from service offers to a profile-first booking request flow based on what the artist does.
