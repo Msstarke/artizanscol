@@ -427,31 +427,75 @@ export async function hydrateDB() {
     }));
     next.categories = remoteCategories.length ? remoteCategories : asArray(existing.categories).length ? existing.categories : createDefaultCategories();
 
-    const localArtistsById = new Map(asArray(existing.artists).map((artist) => [artist.id, artist]));
-    next.artists = asArray(artistsResponse?.data?.items).map((artist) =>
+    const localArtists = asArray(existing.artists);
+    const localArtistsById = new Map(localArtists.map((artist) => [artist.id, artist]));
+    const localArtistsBySub = new Map(
+      localArtists
+        .filter((artist) => artist?.cognitoSub)
+        .map((artist) => [artist.cognitoSub, artist]),
+    );
+
+    const remoteArtists = asArray(artistsResponse?.data?.items).map((artist) =>
       normalizeArtistRecord(
         {
           id: artist.id,
-          cognitoSub: artist.cognitoSub || localArtistsById.get(artist.id)?.cognitoSub || null,
-          cognitoEmail: artist.cognitoEmail || localArtistsById.get(artist.id)?.cognitoEmail || null,
-          name: artist.name || localArtistsById.get(artist.id)?.name || "Artist",
-          handle: artist.handle || localArtistsById.get(artist.id)?.handle || "",
-          category: artist.category || localArtistsById.get(artist.id)?.category || "",
+          cognitoSub:
+            artist.cognitoSub
+            || localArtistsById.get(artist.id)?.cognitoSub
+            || localArtistsBySub.get(artist.cognitoSub || "")?.cognitoSub
+            || null,
+          cognitoEmail:
+            artist.cognitoEmail
+            || localArtistsById.get(artist.id)?.cognitoEmail
+            || localArtistsBySub.get(artist.cognitoSub || "")?.cognitoEmail
+            || null,
+          name:
+            artist.name
+            || localArtistsById.get(artist.id)?.name
+            || localArtistsBySub.get(artist.cognitoSub || "")?.name
+            || "Artist",
+          handle:
+            artist.handle
+            || localArtistsById.get(artist.id)?.handle
+            || localArtistsBySub.get(artist.cognitoSub || "")?.handle
+            || "",
+          category:
+            artist.category
+            || localArtistsById.get(artist.id)?.category
+            || localArtistsBySub.get(artist.cognitoSub || "")?.category
+            || "",
           mediums: asArray(artist.mediums).length
             ? asArray(artist.mediums)
-            : asArray(localArtistsById.get(artist.id)?.mediums),
-          location: artist.location || localArtistsById.get(artist.id)?.location || "",
+            : asArray(
+              localArtistsById.get(artist.id)?.mediums || localArtistsBySub.get(artist.cognitoSub || "")?.mediums,
+            ),
+          location:
+            artist.location
+            || localArtistsById.get(artist.id)?.location
+            || localArtistsBySub.get(artist.cognitoSub || "")?.location
+            || "",
           verified: Boolean(artist.verified),
           popularity: Number(artist.popularity || 0),
           rating: Number(artist.rating || 0),
           reviewCount: Number(artist.reviewCount || 0),
           priceFrom: Number(artist.priceFrom || 0),
-          availability: artist.availability || localArtistsById.get(artist.id)?.availability || "open",
-          bio: artist.bio || localArtistsById.get(artist.id)?.bio || "",
+          availability:
+            artist.availability
+            || localArtistsById.get(artist.id)?.availability
+            || localArtistsBySub.get(artist.cognitoSub || "")?.availability
+            || "open",
+          bio:
+            artist.bio
+            || localArtistsById.get(artist.id)?.bio
+            || localArtistsBySub.get(artist.cognitoSub || "")?.bio
+            || "",
           profileVisible:
             typeof artist.profileVisible === "boolean"
               ? artist.profileVisible
-              : localArtistsById.get(artist.id)?.profileVisible,
+              : (
+                localArtistsById.get(artist.id)?.profileVisible
+                ?? localArtistsBySub.get(artist.cognitoSub || "")?.profileVisible
+              ),
           profileViews: Number(artist.profileViews || 0),
           completedBookings: Number(artist.completedBookings || 0),
           acceptanceRate: Number(artist.acceptanceRate || 0),
@@ -466,6 +510,21 @@ export async function hydrateDB() {
         next,
       ),
     );
+
+    const remoteArtistIds = new Set(remoteArtists.map((artist) => artist.id));
+    const remoteArtistSubs = new Set(
+      remoteArtists
+        .map((artist) => artist.cognitoSub)
+        .filter(Boolean),
+    );
+    const localOnlyArtists = localArtists
+      .filter(
+        (artist) =>
+          !remoteArtistIds.has(artist.id) && (!artist.cognitoSub || !remoteArtistSubs.has(artist.cognitoSub)),
+      )
+      .map((artist) => normalizeArtistRecord({ ...artist }, next));
+
+    next.artists = [...remoteArtists, ...localOnlyArtists];
 
     dbCache = next;
     persistDBCache(dbCache);
