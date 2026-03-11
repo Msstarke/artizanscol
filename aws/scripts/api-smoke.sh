@@ -51,12 +51,12 @@ check_endpoint() {
     exit 1
   fi
 
-  python3 - "$tmp_headers" "$tmp_body" "$expected_ok" "$method" "$path" <<'PY'
+  python3 - "$tmp_headers" "$tmp_body" "$expected_ok" "$expected_status" "$method" "$path" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-headers_path, body_path, expected_ok, method, path = sys.argv[1:]
+headers_path, body_path, expected_ok, expected_status, method, path = sys.argv[1:]
 headers_text = Path(headers_path).read_text(errors="ignore").lower()
 body_text = Path(body_path).read_text(errors="ignore")
 
@@ -75,7 +75,16 @@ except json.JSONDecodeError:
     print(body_text, file=sys.stderr)
     sys.exit(1)
 
-if not isinstance(payload, dict) or "ok" not in payload:
+if not isinstance(payload, dict):
+    print(f"FAIL {method} {path}: JSON response is not an object.", file=sys.stderr)
+    print(body_text, file=sys.stderr)
+    sys.exit(1)
+
+if "ok" not in payload:
+    # API Gateway HTTP API JWT authorizers return {"message":"Unauthorized"} before Lambda runs.
+    if expected_status == "401" and payload.get("message") == "Unauthorized":
+        sys.exit(0)
+
     print(f"FAIL {method} {path}: missing API envelope.", file=sys.stderr)
     print(body_text, file=sys.stderr)
     sys.exit(1)

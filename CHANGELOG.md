@@ -78,3 +78,4 @@ All notable project changes are tracked via Git commits and summarized here.
 - Hardened static deploy workflow resolution: added explicit AWS identity verification (`sts get-caller-identity`), simplified region fallback expression, and added optional `ARTIZANS_BUCKET` / `ARTIZANS_DISTRIBUTION_ID` secrets to bypass CloudFormation output lookup when stack output resolution is the failure point.
 # 2026-03-12
 - Fixed deploy validation gaps by adding backend post-deploy API smoke checks and putting `/js/api-client.js` behind the no-store CloudFront behavior so browsers stop reusing stale API routing code.
+- Fixed production deploy wiring for the site certificate by pushing the CloudFront custom-domain parameters (`www.artizanscollective.com`, bare-domain redirect, and valid us-east-1 ACM certificate) through the backend deploy workflow, and updated API smoke checks to accept API Gateway's standard unauthenticated `{"message":"Unauthorized"}` response.

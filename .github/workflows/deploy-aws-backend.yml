@@ -222,6 +222,9 @@ jobs:
       PROJECT_NAME: ${{ vars.AWS_PROJECT_NAME != '' && vars.AWS_PROJECT_NAME || 'artizans' }}
       STACK_NAME: ${{ secrets.AWS_STACK_NAME_PROD != '' && secrets.AWS_STACK_NAME_PROD || 'artizans-stack' }}
       TARGET_ENV: prod
+      SITE_DOMAIN_NAME: ${{ secrets.AWS_DOMAIN_NAME_PROD != '' && secrets.AWS_DOMAIN_NAME_PROD || 'www.artizanscollective.com' }}
+      SITE_REDIRECT_FROM_DOMAIN_NAME: ${{ secrets.AWS_REDIRECT_FROM_DOMAIN_NAME_PROD != '' && secrets.AWS_REDIRECT_FROM_DOMAIN_NAME_PROD || 'artizanscollective.com' }}
+      SITE_CERTIFICATE_ARN: ${{ secrets.AWS_CERTIFICATE_ARN_PROD != '' && secrets.AWS_CERTIFICATE_ARN_PROD || 'arn:aws:acm:us-east-1:931991257116:certificate/837101dc-dadb-4cbf-8edd-74976f32c3ae' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -286,6 +289,9 @@ jobs:
             --parameter-overrides \
               ProjectName="${PROJECT_NAME}" \
               EnvironmentName="${TARGET_ENV}" \
+              DomainName="${SITE_DOMAIN_NAME}" \
+              RedirectFromDomainName="${SITE_REDIRECT_FROM_DOMAIN_NAME}" \
+              CertificateArn="${SITE_CERTIFICATE_ARN}" \
               EnableServerlessApi=true \
               EnableApiWaf=false
 
