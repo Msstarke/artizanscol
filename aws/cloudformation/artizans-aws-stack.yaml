@@ -49,7 +49,7 @@ Parameters:
   EnableApiWaf:
     Type: String
     AllowedValues: ['true', 'false']
-    Default: 'true'
+    Default: 'false'
 
   EnableEc2Api:
     Type: String

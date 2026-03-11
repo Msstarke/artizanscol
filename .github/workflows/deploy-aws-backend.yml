@@ -134,7 +134,7 @@ jobs:
               ProjectName="${PROJECT_NAME}" \
               EnvironmentName="${TARGET_ENV}" \
               EnableServerlessApi=true \
-              EnableApiWaf=true
+              EnableApiWaf=false
 
       - name: Dump CloudFormation failure events (dev)
         if: failure()
@@ -264,7 +264,7 @@ jobs:
               ProjectName="${PROJECT_NAME}" \
               EnvironmentName="${TARGET_ENV}" \
               EnableServerlessApi=true \
-              EnableApiWaf=true
+              EnableApiWaf=false
 
       - name: Dump CloudFormation failure events (prod)
         if: failure()
