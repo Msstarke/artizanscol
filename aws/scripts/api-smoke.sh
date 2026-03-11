@@ -2,79 +2,111 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <api-base-url>"
+  echo "Usage: $0 <base-url>"
+  echo "Example: $0 https://www.artizanscollective.com"
   echo "Example: $0 https://abcd123.execute-api.ap-southeast-2.amazonaws.com"
   exit 1
 fi
 
-API_BASE_URL="${1%/}"
+BASE_URL="${1%/}"
 AUTH_BEARER_TOKEN="${AUTH_BEARER_TOKEN:-}"
-ADMIN_BEARER_TOKEN="${ADMIN_BEARER_TOKEN:-}"
 
 check_endpoint() {
   local method="$1"
   local path="$2"
-  local expected="$3"
-  local token="${4:-}"
-  local body="${5:-}"
+  local expected_status="$3"
+  local expected_ok="$4"
+  local token="${5:-}"
+  local body="${6:-}"
 
-  local tmp_file
-  tmp_file="$(mktemp)"
-  local status
+  local tmp_body tmp_headers status
+  tmp_body="$(mktemp)"
+  tmp_headers="$(mktemp)"
+
+  local -a curl_args=(
+    -sS
+    -D "${tmp_headers}"
+    -o "${tmp_body}"
+    -w "%{http_code}"
+    -X "${method}"
+  )
 
   if [[ -n "${token}" ]]; then
-    if [[ -n "${body}" ]]; then
-      status="$(curl -sS -o "${tmp_file}" -w "%{http_code}" -X "${method}" \
-        -H "Authorization: Bearer ${token}" \
-        -H "Content-Type: application/json" \
-        -d "${body}" \
-        "${API_BASE_URL}${path}")"
-    else
-      status="$(curl -sS -o "${tmp_file}" -w "%{http_code}" -X "${method}" \
-        -H "Authorization: Bearer ${token}" \
-        "${API_BASE_URL}${path}")"
-    fi
-  else
-    if [[ -n "${body}" ]]; then
-      status="$(curl -sS -o "${tmp_file}" -w "%{http_code}" -X "${method}" \
-        -H "Content-Type: application/json" \
-        -d "${body}" \
-        "${API_BASE_URL}${path}")"
-    else
-      status="$(curl -sS -o "${tmp_file}" -w "%{http_code}" -X "${method}" "${API_BASE_URL}${path}")"
-    fi
+    curl_args+=(-H "Authorization: Bearer ${token}")
   fi
 
-  if [[ "${status}" != "${expected}" ]]; then
-    echo "FAIL ${method} ${path}: expected ${expected}, got ${status}" >&2
+  if [[ -n "${body}" ]]; then
+    curl_args+=(-H "Content-Type: application/json" -d "${body}")
+  fi
+
+  status="$(curl "${curl_args[@]}" "${BASE_URL}${path}")"
+
+  if [[ "${status}" != "${expected_status}" ]]; then
+    echo "FAIL ${method} ${path}: expected ${expected_status}, got ${status}" >&2
+    echo "Headers:" >&2
+    cat "${tmp_headers}" >&2
     echo "Body:" >&2
-    cat "${tmp_file}" >&2
-    rm -f "${tmp_file}"
+    cat "${tmp_body}" >&2
+    rm -f "${tmp_body}" "${tmp_headers}"
     exit 1
   fi
 
-  echo "PASS ${method} ${path} -> ${status}"
-  rm -f "${tmp_file}"
+  python3 - "$tmp_headers" "$tmp_body" "$expected_ok" "$method" "$path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+headers_path, body_path, expected_ok, method, path = sys.argv[1:]
+headers_text = Path(headers_path).read_text(errors="ignore").lower()
+body_text = Path(body_path).read_text(errors="ignore")
+
+if "content-type: application/json" not in headers_text:
+    print(f"FAIL {method} {path}: response is not JSON.", file=sys.stderr)
+    print("Headers:", file=sys.stderr)
+    print(headers_text, file=sys.stderr)
+    print("Body:", file=sys.stderr)
+    print(body_text, file=sys.stderr)
+    sys.exit(1)
+
+try:
+    payload = json.loads(body_text)
+except json.JSONDecodeError:
+    print(f"FAIL {method} {path}: invalid JSON body.", file=sys.stderr)
+    print(body_text, file=sys.stderr)
+    sys.exit(1)
+
+if not isinstance(payload, dict) or "ok" not in payload:
+    print(f"FAIL {method} {path}: missing API envelope.", file=sys.stderr)
+    print(body_text, file=sys.stderr)
+    sys.exit(1)
+
+expected = expected_ok.lower() == "true"
+if bool(payload.get("ok")) != expected:
+    print(f"FAIL {method} {path}: expected ok={expected}, got ok={payload.get('ok')}.", file=sys.stderr)
+    print(body_text, file=sys.stderr)
+    sys.exit(1)
+PY
+
+  echo "PASS ${method} ${path} -> ${status} (ok=${expected_ok})"
+  rm -f "${tmp_body}" "${tmp_headers}"
 }
 
-echo "[smoke] Public endpoints..."
-check_endpoint "GET" "/v1/categories" "200"
-check_endpoint "GET" "/v1/artists" "200"
+echo "[smoke] Public marketplace endpoints..."
+check_endpoint "GET" "/v1/categories" "200" "true"
+check_endpoint "GET" "/v1/artists" "200" "true"
+check_endpoint "GET" "/v1/me" "401" "false"
 
-echo "[smoke] Protected endpoints..."
+echo "[smoke] Authenticated core marketplace endpoints..."
 if [[ -n "${AUTH_BEARER_TOKEN}" ]]; then
-  check_endpoint "GET" "/v1/me" "200" "${AUTH_BEARER_TOKEN}"
-  check_endpoint "GET" "/v1/me/bookings" "200" "${AUTH_BEARER_TOKEN}"
-  check_endpoint "GET" "/v1/threads" "200" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/me" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/me/bookings" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/me/notifications" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/threads" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/artist/me" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/artist/me/bookings" "200" "true" "${AUTH_BEARER_TOKEN}"
+  check_endpoint "GET" "/v1/artist/me/notifications" "200" "true" "${AUTH_BEARER_TOKEN}"
 else
-  echo "SKIP protected user endpoints (set AUTH_BEARER_TOKEN to run)."
+  echo "SKIP authenticated marketplace endpoints (set AUTH_BEARER_TOKEN to run)."
 fi
 
-if [[ -n "${ADMIN_BEARER_TOKEN}" ]]; then
-  check_endpoint "GET" "/v1/admin/system" "200" "${ADMIN_BEARER_TOKEN}"
-  check_endpoint "GET" "/v1/admin/reports" "200" "${ADMIN_BEARER_TOKEN}"
-else
-  echo "SKIP admin endpoints (set ADMIN_BEARER_TOKEN to run)."
-fi
-
-echo "[smoke] API smoke checks completed."
+echo "[smoke] Core marketplace API smoke checks completed."

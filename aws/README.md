@@ -29,17 +29,21 @@ This folder makes your current multi-page prototype AWS-ready.
 
 3. API smoke script:
 - `aws/scripts/api-smoke.sh`
-- Runs public + optional authenticated endpoint health checks.
+- Runs public + optional authenticated core-marketplace endpoint checks and verifies JSON API envelopes.
 
-4. In-app AWS admin page:
+4. Core category bootstrap script:
+- `aws/scripts/seed-core-categories.sh`
+- Seeds the minimum production category data for Explore and artist profile setup.
+
+5. In-app AWS admin page:
 - Route: `/admin/aws.html`
 - Lets you store AWS IDs/ARNs in localStorage and open one-click console links.
 
-5. Secret rotation runbook:
+6. Secret rotation runbook:
 - `aws/STRIPE_SECRETS_ROTATION.md`
 - Covers Stripe/API secret rotation, validation, and rollback steps.
 
-6. Backend rollback playbook:
+7. Backend rollback playbook:
 - `aws/ROLLBACK_PLAYBOOK.md`
 - Covers CloudFormation change set rollback and Lambda version rollback.
 
@@ -76,6 +80,12 @@ You can also let the script resolve targets from CloudFormation outputs:
 ./aws/scripts/cloudshell-deploy.sh
 ```
 
+5. Seed core marketplace categories:
+
+```bash
+./aws/scripts/seed-core-categories.sh
+```
+
 ## Auto deploy options
 ### Option A (recommended): deploy on every push
 This repo includes a workflow at `.github/workflows/deploy-aws-static-site.yml` that deploys automatically on push to `main`/`master`.
@@ -90,8 +100,9 @@ Optional secrets:
 
 Once secrets are set, every qualifying push triggers:
 1. Resolve `BucketName` and `CloudFrontDistributionId` from the stack.
-2. `aws s3 sync` to the site bucket.
-3. CloudFront invalidation.
+2. Wait for the backend workflow on the same `main` commit if one exists.
+3. `aws s3 sync` to the site bucket.
+4. CloudFront invalidation.
 
 ### Option B: backend CI + deploy pipeline (dev/prod)
 This repo includes `.github/workflows/deploy-aws-backend.yml`:
@@ -129,6 +140,11 @@ Optional env vars:
 - `ARTIZANS_PROJECT_ROOT` (default `.`)
 
 ## Notes
+- For production cutover, deploy order matters:
+  1. CloudFormation update
+  2. Lambda artifact publish
+  3. API smoke checks
+  4. Static site deploy
 - For custom domains on CloudFront, use an ACM certificate in `us-east-1` and set `CertificateArn`.
 - To enforce canonical host redirect (for example `artizanscollective.com -> www.artizanscollective.com`), set:
   - `DomainName=www.artizanscollective.com`
@@ -140,7 +156,8 @@ Optional env vars:
   - `js/auth.js`
   - `js/cognito-auth.js`
 - For API custom domain, set `ApiDomainName` + `ApiCertificateArn` (+ `ApiHostedZoneId` if you want Route53 alias creation).
+- Use `./aws/scripts/api-smoke.sh https://www.artizanscollective.com` after backend deploys to confirm `/v1/*` returns JSON and not static HTML.
 - For payment security operations, follow `aws/STRIPE_SECRETS_ROTATION.md`.
 - For rollback procedures, follow `aws/ROLLBACK_PLAYBOOK.md`.
 - Billing, Health, CloudShell, IAM, and Support are account-level consoles and are linked from `/admin/aws.html`.
-- This prototype is still frontend/localStorage-first; EC2 is optional if you want to move workflows to a server API.
+- Auth/session tokens still live in the browser for now, but core marketplace business data is intended to be server-authoritative.

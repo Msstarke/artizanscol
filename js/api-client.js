@@ -37,6 +37,17 @@ async function readResponseBody(response) {
   }
 }
 
+function isApiRequest(urlOrPath) {
+  return /(^|\/)v1(\/|$)/.test(String(urlOrPath || ""));
+}
+
+function buildApiResponseError(message, statusCode = 0, payload = null) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  error.payload = payload;
+  return error;
+}
+
 async function buildAuthHeaders(enabled) {
   if (!enabled) {
     return {};
@@ -82,13 +93,30 @@ export async function apiRequest(path, options = {}) {
     try {
       const response = await fetch(url, requestInit);
       const payload = await readResponseBody(response);
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      const expectsApiEnvelope = isApiRequest(url);
 
       if (!response.ok) {
         const message = payload?.error?.message || payload?.message || `HTTP ${response.status}`;
-        const error = new Error(message);
-        error.statusCode = response.status;
-        error.payload = payload;
-        throw error;
+        throw buildApiResponseError(message, response.status, payload);
+      }
+
+      if (expectsApiEnvelope) {
+        if (!contentType.includes("application/json")) {
+          throw buildApiResponseError(
+            "API returned a non-JSON response. The backend route is likely not deployed correctly.",
+            response.status,
+            payload,
+          );
+        }
+
+        if (!payload || typeof payload !== "object" || typeof payload.ok !== "boolean") {
+          throw buildApiResponseError(
+            "API returned an invalid response shape. The backend route is likely misconfigured.",
+            response.status,
+            payload,
+          );
+        }
       }
 
       return payload;
