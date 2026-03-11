@@ -143,7 +143,7 @@ function getActiveFilterLabels() {
   return labels;
 }
 
-function handleSaveArtist(artistId) {
+async function handleSaveArtist(artistId) {
   if (!isCognitoAuthenticated()) {
     const next = encodeURIComponent(`/artist-preview.html?id=${artistId}`);
     window.location.href = `/account-settings.html?next=${next}`;
@@ -174,10 +174,14 @@ function handleSaveArtist(artistId) {
     return;
   }
 
-  const saved = toggleSaveArtist(session.activeUserId, artistId);
-  db = getDB();
-  showToast(saved ? "Artist saved" : "Artist removed from saved list", "success");
-  render();
+  try {
+    const saved = await toggleSaveArtist(session.activeUserId, artistId);
+    db = getDB();
+    showToast(saved ? "Artist saved" : "Artist removed from saved list", "success");
+    render();
+  } catch (error) {
+    showToast(error?.message || "Could not update saved artists.", "danger");
+  }
 }
 
 function updateExploreBookingCta(artists = db.artists) {
@@ -252,7 +256,7 @@ function render() {
   }
 
   qsa("[data-save-artist]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
       const encodedId = button.getAttribute("data-save-artist") || "";
       let artistId = encodedId;
       try {
@@ -260,7 +264,7 @@ function render() {
       } catch (_) {
         artistId = encodedId;
       }
-      handleSaveArtist(artistId);
+      await handleSaveArtist(artistId);
     });
   });
 }

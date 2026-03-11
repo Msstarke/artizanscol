@@ -24,7 +24,12 @@ class InMemoryArtistWorkspaceRepo implements ArtistWorkspaceRepository {
   }
 
   async patchArtist(artist: ArtistRecord): Promise<void> {
-    this.artists = this.artists.map((item) => (item.id === artist.id ? artist : item));
+    const index = this.artists.findIndex((item) => item.id === artist.id);
+    if (index >= 0) {
+      this.artists[index] = artist;
+      return;
+    }
+    this.artists.unshift(artist);
   }
 
   async listServicesByArtistId(artistId: string): Promise<ServiceRecord[]> {
@@ -65,8 +70,30 @@ class InMemoryArtistWorkspaceRepo implements ArtistWorkspaceRepository {
     );
   }
 
+  async listNotificationsByOwner(ownerRole: "user" | "artist" | "admin", ownerId: string): Promise<NotificationRecord[]> {
+    return this.notifications.filter(
+      (notification) => notification.ownerRole === ownerRole && notification.ownerId === ownerId,
+    );
+  }
+
   async createNotification(notification: NotificationRecord): Promise<void> {
     this.notifications.unshift(notification);
+  }
+
+  async markNotificationsRead(ownerRole: "user" | "artist" | "admin", ownerId: string): Promise<number> {
+    let count = 0;
+    this.notifications = this.notifications.map((notification) => {
+      if (notification.ownerRole === ownerRole && notification.ownerId === ownerId && !notification.read) {
+        count += 1;
+        return {
+          ...notification,
+          read: true,
+          ownerReadKey: `${ownerId}#read`,
+        };
+      }
+      return notification;
+    });
+    return count;
   }
 }
 
@@ -148,6 +175,7 @@ function baseRepo(): InMemoryArtistWorkspaceRepo {
       priceFrom: 280,
       availability: "open",
       bio: "Original character illustrator",
+      profileVisible: true,
       profileViews: 123,
       completedBookings: 12,
       acceptanceRate: 87,
@@ -169,6 +197,7 @@ function baseRepo(): InMemoryArtistWorkspaceRepo {
       priceFrom: 500,
       availability: "limited",
       bio: "Landscape painter",
+      profileVisible: false,
       profileViews: 19,
       completedBookings: 2,
       acceptanceRate: 60,
@@ -252,6 +281,29 @@ function baseRepo(): InMemoryArtistWorkspaceRepo {
       fromId: "u2",
       toId: "a1",
       body: "Ping",
+      read: true,
+    },
+  ];
+
+  repo.notifications = [
+    {
+      ...createRecordMeta({ id: "n1", createdBy: "seed", now: nowIso(6) }),
+      ownerId: "a1",
+      ownerRole: "artist",
+      ownerReadKey: "a1#unread",
+      type: "booking_created",
+      title: "New request",
+      detail: "A new booking request came in.",
+      read: false,
+    },
+    {
+      ...createRecordMeta({ id: "n2", createdBy: "seed", now: nowIso(5) }),
+      ownerId: "a1",
+      ownerRole: "artist",
+      ownerReadKey: "a1#read",
+      type: "booking_status",
+      title: "Status updated",
+      detail: "Booking moved to paid.",
       read: true,
     },
   ];
@@ -467,7 +519,7 @@ test("POST /v1/artist/me/bookings/{id}/decline updates status and emits notifica
   assert.equal(response.statusCode, 200);
   const parsed = JSON.parse(String(response.body));
   assert.equal(parsed.data.status, "declined");
-  assert.equal(repo.notifications.length, 2);
+  assert.equal(repo.notifications.length, 4);
 });
 
 test("GET /v1/artist/me/earnings derives totals from paid/completed bookings", async () => {
@@ -505,4 +557,36 @@ test("GET /v1/artist/me/analytics computes booking and messaging metrics", async
   assert.equal(parsed.data.bookingPerformance.total, 3);
   assert.equal(parsed.data.messaging.messageCount, 3);
   assert.equal(parsed.data.messaging.threadCount, 2);
+});
+
+test("artist notifications list and read-all are persisted server-side", async () => {
+  const repo = baseRepo();
+  const handler = createArtistApiHandler(repo);
+
+  const listResponse = await handler(
+    makeEvent({
+      method: "GET",
+      rawPath: "/v1/artist/me/notifications",
+      claims,
+    }),
+  );
+
+  assert.equal(listResponse.statusCode, 200);
+  const listed = JSON.parse(String(listResponse.body));
+  assert.equal(listed.data.items.length, 2);
+  assert.equal(listed.data.unreadCount, 1);
+
+  const markResponse = await handler(
+    makeEvent({
+      method: "POST",
+      rawPath: "/v1/artist/me/notifications/read-all",
+      claims,
+      body: {},
+    }),
+  );
+
+  assert.equal(markResponse.statusCode, 200);
+  const marked = JSON.parse(String(markResponse.body));
+  assert.equal(marked.data.updatedCount, 1);
+  assert.equal(repo.notifications.filter((item) => !item.read).length, 0);
 });

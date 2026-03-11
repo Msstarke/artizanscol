@@ -25,7 +25,12 @@ class InMemoryUserWorkspaceRepo implements UserWorkspaceRepository {
   }
 
   async patchUser(user: UserRecord): Promise<void> {
-    this.users = this.users.map((item) => (item.id === user.id ? user : item));
+    const index = this.users.findIndex((item) => item.id === user.id);
+    if (index >= 0) {
+      this.users[index] = user;
+      return;
+    }
+    this.users.unshift(user);
   }
 
   async getArtistById(artistId: string): Promise<ArtistRecord | null> {
@@ -174,8 +179,21 @@ function baseRepo(): InMemoryUserWorkspaceRepo {
       name: "User One",
       email: "user@example.com",
       location: "Sydney",
+      bio: "",
       emailVerified: true,
       profileCompleted: true,
+      preferences: {
+        bookingUpdates: true,
+        messageAlerts: true,
+        marketingEmails: false,
+        browserNotifications: false,
+      },
+      setup: {
+        status: "completed",
+        currentStep: "done",
+        artistOptIn: false,
+        completedAt: nowIso(1),
+      },
       savedArtistIds: [],
       bookingHistoryIds: [],
       deleted: false,
@@ -199,6 +217,7 @@ function baseRepo(): InMemoryUserWorkspaceRepo {
       priceFrom: 250,
       availability: "open",
       bio: "bio",
+      profileVisible: true,
       profileViews: 0,
       completedBookings: 0,
       acceptanceRate: 0,

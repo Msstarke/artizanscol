@@ -14,16 +14,17 @@ npm run build --silent
 rm -rf "${PACKAGE_DIR}"
 mkdir -p "${PACKAGE_DIR}"
 cp -R "${BACKEND_DIR}/dist/src" "${PACKAGE_DIR}/src"
+cp "${BACKEND_DIR}/package.json" "${PACKAGE_DIR}/package.json"
+cp "${BACKEND_DIR}/package-lock.json" "${PACKAGE_DIR}/package-lock.json"
 
 cat > "${PACKAGE_DIR}/index.js" <<'EOF'
 export { handler } from "./src/lambda/index.js";
 EOF
 
-cat > "${PACKAGE_DIR}/package.json" <<'EOF'
-{
-  "type": "module"
-}
-EOF
+(
+  cd "${PACKAGE_DIR}"
+  npm ci --omit=dev --ignore-scripts --silent
+)
 
 rm -f "${ZIP_PATH}"
 (

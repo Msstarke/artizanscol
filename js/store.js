@@ -1,4 +1,5 @@
 import { apiRequest } from "./api-client.js";
+import { getSession } from "./session.js";
 
 export const DB_SCHEMA_VERSION = 2;
 const DB_SESSION_CACHE_KEY = "artizans.session.dbcache.v1";
@@ -91,6 +92,39 @@ function normalizeArtistRecord(artist, db) {
   artist.priceFrom = Number(artist.priceFrom || 0);
   artist.profileVisible = Boolean(artist.profileVisible);
   return artist;
+}
+
+function normalizeUserRecord(user) {
+  if (!user || typeof user !== "object") {
+    return user;
+  }
+
+  const savedArtistIds = asArray(user.savedArtistIds).length
+    ? asArray(user.savedArtistIds)
+    : asArray(user.savedArtists);
+  const bookingHistoryIds = asArray(user.bookingHistoryIds).length
+    ? asArray(user.bookingHistoryIds)
+    : asArray(user.bookingHistory);
+
+  user.bio = String(user.bio || "");
+  user.savedArtistIds = [...new Set(savedArtistIds.filter(Boolean))];
+  user.savedArtists = [...user.savedArtistIds];
+  user.bookingHistoryIds = [...new Set(bookingHistoryIds.filter(Boolean))];
+  user.bookingHistory = [...user.bookingHistoryIds];
+  user.preferences = {
+    bookingUpdates: user.preferences?.bookingUpdates ?? true,
+    messageAlerts: user.preferences?.messageAlerts ?? true,
+    marketingEmails: user.preferences?.marketingEmails ?? false,
+    browserNotifications: user.preferences?.browserNotifications ?? false,
+  };
+  user.setup = {
+    status: user.setup?.status || (user.profileCompleted ? "completed" : "not_started"),
+    currentStep: user.setup?.currentStep || (user.profileCompleted ? "done" : "welcome"),
+    artistOptIn: Boolean(user.setup?.artistOptIn),
+    completedAt: user.setup?.completedAt ?? (user.profileCompleted ? user.updatedAt || user.createdAt || null : null),
+  };
+
+  return user;
 }
 
 function nextId(prefix, collection) {
@@ -330,41 +364,16 @@ function loadLocalDBCache() {
 }
 
 function loadDBCache() {
-  const sessionCached = loadSessionDBCache();
-  if (sessionCached) {
-    if (Array.isArray(sessionCached.artists)) {
-      sessionCached.artists = sessionCached.artists.map((artist) => normalizeArtistRecord(artist, sessionCached));
-    }
-    return sessionCached;
-  }
-
-  const localCached = loadLocalDBCache();
-  if (localCached) {
-    if (Array.isArray(localCached.artists)) {
-      localCached.artists = localCached.artists.map((artist) => normalizeArtistRecord(artist, localCached));
-    }
-    const sessionStorage = getSessionStorage();
-    sessionStorage?.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(localCached));
-    return localCached;
-  }
-
+  clearDBCache();
   return null;
 }
 
 function persistSessionDBCache(db) {
-  const storage = getSessionStorage();
-  if (!storage) {
-    return;
-  }
-  storage.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(db));
+  void db;
 }
 
 function persistLocalDBCache(db) {
-  const storage = getLocalStorage();
-  if (!storage) {
-    return;
-  }
-  storage.setItem(DB_LOCAL_CACHE_KEY, JSON.stringify(db));
+  void db;
 }
 
 function persistDBCache(db) {
@@ -413,89 +422,44 @@ export async function hydrateDB() {
       apiRequest("/v1/artists", { auth: false }),
     ]);
 
-    const existing = dbCache;
     const next = {
-      ...existing,
-      schemaVersion: DB_SCHEMA_VERSION,
-      categories: createDefaultCategories(),
-      artists: [],
+      ...createEmptyDB(),
+      users: asArray(dbCache.users).map((user) => normalizeUserRecord({ ...user })),
+      services: asArray(dbCache.services),
+      bookings: asArray(dbCache.bookings),
+      messages: asArray(dbCache.messages),
+      notifications: asArray(dbCache.notifications),
+      invoices: asArray(dbCache.invoices),
+      payouts: asArray(dbCache.payouts),
+      reports: asArray(dbCache.reports),
+      system: dbCache.system || createEmptyDB().system,
     };
     const remoteCategories = asArray(categoriesResponse?.data?.items).map((category) => ({
       id: category.id,
       name: category.name,
       active: category.active !== false,
     }));
-    next.categories = remoteCategories.length ? remoteCategories : asArray(existing.categories).length ? existing.categories : createDefaultCategories();
-
-    const localArtists = asArray(existing.artists);
-    const localArtistsById = new Map(localArtists.map((artist) => [artist.id, artist]));
-    const localArtistsBySub = new Map(
-      localArtists
-        .filter((artist) => artist?.cognitoSub)
-        .map((artist) => [artist.cognitoSub, artist]),
-    );
+    next.categories = remoteCategories.length ? remoteCategories : createDefaultCategories();
 
     const remoteArtists = asArray(artistsResponse?.data?.items).map((artist) =>
       normalizeArtistRecord(
         {
           id: artist.id,
-          cognitoSub:
-            artist.cognitoSub
-            || localArtistsById.get(artist.id)?.cognitoSub
-            || localArtistsBySub.get(artist.cognitoSub || "")?.cognitoSub
-            || null,
-          cognitoEmail:
-            artist.cognitoEmail
-            || localArtistsById.get(artist.id)?.cognitoEmail
-            || localArtistsBySub.get(artist.cognitoSub || "")?.cognitoEmail
-            || null,
-          name:
-            artist.name
-            || localArtistsById.get(artist.id)?.name
-            || localArtistsBySub.get(artist.cognitoSub || "")?.name
-            || "Artist",
-          handle:
-            artist.handle
-            || localArtistsById.get(artist.id)?.handle
-            || localArtistsBySub.get(artist.cognitoSub || "")?.handle
-            || "",
-          category:
-            artist.category
-            || localArtistsById.get(artist.id)?.category
-            || localArtistsBySub.get(artist.cognitoSub || "")?.category
-            || "",
-          mediums: asArray(artist.mediums).length
-            ? asArray(artist.mediums)
-            : asArray(
-              localArtistsById.get(artist.id)?.mediums || localArtistsBySub.get(artist.cognitoSub || "")?.mediums,
-            ),
-          location:
-            artist.location
-            || localArtistsById.get(artist.id)?.location
-            || localArtistsBySub.get(artist.cognitoSub || "")?.location
-            || "",
+          cognitoSub: artist.cognitoSub || null,
+          cognitoEmail: artist.cognitoEmail || null,
+          name: artist.name || "Artist",
+          handle: artist.handle || "",
+          category: artist.category || "",
+          mediums: asArray(artist.mediums),
+          location: artist.location || "",
           verified: Boolean(artist.verified),
           popularity: Number(artist.popularity || 0),
           rating: Number(artist.rating || 0),
           reviewCount: Number(artist.reviewCount || 0),
           priceFrom: Number(artist.priceFrom || 0),
-          availability:
-            artist.availability
-            || localArtistsById.get(artist.id)?.availability
-            || localArtistsBySub.get(artist.cognitoSub || "")?.availability
-            || "open",
-          bio:
-            artist.bio
-            || localArtistsById.get(artist.id)?.bio
-            || localArtistsBySub.get(artist.cognitoSub || "")?.bio
-            || "",
-          profileVisible:
-            typeof artist.profileVisible === "boolean"
-              ? artist.profileVisible
-              : (
-                localArtistsById.get(artist.id)?.profileVisible
-                ?? localArtistsBySub.get(artist.cognitoSub || "")?.profileVisible
-              ),
+          availability: artist.availability || "open",
+          bio: artist.bio || "",
+          profileVisible: Boolean(artist.profileVisible),
           profileViews: Number(artist.profileViews || 0),
           completedBookings: Number(artist.completedBookings || 0),
           acceptanceRate: Number(artist.acceptanceRate || 0),
@@ -510,21 +474,7 @@ export async function hydrateDB() {
         next,
       ),
     );
-
-    const remoteArtistIds = new Set(remoteArtists.map((artist) => artist.id));
-    const remoteArtistSubs = new Set(
-      remoteArtists
-        .map((artist) => artist.cognitoSub)
-        .filter(Boolean),
-    );
-    const localOnlyArtists = localArtists
-      .filter(
-        (artist) =>
-          !remoteArtistIds.has(artist.id) && (!artist.cognitoSub || !remoteArtistSubs.has(artist.cognitoSub)),
-      )
-      .map((artist) => normalizeArtistRecord({ ...artist }, next));
-
-    next.artists = [...remoteArtists, ...localOnlyArtists];
+    next.artists = remoteArtists;
 
     dbCache = next;
     persistDBCache(dbCache);
@@ -544,6 +494,9 @@ export function getDB() {
 
 export function saveDB(db) {
   dbCache = isValidDB(db) ? db : dbCache;
+  if (Array.isArray(dbCache?.users)) {
+    dbCache.users = dbCache.users.map((user) => normalizeUserRecord(user));
+  }
   if (Array.isArray(dbCache?.artists)) {
     dbCache.artists = dbCache.artists.map((artist) => normalizeArtistRecord(artist, dbCache));
   }
@@ -626,17 +579,32 @@ function createUserRecord(db, identity) {
     name: displayNameFromIdentity(normalized, "New User"),
     email: normalized.email || "",
     location: "",
+    bio: "",
     emailVerified: Boolean(normalized.email),
     profileCompleted: false,
+    preferences: {
+      bookingUpdates: true,
+      messageAlerts: true,
+      marketingEmails: false,
+      browserNotifications: false,
+    },
+    setup: {
+      status: "not_started",
+      currentStep: "welcome",
+      artistOptIn: false,
+      completedAt: null,
+    },
+    savedArtistIds: [],
     savedArtists: [],
+    bookingHistoryIds: [],
     bookingHistory: [],
     deleted: false,
     createdAt: now,
     updatedAt: now,
   };
 
-  db.users.push(created);
-  return created;
+  db.users.push(normalizeUserRecord(created));
+  return normalizeUserRecord(created);
 }
 
 function createArtistRecord(db, identity) {
@@ -710,12 +678,7 @@ export function ensureUserForCognito(identity) {
       syncIdentityFields(user, normalized);
     }
 
-    if (!Array.isArray(user.savedArtists)) {
-      user.savedArtists = [];
-    }
-    if (!Array.isArray(user.bookingHistory)) {
-      user.bookingHistory = [];
-    }
+    normalizeUserRecord(user);
 
     ensured = { ...user };
   });
@@ -742,16 +705,35 @@ export function ensureUserForCognito(identity) {
             displayNameFromIdentity(normalized, "New User"),
           email: remote.email || normalized.email || "",
           location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
+          bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
           emailVerified: remoteIsPreferred ? Boolean(remote.emailVerified) : Boolean(existing?.emailVerified || remote.emailVerified),
           profileCompleted: remoteIsPreferred
             ? Boolean(remote.profileCompleted)
             : Boolean(existing?.profileCompleted || remote.profileCompleted),
-          savedArtists: asArray(existing?.savedArtists),
-          bookingHistory: asArray(existing?.bookingHistory),
+          preferences: {
+            bookingUpdates: remote.preferences?.bookingUpdates ?? existing?.preferences?.bookingUpdates ?? true,
+            messageAlerts: remote.preferences?.messageAlerts ?? existing?.preferences?.messageAlerts ?? true,
+            marketingEmails: remote.preferences?.marketingEmails ?? existing?.preferences?.marketingEmails ?? false,
+            browserNotifications:
+              remote.preferences?.browserNotifications ?? existing?.preferences?.browserNotifications ?? false,
+          },
+          setup: {
+            status: remote.setup?.status || existing?.setup?.status || (remote.profileCompleted ? "completed" : "not_started"),
+            currentStep: remote.setup?.currentStep || existing?.setup?.currentStep || (remote.profileCompleted ? "done" : "welcome"),
+            artistOptIn: remote.setup?.artistOptIn ?? existing?.setup?.artistOptIn ?? false,
+            completedAt: remote.setup?.completedAt ?? existing?.setup?.completedAt ?? null,
+          },
+          savedArtistIds: asArray(existing?.savedArtistIds).length
+            ? asArray(existing?.savedArtistIds)
+            : asArray(existing?.savedArtists),
+          bookingHistoryIds: asArray(existing?.bookingHistoryIds).length
+            ? asArray(existing?.bookingHistoryIds)
+            : asArray(existing?.bookingHistory),
           deleted: Boolean(existing?.deleted),
           createdAt: remote.createdAt || existing?.createdAt || nowIso(),
           updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
         };
+        normalizeUserRecord(next);
 
         db.users = asArray(db.users).filter((user) => user.id !== next.id && user.cognitoSub !== next.cognitoSub);
         db.users.push(next);
@@ -875,6 +857,236 @@ export function ensureArtistForCognito(identity) {
   return ensured;
 }
 
+function mergeArtistCardIntoDB(db, artistCard) {
+  if (!artistCard?.id) {
+    return null;
+  }
+
+  const existing = getArtistById(db, artistCard.id);
+  const next = normalizeArtistRecord(
+    {
+      ...(existing || {}),
+      id: artistCard.id,
+      cognitoSub: artistCard.cognitoSub || existing?.cognitoSub || null,
+      cognitoEmail: artistCard.cognitoEmail || existing?.cognitoEmail || null,
+      name: artistCard.name || existing?.name || "Artist",
+      handle: artistCard.handle || existing?.handle || "",
+      category: artistCard.category || existing?.category || "",
+      mediums: asArray(artistCard.mediums).length ? asArray(artistCard.mediums) : asArray(existing?.mediums),
+      location: artistCard.location || existing?.location || "",
+      verified: Boolean(artistCard.verified ?? existing?.verified),
+      popularity: Number(artistCard.popularity ?? existing?.popularity ?? 0),
+      rating: Number(artistCard.rating ?? existing?.rating ?? 0),
+      reviewCount: Number(artistCard.reviewCount ?? existing?.reviewCount ?? 0),
+      priceFrom: Number(artistCard.priceFrom ?? existing?.priceFrom ?? 0),
+      availability: artistCard.availability || existing?.availability || "open",
+      bio: artistCard.bio || existing?.bio || "",
+      profileVisible:
+        typeof artistCard.profileVisible === "boolean"
+          ? artistCard.profileVisible
+          : (existing?.profileVisible ?? true),
+      profileViews: Number(artistCard.profileViews ?? existing?.profileViews ?? 0),
+      completedBookings: Number(artistCard.completedBookings ?? existing?.completedBookings ?? 0),
+      acceptanceRate: Number(artistCard.acceptanceRate ?? existing?.acceptanceRate ?? 0),
+      portfolio: asArray(artistCard.portfolio).length
+        ? asArray(artistCard.portfolio).map((item) => ({
+            id: item.id || `p-${Date.now()}`,
+            title: item.title || "Portfolio Item",
+            image: item.imageUrl || item.image || "",
+            medium: item.medium || existing?.mediums?.[0] || "Digital",
+          }))
+        : asArray(existing?.portfolio),
+      createdAt: artistCard.createdAt || existing?.createdAt || nowIso(),
+      updatedAt: artistCard.updatedAt || existing?.updatedAt || nowIso(),
+    },
+    db,
+  );
+
+  db.artists = asArray(db.artists).filter((artist) => artist.id !== next.id);
+  db.artists.push(next);
+  return next;
+}
+
+function mergeUserIntoDB(db, remote) {
+  if (!remote?.id) {
+    return null;
+  }
+
+  const existing = getUserById(db, remote.id) || getUserByCognitoSub(db, remote.cognitoSub);
+  const next = normalizeUserRecord({
+    ...(existing || {}),
+    id: remote.id,
+    cognitoSub: remote.cognitoSub || existing?.cognitoSub || null,
+    cognitoEmail: remote.cognitoEmail || existing?.cognitoEmail || "",
+    name: remote.name || existing?.name || "Member",
+    email: remote.email || existing?.email || remote.cognitoEmail || "",
+    location: remote.location || existing?.location || "",
+    bio: remote.bio || existing?.bio || "",
+    emailVerified: Boolean(remote.emailVerified ?? existing?.emailVerified),
+    profileCompleted: Boolean(remote.profileCompleted ?? existing?.profileCompleted),
+    preferences: remote.preferences || existing?.preferences,
+    setup: remote.setup || existing?.setup,
+    savedArtistIds: remote.savedArtistIds || existing?.savedArtistIds || existing?.savedArtists || [],
+    bookingHistoryIds: remote.bookingHistoryIds || existing?.bookingHistoryIds || existing?.bookingHistory || [],
+    deleted: Boolean(remote.deleted ?? existing?.deleted),
+    createdAt: remote.createdAt || existing?.createdAt || nowIso(),
+    updatedAt: remote.updatedAt || existing?.updatedAt || nowIso(),
+  });
+
+  db.users = asArray(db.users).filter((user) => user.id !== next.id && user.cognitoSub !== next.cognitoSub);
+  db.users.push(next);
+  return next;
+}
+
+function replaceOwnerNotifications(db, ownerRole, ownerId, items) {
+  db.notifications = asArray(db.notifications).filter(
+    (notification) => !(notification.role === ownerRole && notification.ownerId === ownerId),
+  );
+
+  asArray(items).forEach((item) => {
+    db.notifications.push({
+      id: item.id,
+      role: item.ownerRole || ownerRole,
+      ownerId: item.ownerId || ownerId,
+      type: item.type || "update",
+      title: item.title || "Update",
+      detail: item.detail || "",
+      read: Boolean(item.read),
+      createdAt: item.createdAt || nowIso(),
+      updatedAt: item.updatedAt || item.createdAt || nowIso(),
+    });
+  });
+}
+
+function upsertBookings(db, items) {
+  const incoming = asArray(items).map((item) => ({
+    id: item.id,
+    userId: item.userId,
+    artistId: item.artistId,
+    serviceId: item.serviceId || null,
+    serviceLabel: item.serviceLabel || "",
+    budget: Number(item.budget || 0),
+    deadline: item.deadline || "",
+    message: item.message || "",
+    status: item.status || "requested",
+    threadId: item.threadId || `t-${item.userId}-${item.artistId}`,
+    history: asArray(item.history),
+    createdAt: item.createdAt || nowIso(),
+    updatedAt: item.updatedAt || nowIso(),
+  }));
+
+  const incomingIds = new Set(incoming.map((item) => item.id));
+  db.bookings = asArray(db.bookings)
+    .filter((booking) => !incomingIds.has(booking.id))
+    .concat(incoming);
+}
+
+function replaceThreadMessages(db, threadId, items) {
+  db.messages = asArray(db.messages).filter((message) => message.threadId !== threadId);
+  asArray(items).forEach((item) => {
+    db.messages.push({
+      id: item.id,
+      threadId: item.threadId,
+      bookingId: item.bookingId || null,
+      fromId: item.fromId,
+      toId: item.toId,
+      body: item.body || "",
+      read: Boolean(item.read),
+      createdAt: item.createdAt || nowIso(),
+      updatedAt: item.updatedAt || item.createdAt || nowIso(),
+    });
+  });
+}
+
+export async function hydratePrivateDB() {
+  const session = getSession();
+  if (!session?.cognitoSub) {
+    return dbCache;
+  }
+
+  const [meResponse, artistResponse] = await Promise.allSettled([
+    apiRequest("/v1/me", { method: "GET" }),
+    apiRequest("/v1/artist/me", { method: "GET" }),
+  ]);
+
+  let userId = session.activeUserId || null;
+  let artistId = session.activeArtistId || null;
+
+  updateDB((db) => {
+    if (meResponse.status === "fulfilled" && meResponse.value?.data?.id) {
+      const user = mergeUserIntoDB(db, meResponse.value.data);
+      userId = user?.id || userId;
+    }
+
+    if (artistResponse.status === "fulfilled" && artistResponse.value?.data?.id) {
+      const artist = mergeArtistCardIntoDB(db, artistResponse.value.data);
+      artistId = artist?.id || artistId;
+    }
+  });
+
+  const followUps = await Promise.allSettled([
+    userId ? apiRequest("/v1/me/saved-artists", { method: "GET" }) : Promise.resolve(null),
+    userId ? apiRequest("/v1/me/bookings", { method: "GET" }) : Promise.resolve(null),
+    userId ? apiRequest("/v1/me/notifications", { method: "GET" }) : Promise.resolve(null),
+    artistId ? apiRequest("/v1/artist/me/bookings", { method: "GET" }) : Promise.resolve(null),
+    artistId ? apiRequest("/v1/artist/me/notifications", { method: "GET" }) : Promise.resolve(null),
+    apiRequest("/v1/threads", { method: "GET" }),
+  ]);
+
+  const [
+    savedArtistsResponse,
+    userBookingsResponse,
+    userNotificationsResponse,
+    artistBookingsResponse,
+    artistNotificationsResponse,
+    threadsResponse,
+  ] = followUps;
+
+  updateDB((db) => {
+    const user = userId ? getUserById(db, userId) : null;
+    if (savedArtistsResponse.status === "fulfilled" && user) {
+      const items = asArray(savedArtistsResponse.value?.data?.items);
+      user.savedArtistIds = items.map((item) => item.id).filter(Boolean);
+      user.savedArtists = [...user.savedArtistIds];
+      items.forEach((item) => mergeArtistCardIntoDB(db, item));
+    }
+
+    if (userBookingsResponse.status === "fulfilled") {
+      upsertBookings(db, userBookingsResponse.value?.data?.items);
+    }
+
+    if (artistBookingsResponse.status === "fulfilled") {
+      upsertBookings(db, artistBookingsResponse.value?.data?.items);
+    }
+
+    if (userNotificationsResponse.status === "fulfilled" && userId) {
+      replaceOwnerNotifications(db, "user", userId, userNotificationsResponse.value?.data?.items);
+    }
+
+    if (artistNotificationsResponse.status === "fulfilled" && artistId) {
+      replaceOwnerNotifications(db, "artist", artistId, artistNotificationsResponse.value?.data?.items);
+    }
+  });
+
+  if (threadsResponse.status === "fulfilled") {
+    const threads = asArray(threadsResponse.value?.data?.items);
+    const messageResponses = await Promise.allSettled(
+      threads.map((thread) => apiRequest(`/v1/threads/${encodeURIComponent(thread.id)}/messages`, { method: "GET" })),
+    );
+
+    updateDB((db) => {
+      threads.forEach((thread, index) => {
+        const response = messageResponses[index];
+        if (response?.status === "fulfilled") {
+          replaceThreadMessages(db, thread.id, response.value?.data?.items);
+        }
+      });
+    });
+  }
+
+  return dbCache;
+}
+
 export function addNotification(db, { role, ownerId, type, title, detail }) {
   if (!role || !ownerId) {
     return null;
@@ -894,113 +1106,69 @@ export function addNotification(db, { role, ownerId, type, title, detail }) {
   return id;
 }
 
-export function toggleSaveArtist(userId, artistId) {
-  let saved = false;
-
-  updateDB((db) => {
-    const user = getUserById(db, userId);
-    const artist = getArtistById(db, artistId);
-    if (!user || !artist) {
-      return;
-    }
-
-    if (!Array.isArray(user.savedArtists)) {
-      user.savedArtists = [];
-    }
-
-    if (!user.savedArtists.includes(artistId)) {
-      user.savedArtists.push(artistId);
-      user.updatedAt = nowIso();
-      saved = true;
-
-      addNotification(db, {
-        role: "user",
-        ownerId: userId,
-        type: "saved_artist",
-        title: `${artist.name} saved`,
-        detail: "This artist is now in your saved list.",
-      });
-      return;
-    }
-
-    user.savedArtists = user.savedArtists.filter((id) => id !== artistId);
-    user.updatedAt = nowIso();
-    saved = false;
-  });
-
-  if (artistId) {
-    runApiMutation(
-      async () => {
-        if (saved) {
-          await apiRequest(`/v1/me/saved-artists/${encodeURIComponent(artistId)}`, {
-            method: "POST",
-          });
-          return;
-        }
-
-        await apiRequest(`/v1/me/saved-artists/${encodeURIComponent(artistId)}`, {
-          method: "DELETE",
-        });
-      },
-      "Saving artist via API failed.",
-    );
+export async function toggleSaveArtist(userId, artistId) {
+  const user = getUserById(getDB(), userId);
+  const artist = getArtistById(getDB(), artistId);
+  if (!user || !artist) {
+    return false;
   }
 
-  return saved;
+  const existingIds = asArray(user.savedArtistIds).length ? asArray(user.savedArtistIds) : asArray(user.savedArtists);
+  const shouldSave = !existingIds.includes(artistId);
+
+  await apiRequest(`/v1/me/saved-artists/${encodeURIComponent(artistId)}`, {
+    method: shouldSave ? "POST" : "DELETE",
+  });
+
+  updateDB((db) => {
+    const nextUser = getUserById(db, userId);
+    if (!nextUser) {
+      return;
+    }
+
+    const nextIds = shouldSave
+      ? Array.from(new Set([artistId, ...asArray(nextUser.savedArtistIds)]))
+      : asArray(nextUser.savedArtistIds).filter((id) => id !== artistId);
+
+    nextUser.savedArtistIds = nextIds;
+    nextUser.savedArtists = [...nextIds];
+    nextUser.updatedAt = nowIso();
+  });
+
+  return shouldSave;
 }
 
-export function sendMessage(payload) {
-  let createdMessage = null;
+export async function sendMessage(payload) {
+  if (!payload?.toId) {
+    return null;
+  }
 
-  updateDB((db) => {
-    if (!payload?.fromRole || !payload?.fromId || !payload?.toRole || !payload?.toId) {
-      return;
-    }
+  const threadId = payload.threadId || `t-${payload.fromId}-${payload.toId}`;
+  const body = String(payload.body || "").trim();
+  if (!threadId || !body) {
+    return null;
+  }
 
-    const body = String(payload.body || "").trim();
-    if (!body) {
-      return;
-    }
-
-    const message = {
-      id: nextId("m", db.messages),
-      threadId: payload.threadId || `t-${payload.fromId}-${payload.toId}`,
-      bookingId: payload.bookingId || null,
-      fromRole: payload.fromRole,
-      fromId: payload.fromId,
-      toRole: payload.toRole,
-      toId: payload.toId,
+  const response = await apiRequest(`/v1/threads/${encodeURIComponent(threadId)}/messages`, {
+    method: "POST",
+    body: {
       body,
-      createdAt: nowIso(),
-    };
-
-    db.messages.push(message);
-    createdMessage = message;
-
-    addNotification(db, {
-      role: payload.toRole,
-      ownerId: payload.toId,
-      type: "message",
-      title: "New message",
-      detail: body.slice(0, 72),
-    });
+      toId: payload.toId,
+      bookingId: payload.bookingId || undefined,
+    },
   });
 
-  if (createdMessage?.threadId && createdMessage?.body) {
-    runApiMutation(
-      async () => {
-        await apiRequest(`/v1/threads/${encodeURIComponent(createdMessage.threadId)}/messages`, {
-          method: "POST",
-          body: {
-            body: createdMessage.body,
-            toId: createdMessage.toId,
-            bookingId: createdMessage.bookingId || undefined,
-          },
-        });
-      },
-      "Sending message via API failed.",
-    );
+  const createdMessage = response?.data || null;
+  if (!createdMessage?.id) {
+    return null;
   }
+
+  updateDB((db) => {
+    replaceThreadMessages(db, threadId, [
+      ...asArray(db.messages).filter((message) => message.threadId === threadId),
+      createdMessage,
+    ]);
+  });
 
   return createdMessage;
 }
@@ -1021,229 +1189,72 @@ function recalcArtistMetrics(db, artistId) {
   artist.updatedAt = nowIso();
 }
 
-export function createBooking(payload) {
-  let createdBooking = null;
-
-  updateDB((db) => {
-    const service = getServiceById(db, payload?.serviceId);
-    const artist = getArtistById(db, payload?.artistId);
-    const user = getUserById(db, payload?.userId);
-
-    if (!artist || !user) {
-      return;
-    }
-
-    if (payload?.serviceId && !service) {
-      return;
-    }
-
-    if (service && service.artistId !== artist.id) {
-      return;
-    }
-
-    const messageText = String(payload.message || "").trim();
-    const deadline = String(payload.deadline || "").trim();
-    const budget = Number(payload.budget || 0);
-    const serviceLabel = String(payload.serviceLabel || "").trim() || artist.category || "Artist profile request";
-
-    if (!messageText || !deadline || !Number.isFinite(budget) || budget <= 0) {
-      return;
-    }
-
-    const timestamp = nowIso();
-    const booking = {
-      id: nextId("b", db.bookings),
-      userId: user.id,
-      artistId: artist.id,
-      serviceId: service?.id || null,
-      serviceLabel,
-      status: "requested",
-      budget,
-      deadline,
-      message: messageText,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      timeline: [
-        {
-          status: "requested",
-          at: timestamp,
-          note: "Booking created by user",
-        },
-      ],
-    };
-
-    db.bookings.unshift(booking);
-
-    if (!Array.isArray(user.bookingHistory)) {
-      user.bookingHistory = [];
-    }
-    user.bookingHistory.unshift(booking.id);
-    user.updatedAt = timestamp;
-
-    addNotification(db, {
-      role: "artist",
-      ownerId: artist.id,
-      type: "booking_request",
-      title: `New booking request from ${user.name || "User"}`,
-      detail: `${service?.title || serviceLabel} - ${deadline}`,
-    });
-
-    addNotification(db, {
-      role: "user",
-      ownerId: user.id,
-      type: "booking_request",
-      title: `Booking ${booking.id} submitted`,
-      detail: `Waiting for ${artist.name || "artist"} to respond.`,
-    });
-
-    db.messages.push({
-      id: nextId("m", db.messages),
-      threadId: `t-${user.id}-${artist.id}`,
-      bookingId: booking.id,
-      fromRole: "user",
-      fromId: user.id,
-      toRole: "artist",
-      toId: artist.id,
-      body: messageText,
-      createdAt: timestamp,
-    });
-
-    recalcArtistMetrics(db, artist.id);
-    createdBooking = booking;
-  });
-
-  if (payload?.deadline && payload?.budget && payload?.message) {
-    runApiMutation(
-      async () => {
-        await apiRequest("/v1/bookings", {
-          method: "POST",
-          body: {
-            serviceId: payload.serviceId || undefined,
-            serviceLabel: payload.serviceLabel || undefined,
-            deadline: payload.deadline,
-            budget: payload.budget,
-            message: payload.message,
-          },
-        });
-      },
-      "Creating booking via API failed.",
-    );
+export async function createBooking(payload) {
+  const artist = getArtistById(getDB(), payload?.artistId);
+  const user = getUserById(getDB(), payload?.userId);
+  if (!artist || !user) {
+    return null;
   }
 
-  return createdBooking;
-}
-
-export function updateBookingStatus(bookingId, nextStatus, actorRole = "system") {
-  let ok = false;
-  let updatedBooking = null;
-
-  updateDB((db) => {
-    const booking = db.bookings.find((item) => item.id === bookingId);
-    if (!booking) {
-      return;
-    }
-
-    if (!BOOKING_STATUSES.includes(nextStatus)) {
-      return;
-    }
-
-    const allowed = BOOKING_TRANSITIONS[booking.status] || [];
-    if (!allowed.includes(nextStatus)) {
-      return;
-    }
-
-    const timestamp = nowIso();
-    booking.status = nextStatus;
-    booking.updatedAt = timestamp;
-
-    if (!Array.isArray(booking.timeline)) {
-      booking.timeline = [];
-    }
-
-    booking.timeline.push({
-      status: nextStatus,
-      at: timestamp,
-      note: `Updated by ${actorRole}`,
-    });
-
-    const user = getUserById(db, booking.userId);
-    const artist = getArtistById(db, booking.artistId);
-
-    if (user) {
-      addNotification(db, {
-        role: "user",
-        ownerId: user.id,
-        type: "booking_status",
-        title: `Booking ${booking.id}: ${nextStatus}`,
-        detail: artist ? `Artist: ${artist.name}` : "Booking updated",
-      });
-    }
-
-    if (artist) {
-      addNotification(db, {
-        role: "artist",
-        ownerId: artist.id,
-        type: "booking_status",
-        title: `Booking ${booking.id}: ${nextStatus}`,
-        detail: user ? `Client: ${user.name}` : "Booking updated",
-      });
-    }
-
-    if (nextStatus === "paid" && !db.invoices.some((invoice) => invoice.bookingId === booking.id)) {
-      db.invoices.unshift({
-        id: nextId("inv", db.invoices),
-        bookingId: booking.id,
-        userId: booking.userId,
-        artistId: booking.artistId,
-        amount: booking.budget,
-        status: "paid",
-        createdAt: timestamp,
-      });
-
-      db.payouts.unshift({
-        id: nextId("pay", db.payouts),
-        artistId: booking.artistId,
-        amount: Number((booking.budget * 0.9).toFixed(2)),
-        status: "scheduled",
-        date: isoDaysFromNow(2),
-      });
-    }
-
-    recalcArtistMetrics(db, booking.artistId);
-    updatedBooking = booking;
-    ok = true;
+  const response = await apiRequest("/v1/bookings", {
+    method: "POST",
+    body: {
+      serviceId: payload.serviceId || undefined,
+      artistId: payload.artistId || undefined,
+      serviceLabel: payload.serviceLabel || undefined,
+      deadline: payload.deadline,
+      budget: payload.budget,
+      message: payload.message,
+    },
   });
 
-  if (ok && bookingId && nextStatus) {
-    runApiMutation(
-      async () => {
-        if (actorRole === "artist" && (nextStatus === "accepted" || nextStatus === "declined")) {
-          const action = nextStatus === "accepted" ? "accept" : "decline";
-          await apiRequest(`/v1/artist/me/bookings/${encodeURIComponent(bookingId)}/${action}`, {
-            method: "POST",
-            body: {
-              note: `Updated by ${actorRole}`,
-            },
-          });
-          return;
-        }
-
-        await apiRequest(`/v1/bookings/${encodeURIComponent(bookingId)}/status`, {
-          method: "POST",
-          body: {
-            status: nextStatus,
-            note: `Updated by ${actorRole}`,
-          },
-        });
-      },
-      "Updating booking status via API failed.",
-    );
+  const booking = response?.data || null;
+  if (!booking?.id) {
+    return null;
   }
 
-  return { ok, booking: updatedBooking };
+  await hydratePrivateDB();
+  return booking;
 }
 
-export function markNotificationsRead(role, ownerId) {
+export async function updateBookingStatus(bookingId, nextStatus, actorRole = "system") {
+  if (!bookingId || !BOOKING_STATUSES.includes(nextStatus)) {
+    return { ok: false, booking: null };
+  }
+
+  if (actorRole === "artist" && (nextStatus === "accepted" || nextStatus === "declined")) {
+    const action = nextStatus === "accepted" ? "accept" : "decline";
+    await apiRequest(`/v1/artist/me/bookings/${encodeURIComponent(bookingId)}/${action}`, {
+      method: "POST",
+      body: {
+        note: `Updated by ${actorRole}`,
+      },
+    });
+  } else {
+    await apiRequest(`/v1/bookings/${encodeURIComponent(bookingId)}/status`, {
+      method: "POST",
+      body: {
+        status: nextStatus,
+        note: `Updated by ${actorRole}`,
+      },
+    });
+  }
+
+  await hydratePrivateDB();
+  const booking = asArray(getDB().bookings).find((item) => item.id === bookingId) || null;
+  return { ok: Boolean(booking), booking };
+}
+
+export async function markNotificationsRead(role, ownerId) {
+  if ((role === "user" || role === "artist") && ownerId) {
+    await apiRequest(role === "user" ? "/v1/me/notifications/read-all" : "/v1/artist/me/notifications/read-all", {
+      method: "POST",
+      body: {},
+    });
+    await hydratePrivateDB();
+    return;
+  }
+
   updateDB((db) => {
     db.notifications.forEach((notification) => {
       if (notification.role === role && notification.ownerId === ownerId) {
@@ -1251,18 +1262,6 @@ export function markNotificationsRead(role, ownerId) {
       }
     });
   });
-
-  if (role === "user" && ownerId) {
-    runApiMutation(
-      async () => {
-        await apiRequest("/v1/me/notifications/read-all", {
-          method: "POST",
-          body: {},
-        });
-      },
-      "Marking notifications read via API failed.",
-    );
-  }
 }
 
 export function updateArtistVerification(artistId, verified) {
@@ -1377,62 +1376,61 @@ export function resolveSystemError(errorId) {
   });
 }
 
-export function updateUserProfile(userId, patch) {
-  updateDB((db) => {
-    const user = getUserById(db, userId);
-    if (!user) {
-      return;
-    }
+export async function updateUserProfile(userId, patch) {
+  const user = getUserById(getDB(), userId);
+  if (!user) {
+    return null;
+  }
 
-    Object.assign(user, patch || {}, { updatedAt: nowIso() });
-
-    if (!Array.isArray(user.savedArtists)) {
-      user.savedArtists = [];
-    }
-    if (!Array.isArray(user.bookingHistory)) {
-      user.bookingHistory = [];
-    }
+  const response = await apiRequest("/v1/me/profile", {
+    method: "PATCH",
+    body: {
+      name: String(patch?.name || user.name || "").trim(),
+      location: String(patch?.location || user.location || "").trim(),
+      bio: String(patch?.bio || user.bio || "").trim(),
+    },
   });
 
-  const name = String(patch?.name || "").trim();
-  const location = String(patch?.location || "").trim();
-  if (name || location) {
-    runApiMutation(
-      async () => {
-        await apiRequest("/v1/me/profile", {
-          method: "PATCH",
-          body: {
-            name,
-            location,
-          },
-        });
-      },
-      "Updating user profile via API failed.",
-    );
+  const remote = response?.data || null;
+  if (remote?.id) {
+    updateDB((db) => {
+      mergeUserIntoDB(db, remote);
+    });
   }
+
+  return remote;
 }
 
-export function updateArtistProfile(artistId, patch) {
-  updateDB((db) => {
-    const artist = getArtistById(db, artistId);
-    if (!artist) {
-      return;
-    }
-
-    Object.assign(artist, patch || {}, { updatedAt: nowIso() });
-    normalizeArtistRecord(artist, db);
-    recalcArtistMetrics(db, artist.id);
-  });
-
-  const artist = getArtistById(getDB(), artistId);
-  if (!artist) {
-    return;
+export async function updateUserPreferences(userId, preferences) {
+  const user = getUserById(getDB(), userId);
+  if (!user) {
+    return null;
   }
 
-  const patchKeys = Object.keys(patch || {});
-  const visibilityOnlyPatch = Boolean(patchKeys.length) && patchKeys.every((key) => key === "profileVisible");
-  if (visibilityOnlyPatch) {
-    return;
+  const response = await apiRequest("/v1/me/preferences", {
+    method: "PATCH",
+    body: {
+      bookingUpdates: Boolean(preferences?.bookingUpdates),
+      messageAlerts: Boolean(preferences?.messageAlerts),
+      marketingEmails: Boolean(preferences?.marketingEmails),
+      browserNotifications: Boolean(preferences?.browserNotifications),
+    },
+  });
+
+  const remote = response?.data || null;
+  if (remote?.id) {
+    updateDB((db) => {
+      mergeUserIntoDB(db, remote);
+    });
+  }
+
+  return remote;
+}
+
+export async function updateArtistProfile(artistId, patch) {
+  const artist = getArtistById(getDB(), artistId);
+  if (!artist) {
+    return null;
   }
 
   const onboardingPatch =
@@ -1441,40 +1439,46 @@ export function updateArtistProfile(artistId, patch) {
     || Object.prototype.hasOwnProperty.call(patch || {}, "priceFrom")
     || Object.prototype.hasOwnProperty.call(patch || {}, "portfolio");
 
-  runApiMutation(
-    async () => {
-      if (onboardingPatch) {
-        await apiRequest("/v1/artist/me/onboarding", {
-          method: "PUT",
-          body: {
-            category: artist.category,
-            mediums: artist.mediums,
-            priceFrom: artist.priceFrom,
-            availability: artist.availability,
-            portfolio: asArray(artist.portfolio).map((item) => ({
-              id: item.id,
-              title: item.title,
-              medium: item.medium || artist.mediums?.[0] || "Digital",
-              imageUrl: item.image || item.imageUrl || "",
-            })),
-          },
-        });
-        return;
-      }
-
-      await apiRequest("/v1/artist/me/profile", {
+  const response = onboardingPatch
+    ? await apiRequest("/v1/artist/me/onboarding", {
+        method: "PUT",
+        body: {
+          category: patch?.category ?? artist.category,
+          mediums: patch?.mediums ?? artist.mediums,
+          priceFrom: patch?.priceFrom ?? artist.priceFrom,
+          availability: patch?.availability ?? artist.availability,
+          bio: patch?.bio ?? artist.bio,
+          profileVisible:
+            typeof patch?.profileVisible === "boolean" ? patch.profileVisible : artist.profileVisible,
+          portfolio: asArray(patch?.portfolio ?? artist.portfolio).map((item) => ({
+            id: item.id,
+            title: item.title,
+            medium: item.medium || artist.mediums?.[0] || "Digital",
+            imageUrl: item.image || item.imageUrl || "",
+          })),
+        },
+      })
+    : await apiRequest("/v1/artist/me/profile", {
         method: "PATCH",
         body: {
-          name: artist.name,
-          handle: artist.handle,
-          location: artist.location,
-          bio: artist.bio,
-          availability: artist.availability,
+          name: patch?.name ?? artist.name,
+          handle: patch?.handle ?? artist.handle,
+          location: patch?.location ?? artist.location,
+          bio: patch?.bio ?? artist.bio,
+          availability: patch?.availability ?? artist.availability,
+          profileVisible:
+            typeof patch?.profileVisible === "boolean" ? patch.profileVisible : artist.profileVisible,
         },
       });
-    },
-    "Updating artist profile via API failed.",
-  );
+
+  const remote = response?.data || null;
+  if (remote?.id) {
+    updateDB((db) => {
+      mergeArtistCardIntoDB(db, remote);
+    });
+  }
+
+  return remote;
 }
 
 export function upsertService(artistId, servicePatch) {

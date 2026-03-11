@@ -1,4 +1,12 @@
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { createWebhookApiHandler } from "./payments-api.js";
-import { NoopPaymentsWorkspaceRepository } from "../repos/payments-workspace.js";
+import { getPaymentsWorkspaceRepository } from "../repos/runtime.js";
 
-export const handler = createWebhookApiHandler(new NoopPaymentsWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createWebhookApiHandler> | null = null;
+
+export const handler = async (
+  event: APIGatewayProxyEventV2,
+): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createWebhookApiHandler(getPaymentsWorkspaceRepository());
+  return await runtimeHandler(event);
+};

@@ -22,6 +22,7 @@ import {
   NoopMessagingWorkspaceRepository,
   type MessagingWorkspaceRepository,
 } from "../repos/messaging-workspace.js";
+import { getMessagingWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 100;
@@ -631,4 +632,9 @@ export function createMessagingApiHandler(
   };
 }
 
-export const handler = createMessagingApiHandler(new NoopMessagingWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createMessagingApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createMessagingApiHandler(getMessagingWorkspaceRepository(), getRoleAssignmentsRepository());
+  return await runtimeHandler(event);
+};

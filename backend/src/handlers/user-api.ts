@@ -27,6 +27,7 @@ import {
   NoopUserWorkspaceRepository,
   type UserWorkspaceRepository,
 } from "../repos/user-workspace.js";
+import { getRoleAssignmentsRepository, getUserWorkspaceRepository } from "../repos/runtime.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -37,14 +38,41 @@ const USER_PROFILE_PATCH_SCHEMA: JsonSchema = {
   properties: {
     name: { type: "string", minLength: 1, maxLength: 80 },
     location: { type: "string", maxLength: 80, nullable: true },
+    bio: { type: "string", maxLength: 280, nullable: true },
+  },
+};
+const USER_PREFERENCES_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["bookingUpdates", "messageAlerts", "marketingEmails", "browserNotifications"],
+  additionalProperties: true,
+  properties: {
+    bookingUpdates: { type: "boolean" },
+    messageAlerts: { type: "boolean" },
+    marketingEmails: { type: "boolean" },
+    browserNotifications: { type: "boolean" },
+  },
+};
+const USER_SETUP_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    status: { type: "string", enum: ["not_started", "in_progress", "completed"], nullable: true },
+    currentStep: {
+      type: "string",
+      enum: ["welcome", "profile", "preferences", "artist_prompt", "artist_profile", "review", "done"],
+      nullable: true,
+    },
+    artistOptIn: { type: "boolean", nullable: true },
   },
 };
 const USER_BOOKING_CREATE_SCHEMA: JsonSchema = {
   type: "object",
-  required: ["serviceId", "deadline", "budget", "message"],
+  required: ["deadline", "budget", "message"],
   additionalProperties: true,
   properties: {
-    serviceId: { type: "string", minLength: 1, maxLength: 120 },
+    serviceId: { type: "string", minLength: 1, maxLength: 120, nullable: true },
+    artistId: { type: "string", minLength: 1, maxLength: 120, nullable: true },
+    serviceLabel: { type: "string", minLength: 1, maxLength: 160, nullable: true },
     deadline: { type: "string", minLength: 1, maxLength: 64 },
     budget: { type: "number", minimum: 0.01 },
     message: { type: "string", minLength: 1, maxLength: 3000 },
@@ -75,6 +103,110 @@ class RequestError extends Error {
     this.statusCode = statusCode;
     this.code = code;
   }
+}
+
+const DEFAULT_USER_PREFERENCES = {
+  bookingUpdates: true,
+  messageAlerts: true,
+  marketingEmails: false,
+  browserNotifications: false,
+} as const;
+
+const DEFAULT_USER_SETUP = {
+  status: "not_started",
+  currentStep: "welcome",
+  artistOptIn: false,
+  completedAt: null,
+} as const;
+
+function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
+  const fromUsername = String(identity.username || "").trim();
+  if (fromUsername) {
+    return fromUsername;
+  }
+
+  const emailPrefix = String(identity.email || "").trim().split("@")[0] || "";
+  if (!emailPrefix) {
+    return "Member";
+  }
+
+  return emailPrefix
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function normalizeUserPreferences(
+  preferences: Partial<UserRecord["preferences"]> | null | undefined,
+): UserRecord["preferences"] {
+  return {
+    bookingUpdates: preferences?.bookingUpdates ?? DEFAULT_USER_PREFERENCES.bookingUpdates,
+    messageAlerts: preferences?.messageAlerts ?? DEFAULT_USER_PREFERENCES.messageAlerts,
+    marketingEmails: preferences?.marketingEmails ?? DEFAULT_USER_PREFERENCES.marketingEmails,
+    browserNotifications: preferences?.browserNotifications ?? DEFAULT_USER_PREFERENCES.browserNotifications,
+  };
+}
+
+function normalizeUserSetup(user: UserRecord): UserRecord["setup"] {
+  if (user.setup) {
+    return {
+      status: user.setup.status ?? DEFAULT_USER_SETUP.status,
+      currentStep: user.setup.currentStep ?? DEFAULT_USER_SETUP.currentStep,
+      artistOptIn: user.setup.artistOptIn ?? DEFAULT_USER_SETUP.artistOptIn,
+      completedAt: user.setup.completedAt ?? DEFAULT_USER_SETUP.completedAt,
+    };
+  }
+
+  if (user.profileCompleted) {
+    return {
+      status: "completed",
+      currentStep: "done",
+      artistOptIn: false,
+      completedAt: user.updatedAt || user.createdAt || null,
+    };
+  }
+
+  return { ...DEFAULT_USER_SETUP };
+}
+
+function normalizeUser(user: UserRecord): UserRecord {
+  return {
+    ...user,
+    bio: String(user.bio || "").trim(),
+    preferences: normalizeUserPreferences(user.preferences),
+    setup: normalizeUserSetup(user),
+  };
+}
+
+async function provisionUser(
+  repository: UserWorkspaceRepository,
+  identity: { sub: string; email: string | null; username: string | null },
+): Promise<UserRecord> {
+  const meta = createRecordMeta({
+    id: `u_${randomUUID()}`,
+    createdBy: identity.sub,
+  });
+
+  const user = normalizeUser({
+    ...meta,
+    cognitoSub: identity.sub,
+    cognitoEmail: identity.email || "",
+    name: displayNameFromIdentity(identity),
+    email: identity.email || "",
+    location: "",
+    bio: "",
+    emailVerified: Boolean(identity.email),
+    profileCompleted: false,
+    preferences: { ...DEFAULT_USER_PREFERENCES },
+    setup: { ...DEFAULT_USER_SETUP },
+    savedArtistIds: [],
+    bookingHistoryIds: [],
+    deleted: false,
+  });
+
+  await repository.patchUser(user);
+  return user;
 }
 
 function parseLimit(raw: string | undefined): number {
@@ -172,19 +304,23 @@ function parseBookingId(event: APIGatewayProxyEventV2): string | null {
 }
 
 function mapMe(user: UserRecord) {
+  const normalized = normalizeUser(user);
   return {
-    id: user.id,
-    cognitoSub: user.cognitoSub,
-    cognitoEmail: user.cognitoEmail,
-    name: user.name,
-    email: user.email,
-    location: user.location,
-    emailVerified: user.emailVerified,
-    profileCompleted: user.profileCompleted,
-    savedArtistsCount: user.savedArtistIds.length,
-    bookingHistoryCount: user.bookingHistoryIds.length,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    id: normalized.id,
+    cognitoSub: normalized.cognitoSub,
+    cognitoEmail: normalized.cognitoEmail,
+    name: normalized.name,
+    email: normalized.email,
+    location: normalized.location,
+    bio: normalized.bio,
+    emailVerified: normalized.emailVerified,
+    profileCompleted: normalized.profileCompleted,
+    preferences: normalized.preferences,
+    setup: normalized.setup,
+    savedArtistsCount: normalized.savedArtistIds.length,
+    bookingHistoryCount: normalized.bookingHistoryIds.length,
+    createdAt: normalized.createdAt,
+    updatedAt: normalized.updatedAt,
   };
 }
 
@@ -211,6 +347,7 @@ function mapBooking(booking: BookingRecord) {
     userId: booking.userId,
     artistId: booking.artistId,
     serviceId: booking.serviceId,
+    serviceLabel: booking.serviceLabel || null,
     budget: booking.budget,
     deadline: booking.deadline,
     message: booking.message,
@@ -315,20 +452,120 @@ async function handlePatchProfile(
   user: UserRecord,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  const payload = parseBody<{ name?: unknown; location?: unknown }>(event, USER_PROFILE_PATCH_SCHEMA);
+  const payload = parseBody<{ name?: unknown; location?: unknown; bio?: unknown }>(event, USER_PROFILE_PATCH_SCHEMA);
 
   const name = normalizeName(payload.name, "name", 80);
   const location = normalizeOptionalText(payload.location, "location", 80);
+  const bio = normalizeOptionalText(payload.bio, "bio", 280);
+  const setup = normalizeUserSetup(user);
 
-  const next = touchRecordMeta(
+  const next = normalizeUser(touchRecordMeta(
     {
       ...user,
       name,
       location,
+      bio,
       profileCompleted: true,
+      setup: {
+        ...setup,
+        status: setup.status === "completed" ? "completed" : "in_progress",
+        currentStep: setup.status === "completed" ? "done" : "preferences",
+      },
     },
     identitySub,
-  );
+  ));
+
+  await repository.patchUser(next);
+  return json(200, success(mapMe(next)));
+}
+
+async function handlePatchPreferences(
+  event: APIGatewayProxyEventV2,
+  repository: UserWorkspaceRepository,
+  user: UserRecord,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const payload = parseBody<{
+    bookingUpdates?: unknown;
+    messageAlerts?: unknown;
+    marketingEmails?: unknown;
+    browserNotifications?: unknown;
+  }>(event, USER_PREFERENCES_PATCH_SCHEMA);
+
+  const next = normalizeUser(touchRecordMeta(
+    {
+      ...user,
+      preferences: {
+        bookingUpdates: Boolean(payload.bookingUpdates),
+        messageAlerts: Boolean(payload.messageAlerts),
+        marketingEmails: Boolean(payload.marketingEmails),
+        browserNotifications: Boolean(payload.browserNotifications),
+      },
+      setup: {
+        ...normalizeUserSetup(user),
+        status: normalizeUserSetup(user).status === "completed" ? "completed" : "in_progress",
+        currentStep: normalizeUserSetup(user).status === "completed" ? "done" : "artist_prompt",
+      },
+    },
+    identitySub,
+  ));
+
+  await repository.patchUser(next);
+  return json(200, success(mapMe(next)));
+}
+
+async function handlePatchSetup(
+  event: APIGatewayProxyEventV2,
+  repository: UserWorkspaceRepository,
+  user: UserRecord,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const payload = parseBody<{
+    status?: UserRecord["setup"]["status"];
+    currentStep?: UserRecord["setup"]["currentStep"];
+    artistOptIn?: boolean;
+  }>(event, USER_SETUP_PATCH_SCHEMA);
+
+  const existingSetup = normalizeUserSetup(user);
+  const next = normalizeUser(touchRecordMeta(
+    {
+      ...user,
+      setup: {
+        status: payload.status ?? existingSetup.status,
+        currentStep: payload.currentStep ?? existingSetup.currentStep,
+        artistOptIn: payload.artistOptIn ?? existingSetup.artistOptIn,
+        completedAt:
+          (payload.status ?? existingSetup.status) === "completed"
+            ? existingSetup.completedAt ?? new Date().toISOString()
+            : existingSetup.completedAt,
+      },
+    },
+    identitySub,
+  ));
+
+  await repository.patchUser(next);
+  return json(200, success(mapMe(next)));
+}
+
+async function handleCompleteSetup(
+  repository: UserWorkspaceRepository,
+  user: UserRecord,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const completedAt = new Date().toISOString();
+  const next = normalizeUser(touchRecordMeta(
+    {
+      ...user,
+      profileCompleted: true,
+      setup: {
+        ...normalizeUserSetup(user),
+        status: "completed",
+        currentStep: "done",
+        completedAt,
+      },
+    },
+    identitySub,
+  ));
 
   await repository.patchUser(next);
   return json(200, success(mapMe(next)));
@@ -422,25 +659,39 @@ async function handleCreateBooking(
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{
     serviceId?: unknown;
+    artistId?: unknown;
+    serviceLabel?: unknown;
     deadline?: unknown;
     budget?: unknown;
     message?: unknown;
   }>(event, USER_BOOKING_CREATE_SCHEMA);
 
-  const serviceId = normalizeName(payload.serviceId, "serviceId", 120);
+  const serviceId = String(payload.serviceId || "").trim() || null;
+  const requestedArtistId = String(payload.artistId || "").trim() || null;
+  const requestedServiceLabel = normalizeOptionalText(payload.serviceLabel, "serviceLabel", 160);
   const deadline = normalizeDeadline(payload.deadline);
   const budget = normalizeBudget(payload.budget);
   const message = normalizeName(payload.message, "message", 3000);
 
-  const service = await repository.getServiceById(serviceId);
-  if (!service) {
-    return json(404, failure("NOT_FOUND", "Service not found."));
+  let service = null;
+  if (serviceId) {
+    service = await repository.getServiceById(serviceId);
+    if (!service) {
+      return json(404, failure("NOT_FOUND", "Service not found."));
+    }
   }
 
-  const artist = await repository.getArtistById(service.artistId);
+  const artistId = service?.artistId || requestedArtistId;
+  if (!artistId) {
+    throw new RequestError(400, "INVALID_REQUEST", "artistId is required when serviceId is not provided.");
+  }
+
+  const artist = await repository.getArtistById(artistId);
   if (!artist) {
     return json(404, failure("NOT_FOUND", "Artist not found."));
   }
+
+  const serviceLabel = service?.title || requestedServiceLabel || artist.category || "Artist profile request";
 
   const meta = createRecordMeta({
     id: `b_${randomUUID()}`,
@@ -451,7 +702,8 @@ async function handleCreateBooking(
     ...meta,
     userId: user.id,
     artistId: artist.id,
-    serviceId,
+    serviceId: service?.id || null,
+    serviceLabel,
     budget,
     deadline,
     message,
@@ -485,7 +737,7 @@ async function handleCreateBooking(
     ownerId: artist.id,
     type: "booking_created",
     title: "New booking request",
-    detail: `${user.name} sent a booking request for ${service.title}.`,
+    detail: `${user.name} sent a booking request for ${serviceLabel}.`,
     createdBy: identitySub,
   });
 
@@ -499,6 +751,7 @@ async function handleCreateBooking(
     metadata: {
       artistId: booking.artistId,
       serviceId: booking.serviceId,
+      serviceLabel: booking.serviceLabel || null,
       status: booking.status,
     },
   });
@@ -645,19 +898,25 @@ export function createUserApiHandler(
 ) {
   return async function handler(
     event: APIGatewayProxyEventV2,
-  ): Promise<APIGatewayProxyStructuredResultV2> {
+    ): Promise<APIGatewayProxyStructuredResultV2> {
     try {
       enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAnyRole(identity, ["user", "admin"]);
 
-      const user = await repository.getUserByCognitoSub(identity.sub);
+      const method = String(event.requestContext.http.method || "").toUpperCase();
+      const path = String(event.rawPath || "");
+      let user = await repository.getUserByCognitoSub(identity.sub);
+
+      if (!user && (path === "/v1/me" || path.startsWith("/v1/me/") || path === "/v1/bookings" || path.startsWith("/v1/bookings/"))) {
+        user = await provisionUser(repository, identity);
+      }
+
       if (!user) {
         return json(404, failure("NOT_FOUND", "User account not found."));
       }
 
-      const method = String(event.requestContext.http.method || "").toUpperCase();
-      const path = String(event.rawPath || "");
+      user = normalizeUser(user);
 
       if (method === "GET" && path === "/v1/me") {
         return await handleGetMe(user);
@@ -665,6 +924,18 @@ export function createUserApiHandler(
 
       if (method === "PATCH" && path === "/v1/me/profile") {
         return await handlePatchProfile(event, repository, user, identity.sub);
+      }
+
+      if (method === "PATCH" && path === "/v1/me/preferences") {
+        return await handlePatchPreferences(event, repository, user, identity.sub);
+      }
+
+      if (method === "PATCH" && path === "/v1/me/setup") {
+        return await handlePatchSetup(event, repository, user, identity.sub);
+      }
+
+      if (method === "POST" && path === "/v1/me/setup/complete") {
+        return await handleCompleteSetup(repository, user, identity.sub);
       }
 
       if (method === "GET" && path === "/v1/me/saved-artists") {
@@ -722,4 +993,9 @@ export function createUserApiHandler(
   };
 }
 
-export const handler = createUserApiHandler(new NoopUserWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createUserApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createUserApiHandler(getUserWorkspaceRepository(), getRoleAssignmentsRepository());
+  return await runtimeHandler(event);
+};

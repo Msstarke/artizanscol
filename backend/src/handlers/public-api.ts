@@ -6,6 +6,7 @@ import {
   NoopPublicDiscoveryRepository,
   type PublicDiscoveryRepository,
 } from "../repos/public-discovery.js";
+import { getPublicDiscoveryRepository } from "../repos/runtime.js";
 
 const PUBLIC_CACHE_CONTROL = "public, max-age=60, s-maxage=300, stale-while-revalidate=30";
 const DEFAULT_LIMIT = 24;
@@ -446,4 +447,9 @@ export function createPublicApiHandler(repository: PublicDiscoveryRepository) {
   };
 }
 
-export const handler = createPublicApiHandler(new NoopPublicDiscoveryRepository());
+let runtimeHandler: ReturnType<typeof createPublicApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createPublicApiHandler(getPublicDiscoveryRepository());
+  return await runtimeHandler(event);
+};

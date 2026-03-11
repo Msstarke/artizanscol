@@ -12,6 +12,11 @@
     "test": "npm run build --silent && node --test dist/tests/**/*.test.js",
     "package:lambda": "./scripts/build-lambda-package.sh"
   },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.914.0",
+    "@aws-sdk/client-secrets-manager": "^3.914.0",
+    "@aws-sdk/lib-dynamodb": "^3.914.0"
+  },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",
     "@types/node": "^22.13.11",

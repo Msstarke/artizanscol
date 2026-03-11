@@ -18,8 +18,21 @@ export type UserRecord = PersistedRecord & {
   name: string;
   email: string;
   location: string;
+  bio: string;
   emailVerified: boolean;
   profileCompleted: boolean;
+  preferences: {
+    bookingUpdates: boolean;
+    messageAlerts: boolean;
+    marketingEmails: boolean;
+    browserNotifications: boolean;
+  };
+  setup: {
+    status: "not_started" | "in_progress" | "completed";
+    currentStep: "welcome" | "profile" | "preferences" | "artist_prompt" | "artist_profile" | "review" | "done";
+    artistOptIn: boolean;
+    completedAt: string | null;
+  };
   savedArtistIds: string[];
   bookingHistoryIds: string[];
   deleted: boolean;
@@ -40,6 +53,7 @@ export type ArtistRecord = PersistedRecord & {
   priceFrom: number;
   availability: AvailabilityStatus;
   bio: string;
+  profileVisible: boolean;
   profileViews: number;
   completedBookings: number;
   acceptanceRate: number;
@@ -57,7 +71,8 @@ export type ServiceRecord = PersistedRecord & {
 export type BookingRecord = PersistedRecord & {
   userId: string;
   artistId: string;
-  serviceId: string;
+  serviceId: string | null;
+  serviceLabel?: string;
   budget: number;
   deadline: string;
   message: string;

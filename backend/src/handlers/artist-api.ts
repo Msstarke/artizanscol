@@ -27,6 +27,7 @@ import {
   NoopArtistWorkspaceRepository,
   type ArtistWorkspaceRepository,
 } from "../repos/artist-workspace.js";
+import { getArtistWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -40,6 +41,7 @@ const ARTIST_PROFILE_PATCH_SCHEMA: JsonSchema = {
     location: { type: "string", minLength: 1, maxLength: 80, nullable: true },
     bio: { type: "string", maxLength: 1200, nullable: true },
     availability: { type: "string", enum: AVAILABILITY_VALUES, nullable: true },
+    profileVisible: { type: "boolean", nullable: true },
   },
 };
 const ARTIST_ONBOARDING_SCHEMA: JsonSchema = {
@@ -52,6 +54,8 @@ const ARTIST_ONBOARDING_SCHEMA: JsonSchema = {
     priceFrom: { type: "number", minimum: 0.01 },
     availability: { type: "string", enum: AVAILABILITY_VALUES },
     portfolio: { type: "array", maxItems: 40, nullable: true },
+    bio: { type: "string", maxLength: 1200, nullable: true },
+    profileVisible: { type: "boolean", nullable: true },
   },
 };
 const ARTIST_SERVICE_CREATE_SCHEMA: JsonSchema = {
@@ -100,6 +104,76 @@ class RequestError extends Error {
     this.statusCode = statusCode;
     this.code = code;
   }
+}
+
+function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
+  const fromUsername = String(identity.username || "").trim();
+  if (fromUsername) {
+    return fromUsername;
+  }
+
+  const emailPrefix = String(identity.email || "").trim().split("@")[0] || "";
+  if (!emailPrefix) {
+    return "Artist";
+  }
+
+  return emailPrefix
+    .replace(/[_\-.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function slugify(value: string): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeArtist(artist: ArtistRecord): ArtistRecord {
+  return {
+    ...artist,
+    profileVisible: Boolean(artist.profileVisible),
+  };
+}
+
+async function provisionArtist(
+  repository: ArtistWorkspaceRepository,
+  identity: { sub: string; email: string | null; username: string | null },
+): Promise<ArtistRecord> {
+  const meta = createRecordMeta({
+    id: `a_${randomUUID()}`,
+    createdBy: identity.sub,
+  });
+
+  const displayName = displayNameFromIdentity(identity);
+  const artist = normalizeArtist({
+    ...meta,
+    cognitoSub: identity.sub,
+    cognitoEmail: identity.email || "",
+    name: displayName,
+    handle: slugify(displayName) || "artist",
+    category: "",
+    mediums: [],
+    location: "",
+    verified: false,
+    popularity: 0,
+    rating: 0,
+    reviewCount: 0,
+    priceFrom: 0,
+    availability: "open",
+    bio: "",
+    profileVisible: false,
+    profileViews: 0,
+    completedBookings: 0,
+    acceptanceRate: 0,
+    portfolio: [],
+  });
+
+  await repository.patchArtist(artist);
+  return artist;
 }
 
 function parseLimit(raw: string | undefined): number {
@@ -355,28 +429,30 @@ async function emitNotification(
 }
 
 function mapArtist(artist: ArtistRecord) {
+  const normalized = normalizeArtist(artist);
   return {
-    id: artist.id,
-    cognitoSub: artist.cognitoSub,
-    cognitoEmail: artist.cognitoEmail,
-    name: artist.name,
-    handle: artist.handle,
-    category: artist.category,
-    mediums: artist.mediums,
-    location: artist.location,
-    verified: artist.verified,
-    popularity: artist.popularity,
-    rating: artist.rating,
-    reviewCount: artist.reviewCount,
-    priceFrom: artist.priceFrom,
-    availability: artist.availability,
-    bio: artist.bio,
-    profileViews: artist.profileViews,
-    completedBookings: artist.completedBookings,
-    acceptanceRate: artist.acceptanceRate,
-    portfolio: artist.portfolio,
-    createdAt: artist.createdAt,
-    updatedAt: artist.updatedAt,
+    id: normalized.id,
+    cognitoSub: normalized.cognitoSub,
+    cognitoEmail: normalized.cognitoEmail,
+    name: normalized.name,
+    handle: normalized.handle,
+    category: normalized.category,
+    mediums: normalized.mediums,
+    location: normalized.location,
+    verified: normalized.verified,
+    popularity: normalized.popularity,
+    rating: normalized.rating,
+    reviewCount: normalized.reviewCount,
+    priceFrom: normalized.priceFrom,
+    availability: normalized.availability,
+    bio: normalized.bio,
+    profileVisible: normalized.profileVisible,
+    profileViews: normalized.profileViews,
+    completedBookings: normalized.completedBookings,
+    acceptanceRate: normalized.acceptanceRate,
+    portfolio: normalized.portfolio,
+    createdAt: normalized.createdAt,
+    updatedAt: normalized.updatedAt,
   };
 }
 
@@ -399,6 +475,7 @@ function mapBooking(booking: BookingRecord) {
     userId: booking.userId,
     artistId: booking.artistId,
     serviceId: booking.serviceId,
+    serviceLabel: booking.serviceLabel || null,
     budget: booking.budget,
     deadline: booking.deadline,
     message: booking.message,
@@ -407,6 +484,20 @@ function mapBooking(booking: BookingRecord) {
     history: booking.history,
     createdAt: booking.createdAt,
     updatedAt: booking.updatedAt,
+  };
+}
+
+function mapNotification(notification: NotificationRecord) {
+  return {
+    id: notification.id,
+    ownerId: notification.ownerId,
+    ownerRole: notification.ownerRole,
+    type: notification.type,
+    title: notification.title,
+    detail: notification.detail,
+    read: notification.read,
+    createdAt: notification.createdAt,
+    updatedAt: notification.updatedAt,
   };
 }
 
@@ -437,21 +528,26 @@ async function handlePatchArtistProfile(
     location?: unknown;
     bio?: unknown;
     availability?: unknown;
+    profileVisible?: unknown;
   }>(event, ARTIST_PROFILE_PATCH_SCHEMA);
 
-  const next = touchRecordMeta(
+  const next = normalizeArtist(touchRecordMeta(
     {
       ...artist,
       name: normalizeRequiredText(payload.name ?? artist.name, "name", 80),
       handle: normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60),
-      location: normalizeRequiredText(payload.location ?? artist.location, "location", 80),
+      location: normalizeOptionalText(payload.location ?? artist.location, "location", 80),
       bio: normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200),
       availability: payload.availability
         ? normalizeAvailability(payload.availability)
         : artist.availability,
+      profileVisible:
+        payload.profileVisible == null
+          ? artist.profileVisible
+          : Boolean(payload.profileVisible),
     },
     identitySub,
-  );
+  ));
 
   await repository.patchArtist(next);
   return json(200, success(mapArtist(next)));
@@ -469,9 +565,11 @@ async function handlePutOnboarding(
     priceFrom?: unknown;
     availability?: unknown;
     portfolio?: unknown;
+    bio?: unknown;
+    profileVisible?: unknown;
   }>(event, ARTIST_ONBOARDING_SCHEMA);
 
-  const next = touchRecordMeta(
+  const next = normalizeArtist(touchRecordMeta(
     {
       ...artist,
       category: normalizeRequiredText(payload.category, "category", 80),
@@ -479,9 +577,14 @@ async function handlePutOnboarding(
       priceFrom: normalizeMoney(payload.priceFrom, "priceFrom"),
       availability: normalizeAvailability(payload.availability),
       portfolio: normalizePortfolio(payload.portfolio),
+      bio: normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200),
+      profileVisible:
+        payload.profileVisible == null
+          ? artist.profileVisible
+          : Boolean(payload.profileVisible),
     },
     identitySub,
-  );
+  ));
 
   await repository.patchArtist(next);
   return json(200, success(mapArtist(next)));
@@ -787,6 +890,41 @@ async function handleGetArtistAnalytics(
   );
 }
 
+async function handleGetArtistNotifications(
+  event: APIGatewayProxyEventV2,
+  repository: ArtistWorkspaceRepository,
+  artist: ArtistRecord,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const page = parsePage(event.queryStringParameters);
+  const all = await repository.listNotificationsByOwner("artist", artist.id);
+  const sorted = [...all].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const paged = pageItems(sorted, page);
+
+  return json(
+    200,
+    success({
+      items: paged.items.map(mapNotification),
+      unreadCount: all.filter((item) => !item.read).length,
+      pagination: {
+        limit: page.limit,
+        cursor: page.cursor,
+        nextCursor: paged.nextCursor,
+        count: paged.items.length,
+      },
+    }),
+  );
+}
+
+async function handleMarkArtistNotificationsRead(
+  repository: ArtistWorkspaceRepository,
+  artist: ArtistRecord,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const updatedCount = await repository.markNotificationsRead("artist", artist.id);
+  return json(200, success({ updatedCount }));
+}
+
 export function createArtistApiHandler(
   repository: ArtistWorkspaceRepository,
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
@@ -798,14 +936,19 @@ export function createArtistApiHandler(
       enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAnyRole(identity, ["artist", "admin"]);
+      const method = String(event.requestContext.http.method || "").toUpperCase();
+      const path = String(event.rawPath || "");
 
-      const artist = await repository.getArtistByCognitoSub(identity.sub);
+      let artist = await repository.getArtistByCognitoSub(identity.sub);
+      if (!artist && path.startsWith("/v1/artist/me")) {
+        artist = await provisionArtist(repository, identity);
+      }
+
       if (!artist) {
         return json(404, failure("NOT_FOUND", "Artist account not found."));
       }
 
-      const method = String(event.requestContext.http.method || "").toUpperCase();
-      const path = String(event.rawPath || "");
+      artist = normalizeArtist(artist);
 
       if (method === "GET" && path === "/v1/artist/me") {
         return await handleGetArtistMe(repository, artist);
@@ -847,6 +990,14 @@ export function createArtistApiHandler(
         return await handleGetArtistAnalytics(repository, artist);
       }
 
+      if (method === "GET" && path === "/v1/artist/me/notifications") {
+        return await handleGetArtistNotifications(event, repository, artist);
+      }
+
+      if (method === "POST" && path === "/v1/artist/me/notifications/read-all") {
+        return await handleMarkArtistNotificationsRead(repository, artist);
+      }
+
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof SecurityPolicyError) {
@@ -870,4 +1021,9 @@ export function createArtistApiHandler(
   };
 }
 
-export const handler = createArtistApiHandler(new NoopArtistWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createArtistApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createArtistApiHandler(getArtistWorkspaceRepository(), getRoleAssignmentsRepository());
+  return await runtimeHandler(event);
+};

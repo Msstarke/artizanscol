@@ -25,6 +25,7 @@ import {
   NoopPaymentsWorkspaceRepository,
   type PaymentsWorkspaceRepository,
 } from "../repos/payments-workspace.js";
+import { getPaymentsWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 128;
 const MAX_REASON_LENGTH = 500;
@@ -1043,4 +1044,9 @@ export function createWebhookApiHandler(repository: PaymentsWorkspaceRepository)
   };
 }
 
-export const handler = createPaymentsApiHandler(new NoopPaymentsWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createPaymentsApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createPaymentsApiHandler(getPaymentsWorkspaceRepository(), getRoleAssignmentsRepository());
+  return await runtimeHandler(event);
+};

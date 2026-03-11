@@ -24,6 +24,7 @@ import {
   NoopAdminWorkspaceRepository,
   type AdminWorkspaceRepository,
 } from "../repos/admin-workspace.js";
+import { getAdminWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -818,4 +819,9 @@ export function createAdminApiHandler(
   };
 }
 
-export const handler = createAdminApiHandler(new NoopAdminWorkspaceRepository());
+let runtimeHandler: ReturnType<typeof createAdminApiHandler> | null = null;
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+  runtimeHandler ||= createAdminApiHandler(getAdminWorkspaceRepository(), getRoleAssignmentsRepository());
+  return await runtimeHandler(event);
+};

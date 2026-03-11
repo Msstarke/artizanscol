@@ -2,6 +2,13 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-11
+- Switched the app from browser-authoritative business data to server-backed `/v1/*` persistence: public artists now hydrate from the API only, account/profile/preferences/booking/message/save actions write through backend endpoints first, and stale session/local DB cache persistence is disabled.
+- Added runtime DynamoDB-backed repository implementations for public, user, artist, messaging, admin, payments, and role assignment domains, and rewired deployed Lambda handlers to use those runtime repositories instead of no-op placeholders.
+- Extended backend persistence contracts for setup/preferences/profile visibility and profile-based booking requests, updated Lambda packaging to include AWS SDK runtime dependencies, and added CloudFront `/v1/*` origin routing so API traffic no longer falls through to the static site.
+- Added server-side artist notification list/read-all support and updated the account frontend to hydrate and mark both user and artist notifications through the API instead of local-only mutation.
+- Updated backend fixtures and tests for the new persisted model and revalidated the backend suite after the server-side persistence pass.
+
 ## 2026-03-10
 - Fixed artist profile hydration so Explore and the public homepage no longer lose locally-published signed-in artist records when the backend returns an empty or incomplete artist list.
 - Replaced the brittle `What you do` dropdown in `/account-settings.html` with a free-text field plus category suggestions so artists can always enter a practice area even when category options fail to load.

@@ -392,7 +392,7 @@ function renderArtistDetails() {
   setBookingFormEnabled(publicActionsEnabled);
 }
 
-saveArtistBtn?.addEventListener("click", () => {
+saveArtistBtn?.addEventListener("click", async () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist profile is not available to save right now.", "warning");
     return;
@@ -408,12 +408,16 @@ saveArtistBtn?.addEventListener("click", () => {
     return;
   }
 
-  const saved = toggleSaveArtist(userId, artist.id);
-  showToast(saved ? "Artist saved to your list" : "Artist removed from saved list", "success");
-  saveArtistBtn.textContent = saved ? "Saved" : "Save artist";
+  try {
+    const saved = await toggleSaveArtist(userId, artist.id);
+    showToast(saved ? "Artist saved to your list" : "Artist removed from saved list", "success");
+    saveArtistBtn.textContent = saved ? "Saved" : "Save artist";
+  } catch (error) {
+    showToast(error?.message || "Could not update saved artists.", "danger");
+  }
 });
 
-contactArtistBtn?.addEventListener("click", () => {
+contactArtistBtn?.addEventListener("click", async () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist is not accepting public enquiries right now.", "warning");
     return;
@@ -429,18 +433,22 @@ contactArtistBtn?.addEventListener("click", () => {
     return;
   }
 
-  sendMessage({
-    threadId: `t-${userId}-${artist.id}`,
-    bookingId: null,
-    fromRole: "user",
-    fromId: userId,
-    toRole: "artist",
-    toId: artist.id,
-    body: "Hi, I would like to discuss a potential project.",
-  });
+  try {
+    await sendMessage({
+      threadId: `t-${userId}-${artist.id}`,
+      bookingId: null,
+      fromRole: "user",
+      fromId: userId,
+      toRole: "artist",
+      toId: artist.id,
+      body: "Hi, I would like to discuss a potential project.",
+    });
 
-  showToast("Message sent to artist", "success");
-  contactArtistBtn.textContent = "Message sent";
+    showToast("Message sent to artist", "success");
+    contactArtistBtn.textContent = "Message sent";
+  } catch (error) {
+    showToast(error?.message || "Message could not be sent.", "danger");
+  }
 });
 
 openBookingBtn?.addEventListener("click", () => {
@@ -483,7 +491,7 @@ prefillBooking?.addEventListener("click", () => {
   }
 });
 
-bookingForm?.addEventListener("submit", (event) => {
+bookingForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!artist || !profileIsPublic()) {
@@ -527,23 +535,27 @@ bookingForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  const booking = createBooking({
-    userId,
-    artistId: artist.id,
-    serviceLabel: projectFocus,
-    budget,
-    deadline,
-    message,
-  });
+  try {
+    const booking = await createBooking({
+      userId,
+      artistId: artist.id,
+      serviceLabel: projectFocus,
+      budget,
+      deadline,
+      message,
+    });
 
-  if (!booking) {
-    showToast("Booking could not be created.", "danger");
-    return;
+    if (!booking) {
+      showToast("Booking could not be created.", "danger");
+      return;
+    }
+
+    db = getDB();
+    showToast(`Booking ${booking.id} created.`, "success");
+    bookingForm.reset();
+  } catch (error) {
+    showToast(error?.message || "Booking could not be created.", "danger");
   }
-
-  db = getDB();
-  showToast(`Booking ${booking.id} created.`, "success");
-  bookingForm.reset();
 });
 
 updateBookingCta();

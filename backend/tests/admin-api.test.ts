@@ -28,7 +28,12 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
   }
 
   async patchArtist(artist: ArtistRecord): Promise<void> {
-    this.artists = this.artists.map((item) => (item.id === artist.id ? artist : item));
+    const index = this.artists.findIndex((item) => item.id === artist.id);
+    if (index >= 0) {
+      this.artists[index] = artist;
+      return;
+    }
+    this.artists.unshift(artist);
   }
 
   async listReports(): Promise<ReportRecord[]> {
@@ -56,7 +61,12 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
   }
 
   async patchCategory(category: CategoryRecord): Promise<void> {
-    this.categories = this.categories.map((item) => (item.id === category.id ? category : item));
+    const index = this.categories.findIndex((item) => item.id === category.id);
+    if (index >= 0) {
+      this.categories[index] = category;
+      return;
+    }
+    this.categories.unshift(category);
   }
 
   async getSystemConfig(): Promise<SystemConfigRecord | null> {
@@ -142,6 +152,7 @@ function baseRepo(): InMemoryAdminRepo {
       priceFrom: 300,
       availability: "open",
       bio: "bio",
+      profileVisible: true,
       profileViews: 0,
       completedBookings: 0,
       acceptanceRate: 0,
@@ -163,6 +174,7 @@ function baseRepo(): InMemoryAdminRepo {
       priceFrom: 600,
       availability: "limited",
       bio: "bio",
+      profileVisible: true,
       profileViews: 0,
       completedBookings: 0,
       acceptanceRate: 0,
@@ -197,8 +209,21 @@ function baseRepo(): InMemoryAdminRepo {
       name: "User One",
       email: "user1@example.com",
       location: "Sydney",
+      bio: "",
       emailVerified: true,
       profileCompleted: true,
+      preferences: {
+        bookingUpdates: true,
+        messageAlerts: true,
+        marketingEmails: false,
+        browserNotifications: false,
+      },
+      setup: {
+        status: "completed",
+        currentStep: "done",
+        artistOptIn: false,
+        completedAt: nowIso(1),
+      },
       savedArtistIds: [],
       bookingHistoryIds: [],
       deleted: false,
@@ -210,8 +235,21 @@ function baseRepo(): InMemoryAdminRepo {
       name: "User Two",
       email: "user2@example.com",
       location: "Brisbane",
+      bio: "",
       emailVerified: true,
       profileCompleted: true,
+      preferences: {
+        bookingUpdates: true,
+        messageAlerts: true,
+        marketingEmails: false,
+        browserNotifications: false,
+      },
+      setup: {
+        status: "completed",
+        currentStep: "done",
+        artistOptIn: false,
+        completedAt: nowIso(2),
+      },
       savedArtistIds: [],
       bookingHistoryIds: [],
       deleted: true,

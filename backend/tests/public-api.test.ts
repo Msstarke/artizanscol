@@ -78,6 +78,7 @@ function makeArtist(args: {
     priceFrom: args.priceFrom,
     availability: args.availability,
     bio: `${args.name} bio`,
+    profileVisible: true,
     profileViews: 0,
     completedBookings: 0,
     acceptanceRate: 0,

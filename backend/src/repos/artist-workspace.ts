@@ -2,6 +2,7 @@ import type {
   ArtistRecord,
   BookingRecord,
   MessageRecord,
+  NotificationOwnerRole,
   NotificationRecord,
   ServiceRecord,
 } from "../domain/entities.js";
@@ -22,7 +23,12 @@ export interface ArtistWorkspaceRepository {
 
   listMessagesByParticipantId(participantId: string): Promise<MessageRecord[]>;
 
+  listNotificationsByOwner(
+    ownerRole: NotificationOwnerRole,
+    ownerId: string,
+  ): Promise<NotificationRecord[]>;
   createNotification(notification: NotificationRecord): Promise<void>;
+  markNotificationsRead(ownerRole: NotificationOwnerRole, ownerId: string): Promise<number>;
 }
 
 export class NoopArtistWorkspaceRepository implements ArtistWorkspaceRepository {
@@ -60,5 +66,19 @@ export class NoopArtistWorkspaceRepository implements ArtistWorkspaceRepository 
     return [];
   }
 
+  async listNotificationsByOwner(
+    _ownerRole: NotificationOwnerRole,
+    _ownerId: string,
+  ): Promise<NotificationRecord[]> {
+    return [];
+  }
+
   async createNotification(_notification: NotificationRecord): Promise<void> {}
+
+  async markNotificationsRead(
+    _ownerRole: NotificationOwnerRole,
+    _ownerId: string,
+  ): Promise<number> {
+    return 0;
+  }
 }

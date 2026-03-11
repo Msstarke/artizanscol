@@ -3,6 +3,7 @@ import {
   ensureUserForCognito,
   getArtistById,
   getDB,
+  hydratePrivateDB,
   hydrateDB,
   markNotificationsRead,
   sendMessage,
@@ -10,6 +11,7 @@ import {
   updateBookingStatus,
   getUserById,
   updateArtistProfile,
+  updateUserPreferences,
   updateUserProfile,
 } from "./store.js";
 import {
@@ -113,20 +115,12 @@ const workspaceMarkNotificationsRead = byId("workspace-mark-notifications-read")
 const views = Array.from(document.querySelectorAll("[data-auth-view]"));
 
 let currentView = "login";
-const ACCOUNT_PREFERENCES_KEY = "artizans.account.preferences.v1";
 const DEFAULT_ACCOUNT_PREFERENCES = {
   bookingUpdates: true,
   messageAlerts: true,
   marketingEmails: false,
+  browserNotifications: false,
 };
-
-function safeParse(value) {
-  try {
-    return JSON.parse(value);
-  } catch (_) {
-    return null;
-  }
-}
 
 function titleize(value) {
   return String(value || "")
@@ -136,64 +130,15 @@ function titleize(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function preferenceOwnerKey(session) {
-  if (session?.cognitoSub) {
-    return `sub:${session.cognitoSub}`;
-  }
-  if (session?.cognitoEmail) {
-    return `email:${String(session.cognitoEmail).toLowerCase()}`;
-  }
-  return null;
-}
-
-function getPreferenceStore() {
-  return safeParse(localStorage.getItem(ACCOUNT_PREFERENCES_KEY)) || {};
-}
-
-function savePreferenceStore(store) {
-  localStorage.setItem(ACCOUNT_PREFERENCES_KEY, JSON.stringify(store));
-}
-
 function getAccountPreferences(session) {
-  const ownerKey = preferenceOwnerKey(session);
-  if (!ownerKey) {
+  const context = signedInContext(session);
+  if (!context?.user?.preferences) {
     return { ...DEFAULT_ACCOUNT_PREFERENCES };
   }
-
-  const store = getPreferenceStore();
   return {
     ...DEFAULT_ACCOUNT_PREFERENCES,
-    ...(store[ownerKey] || {}),
+    ...context.user.preferences,
   };
-}
-
-function setAccountPreferences(session, preferences) {
-  const ownerKey = preferenceOwnerKey(session);
-  if (!ownerKey) {
-    return;
-  }
-
-  const store = getPreferenceStore();
-  store[ownerKey] = {
-    ...DEFAULT_ACCOUNT_PREFERENCES,
-    ...(preferences || {}),
-  };
-  savePreferenceStore(store);
-}
-
-function clearAccountPreferences(session) {
-  const ownerKey = preferenceOwnerKey(session);
-  if (!ownerKey) {
-    return;
-  }
-
-  const store = getPreferenceStore();
-  if (!Object.prototype.hasOwnProperty.call(store, ownerKey)) {
-    return;
-  }
-
-  delete store[ownerKey];
-  savePreferenceStore(store);
 }
 
 function signedInContext(session = getSession()) {
@@ -392,7 +337,7 @@ function bookingActionsForContext(booking, context) {
 function renderSavedArtists(context) {
   clearNode(workspaceSavedArtists);
 
-  const saved = context.user?.savedArtists || [];
+  const saved = context.user?.savedArtistIds || context.user?.savedArtists || [];
   const artists = context.db.artists.filter((artist) => saved.includes(artist.id));
   const empty = artists.length === 0;
   setCollectionEmptyState(workspaceSavedArtists, workspaceSavedEmpty, empty, "No saved artists yet.");
@@ -426,10 +371,15 @@ function renderSavedArtists(context) {
     removeBtn.className = "btn btn-ghost btn-small";
     removeBtn.type = "button";
     removeBtn.textContent = "Remove";
-    removeBtn.addEventListener("click", () => {
-      toggleSaveArtist(context.user?.id, artist.id);
-      syncSessionFromExisting();
-      showToast("Saved artist removed.", "success");
+    removeBtn.addEventListener("click", async () => {
+      try {
+        await toggleSaveArtist(context.user?.id, artist.id);
+        await hydratePrivateDB();
+        syncSessionFromExisting();
+        showToast("Saved artist removed.", "success");
+      } catch (error) {
+        showToast(error?.message || "Could not update saved artists.", "danger");
+      }
     });
     actions.appendChild(removeBtn);
 
@@ -494,14 +444,18 @@ function renderBookings(context) {
         button.type = "button";
         button.className = action.status === "cancelled" ? "btn btn-ghost btn-small" : "btn btn-outline btn-small";
         button.textContent = action.label;
-        button.addEventListener("click", () => {
-          const result = updateBookingStatus(booking.id, action.status, action.actorRole);
-          if (!result.ok) {
-            showToast("Booking status update failed.", "warning");
-            return;
+        button.addEventListener("click", async () => {
+          try {
+            const result = await updateBookingStatus(booking.id, action.status, action.actorRole);
+            if (!result.ok) {
+              showToast("Booking status update failed.", "warning");
+              return;
+            }
+            syncSessionFromExisting();
+            showToast(`Booking updated to ${normalizeStatusLabel(action.status)}.`, "success");
+          } catch (error) {
+            showToast(error?.message || "Booking status update failed.", "danger");
           }
-          syncSessionFromExisting();
-          showToast(`Booking updated to ${normalizeStatusLabel(action.status)}.`, "success");
         });
         actionRow.appendChild(button);
       });
@@ -769,7 +723,7 @@ function renderAccountPanels(session) {
   }
 
   if (accountBio instanceof HTMLTextAreaElement) {
-    accountBio.value = artist?.bio || "";
+    accountBio.value = user?.bio || artist?.bio || "";
   }
 
   if (prefBookingUpdates instanceof HTMLInputElement) {
@@ -784,7 +738,7 @@ function renderAccountPanels(session) {
     prefMarketingEmails.checked = Boolean(preferences.marketingEmails);
   }
 
-  const savedArtistsCount = Array.isArray(user?.savedArtists) ? user.savedArtists.length : 0;
+  const savedArtistsCount = Array.isArray(user?.savedArtistIds) ? user.savedArtistIds.length : 0;
   writeText(statSavedArtists, savedArtistsCount);
 
   const userBookings = db.bookings.filter((booking) => user && booking.userId === user.id);
@@ -942,6 +896,7 @@ async function hydrateCognitoState() {
     lastLoginAt: getSession().lastLoginAt || new Date().toISOString(),
   });
 
+  await hydratePrivateDB();
   syncSessionFromExisting();
 }
 
@@ -978,8 +933,10 @@ function buildAccountExport(context) {
       user: user || null,
       artist: artist || null,
     },
-    preferences: getAccountPreferences(session),
-    savedArtists: db.artists.filter((candidate) => Array.isArray(user?.savedArtists) && user.savedArtists.includes(candidate.id)),
+    preferences: user?.preferences || getAccountPreferences(session),
+    savedArtists: db.artists.filter(
+      (candidate) => Array.isArray(user?.savedArtistIds) && user.savedArtistIds.includes(candidate.id),
+    ),
     bookings,
     messages: db.messages.filter((message) => ownerIds.has(message.fromId) || ownerIds.has(message.toId)),
     notifications,
@@ -1033,6 +990,7 @@ signInForm?.addEventListener("submit", async (event) => {
       signInPassword.value = "";
     }
 
+    await hydratePrivateDB();
     syncSessionFromExisting();
     showToast("Signed in.", "success");
   } catch (error) {
@@ -1140,7 +1098,7 @@ resetConfirmForm?.addEventListener("submit", async (event) => {
   }
 });
 
-accountProfileForm?.addEventListener("submit", (event) => {
+accountProfileForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const session = ensureLinkedProfiles(getSession());
@@ -1159,44 +1117,58 @@ accountProfileForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  if (context.user?.id) {
-    updateUserProfile(context.user.id, {
-      name,
-      location,
-      profileCompleted: true,
-    });
-  }
+  try {
+    if (context.user?.id) {
+      await updateUserProfile(context.user.id, {
+        name,
+        location,
+        bio,
+        profileCompleted: true,
+      });
+    }
 
-  if (context.artist?.id) {
-    updateArtistProfile(context.artist.id, {
-      name,
-      location,
-      bio,
-    });
-  }
+    if (context.artist?.id) {
+      await updateArtistProfile(context.artist.id, {
+        name,
+        location,
+        bio,
+      });
+    }
 
-  syncSessionFromExisting();
-  showToast("Profile saved.", "success");
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast("Profile saved.", "success");
+  } catch (error) {
+    showToast(error?.message || "Profile save failed.", "danger");
+  }
 });
 
-accountPreferencesForm?.addEventListener("submit", (event) => {
+accountPreferencesForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
-  const session = getSession();
-  if (!isCognitoAuthenticated() || !session.cognitoEmail) {
+  const context = signedInContext(getSession());
+  if (!context?.user?.id) {
     showToast("Sign in to update preferences.", "warning");
     return;
   }
 
-  setAccountPreferences(session, {
-    bookingUpdates: Boolean(prefBookingUpdates?.checked),
-    messageAlerts: Boolean(prefMessageAlerts?.checked),
-    marketingEmails: Boolean(prefMarketingEmails?.checked),
-  });
-  showToast("Preferences saved.", "success");
+  try {
+    await updateUserPreferences(context.user.id, {
+      bookingUpdates: Boolean(prefBookingUpdates?.checked),
+      messageAlerts: Boolean(prefMessageAlerts?.checked),
+      marketingEmails: Boolean(prefMarketingEmails?.checked),
+      browserNotifications: context.user.preferences?.browserNotifications ?? false,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast("Preferences saved.", "success");
+  } catch (error) {
+    showToast(error?.message || "Preferences save failed.", "danger");
+  }
 });
 
 enableBrowserNotificationsBtn?.addEventListener("click", async () => {
+  const context = signedInContext(getSession());
   if (!("Notification" in window)) {
     showToast("Browser notifications are not supported on this device.", "warning");
     return;
@@ -1204,20 +1176,52 @@ enableBrowserNotificationsBtn?.addEventListener("click", async () => {
 
   if (Notification.permission === "granted") {
     showToast("Browser alerts are already enabled.", "success");
+    if (context?.user?.id) {
+      await updateUserPreferences(context.user.id, {
+        ...getAccountPreferences(getSession()),
+        browserNotifications: true,
+      });
+      await hydratePrivateDB();
+      syncSessionFromExisting();
+    }
     return;
   }
 
   if (Notification.permission === "denied") {
     showToast("Browser alerts are blocked in browser settings.", "warning");
+    if (context?.user?.id) {
+      await updateUserPreferences(context.user.id, {
+        ...getAccountPreferences(getSession()),
+        browserNotifications: false,
+      });
+      await hydratePrivateDB();
+      syncSessionFromExisting();
+    }
     return;
   }
 
   const result = await Notification.requestPermission();
   if (result === "granted") {
+    if (context?.user?.id) {
+      await updateUserPreferences(context.user.id, {
+        ...getAccountPreferences(getSession()),
+        browserNotifications: true,
+      });
+      await hydratePrivateDB();
+      syncSessionFromExisting();
+    }
     showToast("Browser alerts enabled.", "success");
     return;
   }
 
+  if (context?.user?.id) {
+    await updateUserPreferences(context.user.id, {
+      ...getAccountPreferences(getSession()),
+      browserNotifications: false,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+  }
   showToast("Browser alerts were not enabled.", "warning");
 });
 
@@ -1243,7 +1247,7 @@ exportAccountDataBtn?.addEventListener("click", () => {
   showToast("Account data export generated.", "success");
 });
 
-clearSavedArtistsBtn?.addEventListener("click", () => {
+clearSavedArtistsBtn?.addEventListener("click", async () => {
   const session = ensureLinkedProfiles(getSession());
   const context = signedInContext(session);
   if (!context?.user?.id) {
@@ -1251,26 +1255,32 @@ clearSavedArtistsBtn?.addEventListener("click", () => {
     return;
   }
 
-  const saved = Array.isArray(context.user.savedArtists) ? [...context.user.savedArtists] : [];
+  const saved = Array.isArray(context.user.savedArtistIds) ? [...context.user.savedArtistIds] : [];
   if (!saved.length) {
     showToast("No saved artists found for this account.", "warning");
     return;
   }
 
-  saved.forEach((artistId) => {
-    toggleSaveArtist(context.user.id, artistId);
-  });
-  syncSessionFromExisting();
-  showToast("Saved artists cleared.", "success");
+  try {
+    for (const artistId of saved) {
+      await toggleSaveArtist(context.user.id, artistId);
+    }
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast("Saved artists cleared.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not clear saved artists.", "danger");
+  }
 });
 
 workspaceRefreshBtn?.addEventListener("click", async () => {
   await hydrateDB();
+  await hydratePrivateDB();
   syncSessionFromExisting();
   showToast("Workspace refreshed.", "success");
 });
 
-workspaceArtistForm?.addEventListener("submit", (event) => {
+workspaceArtistForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const context = signedInContext(ensureLinkedProfiles(getSession()));
@@ -1289,33 +1299,43 @@ workspaceArtistForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  updateArtistProfile(context.artist.id, {
-    category,
-    mediums,
-    priceFrom,
-    availability,
-  });
+  try {
+    await updateArtistProfile(context.artist.id, {
+      category,
+      mediums,
+      priceFrom,
+      availability,
+    });
 
-  syncSessionFromExisting();
-  showToast("Artist profile updated.", "success");
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast("Artist profile updated.", "success");
+  } catch (error) {
+    showToast(error?.message || "Artist profile update failed.", "danger");
+  }
 });
 
-toggleArtistAccountBtn?.addEventListener("click", () => {
+toggleArtistAccountBtn?.addEventListener("click", async () => {
   const context = signedInContext(ensureLinkedProfiles(getSession()));
   if (!context?.artist?.id) {
     showToast("Sign in to manage your artist profile.", "warning");
     return;
   }
 
-  const nextVisible = !Boolean(context.artist.profileVisible);
-  updateArtistProfile(context.artist.id, {
-    profileVisible: nextVisible,
-  });
-  syncSessionFromExisting();
-  showToast(nextVisible ? "Artist account is now live." : "Artist account has been turned off.", "success");
+  try {
+    const nextVisible = !Boolean(context.artist.profileVisible);
+    await updateArtistProfile(context.artist.id, {
+      profileVisible: nextVisible,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast(nextVisible ? "Artist account is now live." : "Artist account has been turned off.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not update artist visibility.", "danger");
+  }
 });
 
-workspaceMessageForm?.addEventListener("submit", (event) => {
+workspaceMessageForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const context = signedInContext(ensureLinkedProfiles(getSession()));
@@ -1365,35 +1385,44 @@ workspaceMessageForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  const created = sendMessage(payload);
-  if (!created) {
-    showToast("Message could not be sent.", "warning");
-    return;
-  }
+  try {
+    const created = await sendMessage(payload);
+    if (!created) {
+      showToast("Message could not be sent.", "warning");
+      return;
+    }
 
-  if (workspaceMessageBody instanceof HTMLTextAreaElement) {
-    workspaceMessageBody.value = "";
+    if (workspaceMessageBody instanceof HTMLTextAreaElement) {
+      workspaceMessageBody.value = "";
+    }
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    showToast("Message sent.", "success");
+  } catch (error) {
+    showToast(error?.message || "Message could not be sent.", "danger");
   }
-  syncSessionFromExisting();
-  showToast("Message sent.", "success");
 });
 
-workspaceMarkNotificationsRead?.addEventListener("click", () => {
+workspaceMarkNotificationsRead?.addEventListener("click", async () => {
   const context = signedInContext(ensureLinkedProfiles(getSession()));
   if (!context) {
     showToast("Sign in to manage notifications.", "warning");
     return;
   }
 
-  if (context.user?.id) {
-    markNotificationsRead("user", context.user.id);
-  }
-  if (context.artist?.id) {
-    markNotificationsRead("artist", context.artist.id);
-  }
+  try {
+    if (context.user?.id) {
+      await markNotificationsRead("user", context.user.id);
+    }
+    if (context.artist?.id) {
+      await markNotificationsRead("artist", context.artist.id);
+    }
 
-  syncSessionFromExisting();
-  showToast("Notifications marked as read.", "success");
+    syncSessionFromExisting();
+    showToast("Notifications marked as read.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not update notifications.", "danger");
+  }
 });
 
 goSignUp?.addEventListener("click", () => showView("signup"));
@@ -1417,10 +1446,8 @@ authSignoutBtn?.addEventListener("click", async () => {
 });
 
 fullSignoutBtn?.addEventListener("click", async () => {
-  const session = getSession();
   await signOutCognito();
   clearCognitoIdentity();
-  clearAccountPreferences(session);
   localStorage.removeItem("artizans.last_mode.v1");
   syncSessionFromExisting();
   showToast("Signed out and cleared.", "success");
