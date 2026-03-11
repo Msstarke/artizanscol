@@ -12,6 +12,7 @@ These rules are mandatory for all future changes in this repo.
 8. Do not force-push `main`; use normal push only.
 9. If a hotfix skips checks, add a follow-up commit that runs and documents checks.
 10. After push, confirm `git status` is clean and `git log -1` matches the task.
+11. After every push, check the relevant GitHub Actions deploy/test workflow for that commit; if it fails, inspect the failing step, fix the cause, commit the fix, and push again before considering the task complete.
 
 ## Standard Change Flow
 
@@ -20,4 +21,5 @@ These rules are mandatory for all future changes in this repo.
 3. `git add -A`
 4. `git commit -m "type: summary"`
 5. `git push origin main`
-
+6. Check the workflow status for the pushed commit in GitHub Actions.
+7. If the deploy/test workflow failed, review the failing job/step, fix it, commit, and push again.
