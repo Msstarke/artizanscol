@@ -99,11 +99,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Resolve CloudFormation package bucket (dev)
+        id: package_bucket_dev
+        run: |
+          PACKAGE_BUCKET="${{ secrets.AWS_CLOUDFORMATION_PACKAGE_BUCKET_DEV }}"
+          if [ -z "$PACKAGE_BUCKET" ]; then
+            PACKAGE_BUCKET="${{ secrets.ARTIZANS_BUCKET }}"
+          fi
+
+          if [ -z "$PACKAGE_BUCKET" ]; then
+            PACKAGE_BUCKET=$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+              --output text 2>/dev/null || true)
+          fi
+
+          if [ -z "$PACKAGE_BUCKET" ] || [ "$PACKAGE_BUCKET" = "None" ]; then
+            echo "Could not resolve CloudFormation package bucket."
+            echo "Set AWS_CLOUDFORMATION_PACKAGE_BUCKET_DEV or ARTIZANS_BUCKET, or ensure stack output BucketName exists."
+            exit 1
+          fi
+
+          echo "package_bucket=$PACKAGE_BUCKET" >> "$GITHUB_OUTPUT"
+
       - name: Deploy CloudFormation stack (dev)
         run: |
           aws cloudformation deploy \
             --stack-name "${STACK_NAME}" \
             --template-file aws/cloudformation/artizans-aws-stack.yaml \
+            --s3-bucket "${{ steps.package_bucket_dev.outputs.package_bucket }}" \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
@@ -195,11 +219,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Resolve CloudFormation package bucket (prod)
+        id: package_bucket_prod
+        run: |
+          PACKAGE_BUCKET="${{ secrets.AWS_CLOUDFORMATION_PACKAGE_BUCKET_PROD }}"
+          if [ -z "$PACKAGE_BUCKET" ]; then
+            PACKAGE_BUCKET="${{ secrets.ARTIZANS_BUCKET }}"
+          fi
+
+          if [ -z "$PACKAGE_BUCKET" ]; then
+            PACKAGE_BUCKET=$(aws cloudformation describe-stacks \
+              --stack-name "${STACK_NAME}" \
+              --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+              --output text 2>/dev/null || true)
+          fi
+
+          if [ -z "$PACKAGE_BUCKET" ] || [ "$PACKAGE_BUCKET" = "None" ]; then
+            echo "Could not resolve CloudFormation package bucket."
+            echo "Set AWS_CLOUDFORMATION_PACKAGE_BUCKET_PROD or ARTIZANS_BUCKET, or ensure stack output BucketName exists."
+            exit 1
+          fi
+
+          echo "package_bucket=$PACKAGE_BUCKET" >> "$GITHUB_OUTPUT"
+
       - name: Deploy CloudFormation stack (prod)
         run: |
           aws cloudformation deploy \
             --stack-name "${STACK_NAME}" \
             --template-file aws/cloudformation/artizans-aws-stack.yaml \
+            --s3-bucket "${{ steps.package_bucket_prod.outputs.package_bucket }}" \
             --capabilities CAPABILITY_NAMED_IAM \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
