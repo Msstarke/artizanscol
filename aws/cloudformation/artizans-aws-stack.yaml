@@ -283,25 +283,6 @@ Resources:
           return request;
         }
 
-  ArtizansNoStoreCachePolicy:
-    Type: AWS::CloudFront::CachePolicy
-    Properties:
-      CachePolicyConfig:
-        Name: !Sub '${ProjectName}-${EnvironmentName}-no-store-cache'
-        Comment: Disables caching for sensitive auth resources
-        MinTTL: 0
-        DefaultTTL: 0
-        MaxTTL: 0
-        ParametersInCacheKeyAndForwardedToOrigin:
-          EnableAcceptEncodingBrotli: true
-          EnableAcceptEncodingGzip: true
-          CookiesConfig:
-            CookieBehavior: none
-          HeadersConfig:
-            HeaderBehavior: none
-          QueryStringsConfig:
-            QueryStringBehavior: none
-
   ArtizansSensitiveNoStoreHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
     Properties:
@@ -396,7 +377,7 @@ Resources:
             AllowedMethods: [GET, HEAD]
             CachedMethods: [GET, HEAD]
             Compress: true
-            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
             FunctionAssociations: !If
               - EnableCanonicalDomainRedirect
@@ -409,7 +390,7 @@ Resources:
             AllowedMethods: [GET, HEAD]
             CachedMethods: [GET, HEAD]
             Compress: true
-            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
             FunctionAssociations: !If
               - EnableCanonicalDomainRedirect
@@ -422,7 +403,7 @@ Resources:
             AllowedMethods: [GET, HEAD]
             CachedMethods: [GET, HEAD]
             Compress: true
-            CachePolicyId: !Ref ArtizansNoStoreCachePolicy
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
             ResponseHeadersPolicyId: !Ref ArtizansSensitiveNoStoreHeadersPolicy
             FunctionAssociations: !If
               - EnableCanonicalDomainRedirect

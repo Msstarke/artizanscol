@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-11
+- Replaced the invalid custom CloudFront no-store cache policy with AWS’s managed caching-disabled policy for auth-sensitive assets so the backend CloudFormation stack can deploy successfully.
 - Added CloudFormation failure diagnostics to the backend deploy workflow so failed stack updates now print recent failed/rollback events directly in GitHub Actions logs and summaries.
 - Fixed backend deployment workflow packaging for large CloudFormation templates by resolving an S3 package bucket and passing `--s3-bucket` during stack deploy in GitHub Actions.
 - Fixed the backend CI test command to use a portable test file glob so GitHub Actions can run the compiled Node test suite instead of failing on a literal `**` path.
