@@ -136,6 +136,16 @@ jobs:
               EnableServerlessApi=true \
               EnableApiWaf=true
 
+      - name: Dump CloudFormation failure events (dev)
+        if: failure()
+        run: |
+          echo "### Recent failed CloudFormation events (${TARGET_ENV})" >> "$GITHUB_STEP_SUMMARY"
+          aws cloudformation describe-stack-events \
+            --stack-name "${STACK_NAME}" \
+            --query "StackEvents[?contains(ResourceStatus, 'FAILED') || contains(ResourceStatus, 'ROLLBACK')].[Timestamp,LogicalResourceId,ResourceType,ResourceStatus,ResourceStatusReason]" \
+            --output table | tee /tmp/cfn-events-dev.txt
+          cat /tmp/cfn-events-dev.txt >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build Lambda package
         run: ./backend/scripts/build-lambda-package.sh
 
@@ -255,6 +265,16 @@ jobs:
               EnvironmentName="${TARGET_ENV}" \
               EnableServerlessApi=true \
               EnableApiWaf=true
+
+      - name: Dump CloudFormation failure events (prod)
+        if: failure()
+        run: |
+          echo "### Recent failed CloudFormation events (${TARGET_ENV})" >> "$GITHUB_STEP_SUMMARY"
+          aws cloudformation describe-stack-events \
+            --stack-name "${STACK_NAME}" \
+            --query "StackEvents[?contains(ResourceStatus, 'FAILED') || contains(ResourceStatus, 'ROLLBACK')].[Timestamp,LogicalResourceId,ResourceType,ResourceStatus,ResourceStatusReason]" \
+            --output table | tee /tmp/cfn-events-prod.txt
+          cat /tmp/cfn-events-prod.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build Lambda package
         run: ./backend/scripts/build-lambda-package.sh
