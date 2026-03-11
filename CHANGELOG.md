@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-11
+- Updated static deployment to inject the stack `ApiCustomDomainUrl`/`ApiBaseUrl` into the published frontend bundle so production clients can call API Gateway directly even when CloudFront `/v1/*` routing is not yet correct, and widened CSP `connect-src` to allow the execute-api origin.
 - Hardened the frontend API client so `/v1/*` calls now reject non-JSON or invalid API envelopes instead of silently accepting homepage HTML as a successful response, preventing account settings forms from appearing to save and then resetting when the API route is misconfigured.
 - Switched the app from browser-authoritative business data to server-backed `/v1/*` persistence: public artists now hydrate from the API only, account/profile/preferences/booking/message/save actions write through backend endpoints first, and stale session/local DB cache persistence is disabled.
 - Added runtime DynamoDB-backed repository implementations for public, user, artist, messaging, admin, payments, and role assignment domains, and rewired deployed Lambda handlers to use those runtime repositories instead of no-op placeholders.

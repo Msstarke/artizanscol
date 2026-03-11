@@ -124,19 +124,31 @@ jobs:
         run: |
           BUCKET="${{ secrets.ARTIZANS_BUCKET }}"
           DIST_ID="${{ secrets.ARTIZANS_DISTRIBUTION_ID }}"
+          API_BASE_URL="${{ secrets.ARTIZANS_API_BASE_URL }}"
           STACK="${{ secrets.AWS_STACK_NAME || env.STACK_NAME }}"
 
-          if [ -z "$BUCKET" ] || [ -z "$DIST_ID" ]; then
+          if [ -z "$BUCKET" ] || [ -z "$DIST_ID" ] || [ -z "$API_BASE_URL" ]; then
             echo "Resolving deploy targets from stack: $STACK"
-            BUCKET=$(aws cloudformation describe-stacks \
+            STACK_OUTPUTS=$(aws cloudformation describe-stacks \
               --stack-name "$STACK" \
-              --query "Stacks[0].Outputs[?OutputKey=='BucketName'].OutputValue | [0]" \
+              --query "Stacks[0].Outputs[*].[OutputKey,OutputValue]" \
               --output text)
 
-            DIST_ID=$(aws cloudformation describe-stacks \
-              --stack-name "$STACK" \
-              --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue | [0]" \
-              --output text)
+            if [ -z "$BUCKET" ]; then
+              BUCKET=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="BucketName" { print $2; exit }')
+            fi
+
+            if [ -z "$DIST_ID" ]; then
+              DIST_ID=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="CloudFrontDistributionId" { print $2; exit }')
+            fi
+
+            if [ -z "$API_BASE_URL" ]; then
+              API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiCustomDomainUrl" { print $2; exit }')
+            fi
+
+            if [ -z "$API_BASE_URL" ]; then
+              API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiBaseUrl" { print $2; exit }')
+            fi
           fi
 
           if [ -z "$BUCKET" ] || [ "$BUCKET" = "None" ]; then
@@ -151,8 +163,41 @@ jobs:
             exit 1
           fi
 
+          if [ "$API_BASE_URL" = "None" ]; then
+            API_BASE_URL=""
+          fi
+
           echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
           echo "distribution_id=$DIST_ID" >> "$GITHUB_OUTPUT"
+          echo "api_base_url=$API_BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Inject API base URL into frontend bundle
+        if: ${{ steps.resolve.outputs.api_base_url != '' }}
+        env:
+          API_BASE_URL: ${{ steps.resolve.outputs.api_base_url }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          api_base_url = os.environ["API_BASE_URL"].rstrip("/")
+          target = Path("js/api-client.js")
+          source = target.read_text()
+          replacement = f"const STATIC_API_BASE_URL = {json.dumps(api_base_url)};"
+
+          if 'const STATIC_API_BASE_URL = "__ARTIZANS_API_BASE_URL__";' not in source:
+            raise SystemExit("Could not find STATIC_API_BASE_URL placeholder in js/api-client.js")
+
+          target.write_text(
+              source.replace(
+                  'const STATIC_API_BASE_URL = "__ARTIZANS_API_BASE_URL__";',
+                  replacement,
+                  1,
+              )
+          )
+          print(f"Injected API base URL: {api_base_url}")
+          PY
 
       - name: Deploy to S3
         run: |

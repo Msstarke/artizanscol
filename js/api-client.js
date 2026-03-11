@@ -1,7 +1,7 @@
 import { ensureCognitoSession, getCognitoAccessToken } from "./cognito-auth.js";
 
 const DEFAULT_RETRIES = 1;
-const STATIC_API_BASE_URL = "";
+const STATIC_API_BASE_URL = "__ARTIZANS_API_BASE_URL__";
 const API_BASE_META_NAME = "artizans-api-base-url";
 
 function joinUrl(base, path) {
@@ -20,7 +20,10 @@ function joinUrl(base, path) {
 export function getApiBaseUrl() {
   const metaValue =
     document.querySelector(`meta[name="${API_BASE_META_NAME}"]`)?.getAttribute("content") || "";
-  const base = String(metaValue || STATIC_API_BASE_URL || "").trim();
+  const injectedBase = STATIC_API_BASE_URL.includes("__ARTIZANS_API_BASE_URL__")
+    ? ""
+    : STATIC_API_BASE_URL;
+  const base = String(metaValue || injectedBase || "").trim();
   return base.replace(/\/+$/, "");
 }
 

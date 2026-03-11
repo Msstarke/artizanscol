@@ -97,12 +97,14 @@ Required GitHub repository secrets:
 Optional secrets:
 - `AWS_REGION` (defaults to `ap-southeast-2`)
 - `AWS_STACK_NAME` (defaults to `artizans-stack`)
+- `ARTIZANS_API_BASE_URL` (frontend override; otherwise resolves from stack output `ApiCustomDomainUrl` or `ApiBaseUrl`)
 
 Once secrets are set, every qualifying push triggers:
 1. Resolve `BucketName` and `CloudFrontDistributionId` from the stack.
-2. Wait for the backend workflow on the same `main` commit if one exists.
-3. `aws s3 sync` to the site bucket.
-4. CloudFront invalidation.
+2. Resolve `ApiCustomDomainUrl` or `ApiBaseUrl` from the stack when available and inject it into the deployed frontend bundle.
+3. Wait for the backend workflow on the same `main` commit if one exists.
+4. `aws s3 sync` to the site bucket.
+5. CloudFront invalidation.
 
 ### Option B: backend CI + deploy pipeline (dev/prod)
 This repo includes `.github/workflows/deploy-aws-backend.yml`:
