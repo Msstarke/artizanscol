@@ -185,6 +185,29 @@ jobs:
             echo "- ${function_name}: version ${version}" >> "$GITHUB_STEP_SUMMARY"
           done
 
+      - name: Resolve API smoke target (dev)
+        id: api_smoke_target_dev
+        run: |
+          STACK_OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name "${STACK_NAME}" \
+            --query "Stacks[0].Outputs[*].[OutputKey,OutputValue]" \
+            --output text)
+
+          API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiCustomDomainUrl" { print $2; exit }')
+          if [ -z "$API_BASE_URL" ] || [ "$API_BASE_URL" = "None" ]; then
+            API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiBaseUrl" { print $2; exit }')
+          fi
+
+          if [ -z "$API_BASE_URL" ] || [ "$API_BASE_URL" = "None" ]; then
+            echo "Could not resolve API smoke target from stack outputs." >&2
+            exit 1
+          fi
+
+          echo "api_base_url=$API_BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test deployed API (dev)
+        run: ./aws/scripts/api-smoke.sh "${{ steps.api_smoke_target_dev.outputs.api_base_url }}"
+
   deploy-prod:
     name: Deploy Backend (prod)
     needs: ci
@@ -314,3 +337,26 @@ jobs:
             aws lambda wait function-updated --function-name "${function_name}"
             echo "- ${function_name}: version ${version}" >> "$GITHUB_STEP_SUMMARY"
           done
+
+      - name: Resolve API smoke target (prod)
+        id: api_smoke_target_prod
+        run: |
+          STACK_OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name "${STACK_NAME}" \
+            --query "Stacks[0].Outputs[*].[OutputKey,OutputValue]" \
+            --output text)
+
+          API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiCustomDomainUrl" { print $2; exit }')
+          if [ -z "$API_BASE_URL" ] || [ "$API_BASE_URL" = "None" ]; then
+            API_BASE_URL=$(printf '%s\n' "$STACK_OUTPUTS" | awk '$1=="ApiBaseUrl" { print $2; exit }')
+          fi
+
+          if [ -z "$API_BASE_URL" ] || [ "$API_BASE_URL" = "None" ]; then
+            echo "Could not resolve API smoke target from stack outputs." >&2
+            exit 1
+          fi
+
+          echo "api_base_url=$API_BASE_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke test deployed API (prod)
+        run: ./aws/scripts/api-smoke.sh "${{ steps.api_smoke_target_prod.outputs.api_base_url }}"
