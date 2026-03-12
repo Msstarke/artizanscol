@@ -191,7 +191,7 @@ function updateExploreBookingCta(artists = db.artists) {
 
   const liveArtists = artists.length ? artists : getVisibleArtists(db);
   const firstArtist = liveArtists[0] || null;
-  exploreBookingCta.textContent = firstArtist ? "Open featured profile" : "Preview hiring flow";
+  exploreBookingCta.textContent = firstArtist ? "View featured profile" : "Preview hiring flow";
   exploreBookingCta.href = firstArtist ? `/artist-preview.html?id=${encodeURIComponent(firstArtist.id)}` : "/artist-preview.html";
 }
 
@@ -230,11 +230,11 @@ function render() {
           const preview = `/artist-preview.html?id=${encodedArtistId}`;
           const actionButtons = `
             <div class="form-actions">
-              <a class="btn btn-outline btn-small" href="${preview}">Preview</a>
+              <a class="btn btn-outline btn-small" href="${preview}">View profile</a>
               <button class="btn btn-ghost btn-small" type="button" data-save-artist="${encodedArtistId}">Save artist</button>
             </div>
           `;
-          return artistCardHTML(artist, { actionButtons });
+          return artistCardHTML(artist, { actionButtons, previewHref: preview });
         })
         .join("");
     }
@@ -251,7 +251,8 @@ function render() {
       resultSummary.textContent = "A narrow shortlist. Open profiles to compare fit before sending a brief.";
     } else {
       const verifiedCount = artists.filter((artist) => artist.verified).length;
-      resultSummary.textContent = `${verifiedCount} verified profile${verifiedCount === 1 ? "" : "s"} in this result set.`;
+      const pricedCount = artists.filter((artist) => Number(artist.priceFrom || 0) > 0).length;
+      resultSummary.textContent = `${verifiedCount} verified profile${verifiedCount === 1 ? "" : "s"} and ${pricedCount} with visible starting budgets.`;
     }
   }
 

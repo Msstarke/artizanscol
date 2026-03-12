@@ -10,6 +10,7 @@ const db = getDB();
 const visibleArtists = getVisibleArtists(db);
 const heroProofRow = byId("hero-proof-row");
 const heroSpotlight = byId("hero-spotlight");
+const profileStoryGrid = byId("profile-story-grid");
 
 const upcoming = [...visibleArtists]
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -23,7 +24,8 @@ if (upcomingRoot) {
         .map((artist) => {
           const href = `/artist-preview.html?id=${encodeURIComponent(String(artist.id || ""))}`;
           return artistCardHTML(artist, {
-            actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="${href}">Preview</a></div>`,
+            previewHref: href,
+            actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="${href}">View profile</a></div>`,
           });
         })
         .join("")
@@ -110,11 +112,13 @@ if (heroProofRow) {
 if (heroSpotlight) {
   const spotlightArtist = upcoming[0] || visibleArtists[0] || null;
   if (spotlightArtist) {
+    const spotlightImage = escapeHtml(String(spotlightArtist.portfolio?.[0]?.image || spotlightArtist.portfolio?.[0]?.imageUrl || ""));
     heroSpotlight.innerHTML = `
       <article class="spotlight-card">
         <p class="site-tag">Featured profile</p>
+        ${spotlightImage ? `<div class="spotlight-card-media"><img src="${spotlightImage}" alt="${escapeHtml(spotlightArtist.name)} work preview" /></div>` : ""}
         <h3>${escapeHtml(spotlightArtist.name)}</h3>
-        <p>${escapeHtml(spotlightArtist.category)} • ${escapeHtml(spotlightArtist.location || "Location pending")}</p>
+        <p>${escapeHtml(spotlightArtist.category || "Creative profile")} • ${escapeHtml(spotlightArtist.location || "Remote or flexible")}</p>
         <p class="muted">From ${escapeHtml(formatMoney(spotlightArtist.priceFrom || 0))} • ${escapeHtml(
           spotlightArtist.verified ? "Verified presentation" : "Profile under review",
         )}</p>
@@ -131,6 +135,35 @@ if (heroSpotlight) {
       </article>
     `;
   }
+}
+
+if (profileStoryGrid) {
+  const spotlightProfiles = visibleArtists.slice(0, 3);
+  profileStoryGrid.innerHTML = spotlightProfiles.length
+    ? spotlightProfiles
+        .map(
+          (artist) => `
+            <article class="site-card profile-story-card">
+              <p class="site-tag">${escapeHtml(artist.category || "Creative profile")}</p>
+              <h3>${escapeHtml(artist.name)}</h3>
+              <p>${escapeHtml(artist.bio || "Published profile with clear mediums, pricing signals, and client-ready availability.")}</p>
+              <div class="meta-row">
+                <span>${escapeHtml((artist.mediums || []).slice(0, 2).join(" • ") || "Creative practice")}</span>
+                <span>${escapeHtml(artist.location || "Remote or flexible")}</span>
+              </div>
+              <a class="btn btn-outline btn-small" href="/artist-preview.html?id=${encodeURIComponent(String(artist.id || ""))}">See profile</a>
+            </article>
+          `,
+        )
+        .join("")
+    : `
+        <article class="site-card profile-story-card">
+          <p class="site-tag">Published profiles</p>
+          <h3>Live profiles will appear here.</h3>
+          <p>Once an artist turns on their public profile, it will show up across the homepage, Explore, and the profile preview flow.</p>
+          <a class="btn btn-outline btn-small" href="/account-settings.html">Open account settings</a>
+        </article>
+      `;
 }
 
 if (db.system.maintenanceMode) {

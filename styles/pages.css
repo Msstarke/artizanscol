@@ -19,8 +19,11 @@
 }
 
 .artist-card-media {
+  display: block;
   position: relative;
   overflow: hidden;
+  text-decoration: none;
+  color: inherit;
 }
 
 .artist-card img {
@@ -121,6 +124,14 @@
   font-weight: 600;
 }
 
+.artist-card-support {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  font-size: 0.78rem;
+  color: rgba(24, 24, 24, 0.62);
+}
+
 .artist-card-footer {
   display: flex;
   justify-content: space-between;
@@ -185,6 +196,19 @@
 
 .spotlight-card h3 {
   font-size: 1.12rem;
+}
+
+.spotlight-card-media {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(24, 24, 24, 0.08);
+}
+
+.spotlight-card-media img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
 }
 
 .hero-proof-card {
@@ -266,6 +290,22 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.profile-story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-story-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.profile-story-card h3,
+.profile-story-card p {
+  margin: 0;
 }
 
 .journey-card {
@@ -487,6 +527,39 @@
   gap: 0.5rem;
 }
 
+.profile-hero-media {
+  margin-top: 0.35rem;
+}
+
+.profile-media-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(24, 24, 24, 0.08);
+  background: rgba(24, 24, 24, 0.03);
+}
+
+.profile-media-card img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-media-card-copy {
+  padding: 1rem 1rem 1rem 0;
+  display: grid;
+  align-content: center;
+  gap: 0.65rem;
+}
+
+.profile-media-card-copy h3,
+.profile-media-card-copy p {
+  margin: 0;
+}
+
 .profile-stat {
   display: grid;
   gap: 0.1rem;
@@ -553,7 +626,8 @@
   .artist-grid,
   .category-grid,
   .trust-strip,
-  .journey-grid {
+  .journey-grid,
+  .profile-story-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -572,7 +646,8 @@
   .artist-grid,
   .category-grid,
   .trust-strip,
-  .journey-grid {
+  .journey-grid,
+  .profile-story-grid {
     grid-template-columns: 1fr;
   }
 
@@ -585,12 +660,22 @@
 
   .profile-card-head,
   .results-toolbar-head,
-  .browse-hero {
+  .browse-hero,
+  .profile-media-card {
     align-items: start;
   }
 
   .artist-card img {
     height: 200px;
+  }
+
+  .profile-media-card {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .profile-media-card-copy {
+    padding: 1rem;
   }
 }
 

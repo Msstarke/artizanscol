@@ -5,6 +5,7 @@ import {
   getDB,
   hydrateDB,
   isArtistProfileLive,
+  getVisibleArtists,
   sendMessage,
   toggleSaveArtist,
 } from "./store.js";
@@ -13,6 +14,7 @@ import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, formatMoney, getQueryParam, showToast } from "./utils.js";
+import { artistCardHTML } from "./renderers.js";
 
 initSharedPage();
 await hydrateDB();
@@ -35,11 +37,13 @@ const artistStatusLabel = byId("artist-status-label");
 const artistBio = byId("artist-bio");
 const artistTags = byId("artist-tags");
 const artistMeta = byId("artist-meta");
+const profileHeroMedia = byId("profile-hero-media");
 const artistProofGrid = byId("artist-proof-grid");
 const portfolioGrid = byId("portfolio-grid");
 const servicesList = byId("services-list");
 const reviewsList = byId("reviews-list");
 const availabilityList = byId("availability-list");
+const relatedProfiles = byId("related-profiles");
 const saveArtistBtn = byId("save-artist-btn");
 const contactArtistBtn = byId("contact-artist-btn");
 const openBookingBtn = byId("open-booking-btn");
@@ -196,6 +200,10 @@ function renderUnavailableProfile(title, message) {
     artistMeta.replaceChildren(text);
   }
 
+  if (profileHeroMedia) {
+    profileHeroMedia.replaceChildren();
+  }
+
   if (artistProofGrid) {
     artistProofGrid.replaceChildren();
   }
@@ -212,6 +220,10 @@ function renderUnavailableProfile(title, message) {
   });
 
   setBookingFormEnabled(false);
+
+  if (relatedProfiles) {
+    setEmptyCollection(relatedProfiles, "More live profiles will appear here once artists publish them.");
+  }
 }
 
 function renderArtistDetails() {
@@ -266,9 +278,24 @@ function renderArtistDetails() {
       Number(artist.priceFrom || 0) > 0 ? `Starting budgets from ${formatMoney(artist.priceFrom || 0)}` : "Budget shaped around the brief",
       `Rating ${Number(artist.rating || 0).toFixed(1)}`,
       `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`,
+      `${Number(artist.completedBookings || 0)} completed booking${Number(artist.completedBookings || 0) === 1 ? "" : "s"}`,
     ]
       .map((item) => `<span>${escapeHtml(item)}</span>`)
       .join("");
+  }
+
+  if (profileHeroMedia) {
+    const leadImage = safeImageUrl(artist.portfolio?.[0]?.image || artist.portfolio?.[0]?.imageUrl);
+    profileHeroMedia.innerHTML = `
+      <article class="profile-media-card">
+        <img src="${escapeHtml(leadImage)}" alt="${escapeHtml(artist.name)} portfolio highlight" />
+        <div class="profile-media-card-copy">
+          <p class="site-tag">Profile highlight</p>
+          <h3>${escapeHtml(artist.portfolio?.[0]?.title || artist.category || "Published profile")}</h3>
+          <p>${escapeHtml(artist.bio || "Published profile with live availability, pricing signals, and direct booking access.")}</p>
+        </div>
+      </article>
+    `;
   }
 
   if (artistProofGrid) {
@@ -284,6 +311,10 @@ function renderArtistDetails() {
       {
         title: `${Number(artist.popularity || artist.profileViews || 0)}`,
         label: "interest signals",
+      },
+      {
+        title: Number(artist.priceFrom || 0) > 0 ? formatMoney(artist.priceFrom || 0) : "Flexible",
+        label: "starting budget",
       },
     ]
       .map(
@@ -335,6 +366,10 @@ function renderArtistDetails() {
         title: "Availability",
         detail: artist.availability === "limited" ? "Limited availability" : "Open for briefs",
       },
+      {
+        title: "Best fit for",
+        detail: artist.bio || "Clients looking for a clear creative practice and direct booking flow.",
+      },
     ];
 
     servicesList.innerHTML = focusItems
@@ -377,6 +412,23 @@ function renderArtistDetails() {
         </li>`;
       })
       .join("");
+  }
+
+  if (relatedProfiles) {
+    const items = getVisibleArtists(db)
+      .filter((item) => item.id !== artist.id)
+      .slice(0, 3);
+
+    relatedProfiles.classList.toggle("has-empty-state", !items.length);
+    relatedProfiles.innerHTML = items.length
+      ? items
+          .map((item) =>
+            artistCardHTML(item, {
+              previewHref: `/artist-preview.html?id=${encodeURIComponent(String(item.id || ""))}`,
+              actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="/artist-preview.html?id=${encodeURIComponent(String(item.id || ""))}">View profile</a></div>`,
+            }))
+          .join("")
+      : `<div class="empty-state">No other live profiles are available yet.</div>`;
   }
 
   if (bookingFocus instanceof HTMLInputElement) {

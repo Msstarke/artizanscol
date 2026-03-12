@@ -10,9 +10,10 @@ const FALLBACK_PORTFOLIO_IMAGE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='400' viewBox='0 0 600 400'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f6efe4'/%3E%3Cstop offset='1' stop-color='%23e3d6c2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='400' fill='url(%23g)'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='32' font-family='sans-serif' fill='%235a4937'%3EPortfolio%3C/text%3E%3C/svg%3E";
 
 export function artistCardHTML(artist, options = {}) {
+  const previewHref = options.previewHref || `/artist-preview.html?id=${encodeURIComponent(String(artist.id || ""))}`;
   const verifiedLabel = artist.verified ? "Verified" : "Pending verification";
   const actionButtons = options.actionButtons || "";
-  const imageSrc = sanitizeImageUrl(artist.portfolio[0]?.image, FALLBACK_PORTFOLIO_IMAGE);
+  const imageSrc = sanitizeImageUrl(artist.portfolio[0]?.image || artist.portfolio[0]?.imageUrl, FALLBACK_PORTFOLIO_IMAGE);
   const availabilityLabel = artist.availability === "limited" ? "Limited availability" : "Open for briefs";
   const mediaSummary = Array.isArray(artist.mediums) && artist.mediums.length
     ? artist.mediums.slice(0, 2).join(" • ")
@@ -21,24 +22,29 @@ export function artistCardHTML(artist, options = {}) {
   const reviewLabel = Number(artist.reviewCount || 0) > 0 ? `${artist.reviewCount} reviews` : "New profile";
   const profileMomentum = Number(artist.popularity || 0) > 0 ? `${artist.popularity} interest` : "Shortlist ready";
   const budgetLabel = Number(artist.priceFrom || 0) > 0 ? `Starts around ${formatMoney(artist.priceFrom)}` : "Budget on request";
+  const profileAgeLabel = Number(artist.completedBookings || 0) > 0
+    ? `${artist.completedBookings} completed booking${artist.completedBookings === 1 ? "" : "s"}`
+    : "Ready for first booking";
+  const locationLabel = String(artist.location || "").trim() || "Remote or flexible";
+  const profileCopy = bioSummary || `${mediaSummary}. ${budgetLabel}.`;
   return `
     <article class="artist-card">
-      <div class="artist-card-media">
+      <a class="artist-card-media" href="${escapeHtml(previewHref)}" aria-label="Open ${escapeHtml(artist.name)} profile">
         <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
         <div class="artist-card-badges">
           <span class="artist-card-badge artist-card-badge-${artist.verified ? "verified" : "pending"}">${escapeHtml(verifiedLabel)}</span>
           <span class="artist-card-badge">${escapeHtml(availabilityLabel)}</span>
         </div>
-      </div>
+      </a>
       <div class="artist-card-body">
         <div class="artist-card-heading">
           <div>
             <h3>${escapeHtml(artist.name)}</h3>
-            <p class="artist-card-subtitle">${escapeHtml(artist.category)} • ${escapeHtml(artist.location)}</p>
+            <p class="artist-card-subtitle">${escapeHtml(artist.category || "Creative profile")} • ${escapeHtml(locationLabel)}</p>
           </div>
           <span class="artist-card-rating">${escapeHtml(String(Number(artist.rating || 0).toFixed(1)))}</span>
         </div>
-        <p class="artist-card-copy">${escapeHtml(bioSummary || mediaSummary)}</p>
+        <p class="artist-card-copy">${escapeHtml(profileCopy)}</p>
         <div class="tag-row">
           ${Array.isArray(artist.mediums)
             ? artist.mediums
@@ -52,8 +58,12 @@ export function artistCardHTML(artist, options = {}) {
           <span>${escapeHtml(reviewLabel)}</span>
           <span>${escapeHtml(profileMomentum)}</span>
         </div>
+        <div class="artist-card-support">
+          <span>${escapeHtml(profileAgeLabel)}</span>
+          <span>${escapeHtml(artist.handle ? `@${artist.handle}` : "Direct enquiries enabled")}</span>
+        </div>
         <div class="artist-card-footer">
-          <small class="muted">${escapeHtml(artist.location || "Location not set")}</small>
+          <small class="muted">${escapeHtml(locationLabel)}</small>
           ${actionButtons}
         </div>
       </div>
