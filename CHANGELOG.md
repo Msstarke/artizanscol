@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Reworked `/account-settings.html` into a guided account setup flow for incomplete accounts and a calmer one-section-at-a-time settings shell for completed accounts, wiring setup progress through `/v1/me/setup` and `/v1/me/setup/complete` and updating the account frontend/store to treat setup/preferences/profile data as server-backed state instead of an immediate wall of settings panels.
 - Simplified `FEATURE_FIX_LIST.md` from a granular checklist into a higher-level feature-area backlog after deciding the repo should track grouped product buckets instead of individual fix tasks.
 - Added `FEATURE_FIX_LIST.md` as a prioritized repo backlog covering the remaining product, backend, auth, trust, accessibility, and deployment gaps still worth fixing after the current production cutover work.
 - Hardened the public auth/profile flow: password reset now returns generic success for user-not-found Cognito cases instead of leaking raw account-existence errors, sign-out now clears all auth/reset form fields, self-booking is blocked both in the public profile UI and server-side booking creation, and public artist pages/cards no longer expose internal review wording, placeholder bios, or zero-value rating/location/completed-booking noise.

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
-    <title>ARTIZANS.COLLECTIVE | Workspace</title>
+    <title>ARTIZANS.COLLECTIVE | Account Access</title>
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <link rel="canonical" href="https://www.artizanscollective.com/account-settings.html" />
     <link rel="stylesheet" href="/styles/base.css" />
@@ -30,8 +30,8 @@
     <main class="page-shell">
       <section class="container content-section account-access-wrap">
         <article class="site-card account-access-card">
-          <p class="site-tag">Workspace Access</p>
-          <h1 class="section-title">Log in to your workspace</h1>
+          <p class="site-tag">Account access</p>
+          <h1 class="section-title">Log in to your account</h1>
           <p class="section-copy" id="auth-status">Log in to continue.</p>
 
           <div class="account-session-meta">
@@ -137,113 +137,136 @@
           </section>
 
           <section data-auth-view="signed_in" hidden>
-            <h2 class="section-title" style="font-size:1.2rem;">Unified workspace</h2>
-            <p class="section-copy">Manage hiring activity and your public artist profile in one place.</p>
-            <div class="form-actions">
-              <a class="btn btn-primary" href="/explore.html">Explore artists</a>
-              <button class="btn btn-outline" id="workspace-refresh-btn" type="button">Refresh workspace</button>
-            </div>
+            <div class="setup-shell" id="setup-shell" hidden>
+              <div class="setup-head">
+                <p class="site-tag">Account setup</p>
+                <h2 class="section-title" style="font-size:1.45rem;">Let’s get your account ready</h2>
+                <p class="section-copy">You can change all of this later.</p>
+              </div>
 
-            <div class="account-settings-panels workspace-panels">
-              <section class="account-panel">
-                <p class="site-tag">Overview</p>
-                <h3>Activity snapshot</h3>
-                <div class="account-mini-stats workspace-mini-stats">
-                  <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
-                  <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
-                  <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
-                  <article class="kpi"><small>Artist profile</small><strong id="stat-artist-profile">Off</strong></article>
-                  <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
+              <div class="setup-progress-shell">
+                <div class="setup-progress-meta">
+                  <strong id="setup-progress-title">Welcome</strong>
+                  <span id="setup-progress-label">Step 1 of 5</span>
+                </div>
+                <div class="setup-progress-bar" aria-hidden="true"><span id="setup-progress-bar"></span></div>
+              </div>
+
+              <section class="setup-step" data-setup-step="welcome">
+                <div class="setup-step-copy">
+                  <h3>Start here</h3>
+                  <p>Setup only takes a minute and helps shape your account for how you want to use ARTIZANS.</p>
+                </div>
+                <ul class="feature-list-tight">
+                  <li>Add your core account details</li>
+                  <li>Choose update and alert preferences</li>
+                  <li>Optionally publish an artist profile</li>
+                </ul>
+                <div class="form-actions">
+                  <button class="btn btn-primary" id="setup-welcome-next" type="button">Continue</button>
                 </div>
               </section>
 
-              <section class="account-panel">
-                <p class="site-tag">Profile</p>
-                <h3>Personal details</h3>
-                <form id="account-profile-form" class="form-grid">
+              <section class="setup-step" data-setup-step="profile" hidden>
+                <div class="setup-step-copy">
+                  <h3>Your details</h3>
+                  <p>This is the basic account info your workspace uses.</p>
+                </div>
+                <form id="setup-profile-form" class="form-grid">
                   <label>
-                    Display name
-                    <input id="account-name" type="text" maxlength="80" />
+                    Name
+                    <input id="setup-name" type="text" maxlength="80" required />
                   </label>
                   <label>
                     Location
-                    <input id="account-location" type="text" maxlength="80" placeholder="City, country" />
+                    <input id="setup-location" type="text" maxlength="80" placeholder="City, country" />
                   </label>
                   <label>
-                    About
-                    <textarea id="account-bio" maxlength="280" placeholder="Short profile bio"></textarea>
+                    Bio
+                    <textarea id="setup-bio" maxlength="280" placeholder="Short introduction"></textarea>
                   </label>
                   <div class="form-actions">
-                    <button class="btn btn-outline btn-small" type="submit">Save profile</button>
+                    <button class="btn btn-outline" id="setup-profile-back" type="button">Back</button>
+                    <button class="btn btn-primary" type="submit">Save and continue</button>
                   </div>
                 </form>
               </section>
 
-              <section class="account-panel">
-                <p class="site-tag">Preferences</p>
-                <h3>Notifications</h3>
-                <form id="account-preferences-form" class="form-grid">
+              <section class="setup-step" data-setup-step="preferences" hidden>
+                <div class="setup-step-copy">
+                  <h3>Updates and alerts</h3>
+                  <p>Choose what you want to hear about. You can change these later.</p>
+                </div>
+                <form id="setup-preferences-form" class="form-grid">
                   <label class="checkbox-row">
-                    <input id="pref-booking-updates" type="checkbox" />
-                    Booking status updates
+                    <input id="setup-pref-booking-updates" type="checkbox" />
+                    Booking updates
                   </label>
                   <label class="checkbox-row">
-                    <input id="pref-message-alerts" type="checkbox" />
+                    <input id="setup-pref-message-alerts" type="checkbox" />
                     Message alerts
                   </label>
                   <label class="checkbox-row">
-                    <input id="pref-marketing-emails" type="checkbox" />
-                    Product updates and tips
+                    <input id="setup-pref-marketing-emails" type="checkbox" />
+                    Product emails
+                  </label>
+                  <label class="checkbox-row">
+                    <input id="setup-pref-browser-notifications" type="checkbox" />
+                    Browser alerts on this device
                   </label>
                   <div class="form-actions">
-                    <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
-                    <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Enable browser alerts</button>
+                    <button class="btn btn-outline" id="setup-preferences-back" type="button">Back</button>
+                    <button class="btn btn-primary" type="submit">Save and continue</button>
                   </div>
                 </form>
               </section>
 
-              <section class="account-panel">
-                <p class="site-tag">Saved artists</p>
-                <h3>Saved list</h3>
-                <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
-                <ul class="collection" id="workspace-saved-artists"></ul>
-                <div class="form-actions">
-                  <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+              <section class="setup-step" data-setup-step="artist_prompt" hidden>
+                <div class="setup-step-copy">
+                  <h3>Artist profile</h3>
+                  <p>Do you want to publish an artist profile so clients can find you in Explore?</p>
                 </div>
+                <form id="setup-artist-choice-form" class="form-grid">
+                  <div class="choice-grid">
+                    <label class="choice-card">
+                      <input id="setup-artist-choice-no" name="setup-artist-choice" type="radio" value="no" />
+                      <strong>Not now</strong>
+                      <span>Finish your account first and add an artist profile later.</span>
+                    </label>
+                    <label class="choice-card">
+                      <input id="setup-artist-choice-yes" name="setup-artist-choice" type="radio" value="yes" />
+                      <strong>Yes, set it up</strong>
+                      <span>Create your public artist profile during setup.</span>
+                    </label>
+                  </div>
+                  <div class="form-actions">
+                    <button class="btn btn-outline" id="setup-artist-choice-back" type="button">Back</button>
+                    <button class="btn btn-primary" type="submit">Continue</button>
+                  </div>
+                </form>
               </section>
 
-              <section class="account-panel">
-                <p class="site-tag">Bookings</p>
-                <h3>Bookings board</h3>
-                <p class="muted" id="workspace-bookings-empty">No bookings yet.</p>
-                <ul class="collection" id="workspace-bookings-list"></ul>
-              </section>
-
-              <section class="account-panel">
-                <p class="site-tag">Artist account</p>
-                <h3>Public profile settings</h3>
-                <div class="artist-account-state" id="workspace-artist-state" data-visibility="off">
-                  <strong id="workspace-artist-visibility-label">Artist account is off</strong>
-                  <p class="muted" id="workspace-artist-visibility-copy">
-                    Your profile is hidden from Explore and booking until you turn the artist account on.
-                  </p>
+              <section class="setup-step" data-setup-step="artist_profile" hidden>
+                <div class="setup-step-copy">
+                  <h3>Artist details</h3>
+                  <p>Set up the basics clients need before they can discover and book your profile.</p>
                 </div>
-                <form id="workspace-artist-form" class="form-grid">
+                <form id="setup-artist-form" class="form-grid">
                   <label>
                     What you do
                     <input
-                      id="workspace-artist-category"
+                      id="setup-artist-category"
                       type="text"
                       maxlength="80"
-                      list="workspace-artist-category-options"
+                      list="setup-artist-category-options"
                       placeholder="Illustration, branding, photography"
                     />
-                    <datalist id="workspace-artist-category-options"></datalist>
+                    <datalist id="setup-artist-category-options"></datalist>
                   </label>
                   <label>
                     Mediums
                     <input
-                      id="workspace-artist-mediums"
+                      id="setup-artist-mediums"
                       type="text"
                       maxlength="140"
                       placeholder="Illustration, branding, editorial"
@@ -252,75 +275,266 @@
                   <div class="form-row">
                     <label>
                       Starting budget (AUD)
-                      <input id="workspace-artist-price" type="number" min="0" step="1" />
+                      <input id="setup-artist-price" type="number" min="0" step="1" />
                     </label>
                     <label>
                       Availability
-                      <select id="workspace-artist-availability">
+                      <select id="setup-artist-availability">
                         <option value="open">Open</option>
                         <option value="limited">Limited</option>
                       </select>
                     </label>
                   </div>
+                  <label class="checkbox-row">
+                    <input id="setup-artist-show-profile" type="checkbox" />
+                    Show profile when setup finishes
+                  </label>
                   <div class="form-actions">
-                    <button class="btn btn-outline btn-small" type="submit">Save artist profile</button>
-                    <button class="btn btn-ghost btn-small" id="toggle-artist-account" type="button">Show profile</button>
-                    <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview profile</a>
+                    <button class="btn btn-outline" id="setup-artist-back" type="button">Back</button>
+                    <button class="btn btn-primary" type="submit">Save and continue</button>
                   </div>
                 </form>
               </section>
 
-              <section class="account-panel">
-                <p class="site-tag">Messages</p>
-                <h3>Inbox and replies</h3>
-                <form id="workspace-message-form" class="form-grid">
-                  <label>
-                    Booking thread
-                    <select id="workspace-message-booking"></select>
-                  </label>
-                  <label>
-                    Message
-                    <textarea id="workspace-message-body" maxlength="600" placeholder="Write your message"></textarea>
-                  </label>
-                  <div class="form-actions">
-                    <button class="btn btn-outline btn-small" type="submit">Send message</button>
-                  </div>
-                </form>
-                <p class="muted" id="workspace-messages-empty">No messages yet.</p>
-                <ul class="collection" id="workspace-messages-list"></ul>
-              </section>
-
-              <section class="account-panel">
-                <p class="site-tag">Notifications</p>
-                <h3>Recent updates</h3>
-                <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
-                <ul class="collection" id="workspace-notifications-list"></ul>
-                <div class="form-actions">
-                  <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
+              <section class="setup-step" data-setup-step="review" hidden>
+                <div class="setup-step-copy">
+                  <h3>Review and finish</h3>
+                  <p>Check the account basics below, then finish setup.</p>
                 </div>
-              </section>
-
-              <section class="account-panel">
-                <p class="site-tag">Data controls</p>
-                <h3>Downloads and security</h3>
-                <p class="muted">Manage account exports and password access.</p>
+                <div class="review-grid">
+                  <article class="review-card">
+                    <small>Profile</small>
+                    <strong id="setup-review-profile-title">-</strong>
+                    <p id="setup-review-profile-copy">-</p>
+                  </article>
+                  <article class="review-card">
+                    <small>Alerts</small>
+                    <strong id="setup-review-preferences-title">-</strong>
+                    <p id="setup-review-preferences-copy">-</p>
+                  </article>
+                  <article class="review-card">
+                    <small>Artist profile</small>
+                    <strong id="setup-review-artist-title">-</strong>
+                    <p id="setup-review-artist-copy">-</p>
+                  </article>
+                </div>
                 <div class="form-actions">
-                  <button class="btn btn-outline btn-small" id="export-account-data" type="button">Download my data</button>
-                  <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
+                  <button class="btn btn-outline" id="setup-review-back" type="button">Back</button>
+                  <button class="btn btn-primary" id="setup-finish" type="button">Finish setup</button>
                 </div>
               </section>
             </div>
-          </section>
 
-          <div class="account-bottom-actions">
-            <button class="btn btn-outline btn-small" id="auth-signout" type="button">Sign out</button>
-            <button class="btn btn-ghost btn-small" id="full-signout-btn" type="button">Sign out and clear account</button>
-          </div>
+            <div class="settings-shell" id="settings-shell" hidden>
+              <div class="settings-shell-head">
+                <div>
+                  <p class="site-tag">Account settings</p>
+                  <h2 class="section-title" style="font-size:1.35rem;">Your account</h2>
+                  <p class="section-copy">Manage one part of your account at a time.</p>
+                </div>
+                <div class="form-actions">
+                  <a class="btn btn-primary" href="/explore.html">Explore artists</a>
+                  <button class="btn btn-outline" id="workspace-refresh-btn" type="button">Refresh</button>
+                </div>
+              </div>
+
+              <div class="settings-layout">
+                <nav class="settings-nav" aria-label="Account sections">
+                  <button class="settings-nav-button" data-settings-section-btn="overview" type="button">Overview</button>
+                  <button class="settings-nav-button" data-settings-section-btn="profile" type="button">Profile</button>
+                  <button class="settings-nav-button" data-settings-section-btn="alerts" type="button">Alerts</button>
+                  <button class="settings-nav-button" data-settings-section-btn="artist" type="button">Artist profile</button>
+                  <button class="settings-nav-button" data-settings-section-btn="saved" type="button">Saved artists</button>
+                  <button class="settings-nav-button" data-settings-section-btn="bookings" type="button">Bookings</button>
+                  <button class="settings-nav-button" data-settings-section-btn="messages" type="button">Messages</button>
+                  <button class="settings-nav-button" data-settings-section-btn="notifications" type="button">Notifications</button>
+                  <button class="settings-nav-button" data-settings-section-btn="data" type="button">Data controls</button>
+                </nav>
+
+                <div class="settings-content">
+                  <section class="account-panel settings-section" data-settings-section="overview">
+                    <p class="site-tag">Overview</p>
+                    <h3>Activity snapshot</h3>
+                    <div class="account-mini-stats workspace-mini-stats">
+                      <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
+                      <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
+                      <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
+                      <article class="kpi"><small>Artist profile</small><strong id="stat-artist-profile">Off</strong></article>
+                      <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
+                    </div>
+                    <div class="form-actions">
+                      <button class="btn btn-outline btn-small" data-settings-shortcut="profile" type="button">Edit profile</button>
+                      <button class="btn btn-outline btn-small" data-settings-shortcut="alerts" type="button">Alerts</button>
+                      <button class="btn btn-outline btn-small" data-settings-shortcut="artist" type="button">Artist profile</button>
+                    </div>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="profile" hidden>
+                    <p class="site-tag">Profile</p>
+                    <h3>Personal details</h3>
+                    <form id="account-profile-form" class="form-grid">
+                      <label>
+                        Display name
+                        <input id="account-name" type="text" maxlength="80" />
+                      </label>
+                      <label>
+                        Location
+                        <input id="account-location" type="text" maxlength="80" placeholder="City, country" />
+                      </label>
+                      <label>
+                        About
+                        <textarea id="account-bio" maxlength="280" placeholder="Short profile bio"></textarea>
+                      </label>
+                      <div class="form-actions">
+                        <button class="btn btn-outline btn-small" type="submit">Save profile</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="alerts" hidden>
+                    <p class="site-tag">Alerts</p>
+                    <h3>Notifications</h3>
+                    <form id="account-preferences-form" class="form-grid">
+                      <label class="checkbox-row">
+                        <input id="pref-booking-updates" type="checkbox" />
+                        Booking status updates
+                      </label>
+                      <label class="checkbox-row">
+                        <input id="pref-message-alerts" type="checkbox" />
+                        Message alerts
+                      </label>
+                      <label class="checkbox-row">
+                        <input id="pref-marketing-emails" type="checkbox" />
+                        Product updates and tips
+                      </label>
+                      <div class="form-actions">
+                        <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
+                        <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Enable browser alerts</button>
+                      </div>
+                    </form>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="artist" hidden>
+                    <p class="site-tag">Artist account</p>
+                    <h3>Public profile settings</h3>
+                    <div class="artist-account-state" id="workspace-artist-state" data-visibility="off">
+                      <strong id="workspace-artist-visibility-label">Artist account is off</strong>
+                      <p class="muted" id="workspace-artist-visibility-copy">
+                        Your profile is hidden from Explore and booking until you choose Show profile.
+                      </p>
+                    </div>
+                    <form id="workspace-artist-form" class="form-grid">
+                      <label>
+                        What you do
+                        <input
+                          id="workspace-artist-category"
+                          type="text"
+                          maxlength="80"
+                          list="workspace-artist-category-options"
+                          placeholder="Illustration, branding, photography"
+                        />
+                        <datalist id="workspace-artist-category-options"></datalist>
+                      </label>
+                      <label>
+                        Mediums
+                        <input
+                          id="workspace-artist-mediums"
+                          type="text"
+                          maxlength="140"
+                          placeholder="Illustration, branding, editorial"
+                        />
+                      </label>
+                      <div class="form-row">
+                        <label>
+                          Starting budget (AUD)
+                          <input id="workspace-artist-price" type="number" min="0" step="1" />
+                        </label>
+                        <label>
+                          Availability
+                          <select id="workspace-artist-availability">
+                            <option value="open">Open</option>
+                            <option value="limited">Limited</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div class="form-actions">
+                        <button class="btn btn-outline btn-small" type="submit">Save artist profile</button>
+                        <button class="btn btn-ghost btn-small" id="toggle-artist-account" type="button">Show profile</button>
+                        <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview profile</a>
+                      </div>
+                    </form>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="saved" hidden>
+                    <p class="site-tag">Saved artists</p>
+                    <h3>Saved list</h3>
+                    <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
+                    <ul class="collection" id="workspace-saved-artists"></ul>
+                    <div class="form-actions">
+                      <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+                    </div>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="bookings" hidden>
+                    <p class="site-tag">Bookings</p>
+                    <h3>Bookings board</h3>
+                    <p class="muted" id="workspace-bookings-empty">No bookings yet.</p>
+                    <ul class="collection" id="workspace-bookings-list"></ul>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="messages" hidden>
+                    <p class="site-tag">Messages</p>
+                    <h3>Inbox and replies</h3>
+                    <form id="workspace-message-form" class="form-grid">
+                      <label>
+                        Booking thread
+                        <select id="workspace-message-booking"></select>
+                      </label>
+                      <label>
+                        Message
+                        <textarea id="workspace-message-body" maxlength="600" placeholder="Write your message"></textarea>
+                      </label>
+                      <div class="form-actions">
+                        <button class="btn btn-outline btn-small" type="submit">Send message</button>
+                      </div>
+                    </form>
+                    <p class="muted" id="workspace-messages-empty">No messages yet.</p>
+                    <ul class="collection" id="workspace-messages-list"></ul>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="notifications" hidden>
+                    <p class="site-tag">Notifications</p>
+                    <h3>Recent updates</h3>
+                    <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
+                    <ul class="collection" id="workspace-notifications-list"></ul>
+                    <div class="form-actions">
+                      <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
+                    </div>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="data" hidden>
+                    <p class="site-tag">Data controls</p>
+                    <h3>Downloads and security</h3>
+                    <p class="muted">Manage account exports and password access.</p>
+                    <div class="form-actions">
+                      <button class="btn btn-outline btn-small" id="export-account-data" type="button">Download my data</button>
+                      <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+
+            <div class="account-bottom-actions">
+              <button class="btn btn-outline btn-small" id="auth-signout" type="button">Sign out</button>
+              <button class="btn btn-ghost btn-small" id="full-signout-btn" type="button">Sign out and clear account</button>
+            </div>
+          </section>
         </article>
       </section>
     </main>
 
-    <footer class="site-footer"><div class="container footer-inner"><p>Unified workspace</p><p>Access and security</p></div></footer>
+    <footer class="site-footer"><div class="container footer-inner"><p>Account access</p><p>Setup and security</p></div></footer>
 
     <script type="module" src="/js/auth.js"></script>
   </body>

@@ -13,6 +13,8 @@ import {
   updateArtistProfile,
   updateUserPreferences,
   updateUserProfile,
+  updateUserSetup,
+  completeUserSetup,
 } from "./store.js";
 import {
   confirmForgotPasswordCognito,
@@ -111,15 +113,63 @@ const workspaceMessagesEmpty = byId("workspace-messages-empty");
 const workspaceNotificationsList = byId("workspace-notifications-list");
 const workspaceNotificationsEmpty = byId("workspace-notifications-empty");
 const workspaceMarkNotificationsRead = byId("workspace-mark-notifications-read");
+const setupShell = byId("setup-shell");
+const settingsShell = byId("settings-shell");
+const setupProgressTitle = byId("setup-progress-title");
+const setupProgressLabel = byId("setup-progress-label");
+const setupProgressBar = byId("setup-progress-bar");
+const setupWelcomeNext = byId("setup-welcome-next");
+const setupProfileForm = byId("setup-profile-form");
+const setupName = byId("setup-name");
+const setupLocation = byId("setup-location");
+const setupBio = byId("setup-bio");
+const setupProfileBack = byId("setup-profile-back");
+const setupPreferencesForm = byId("setup-preferences-form");
+const setupPrefBookingUpdates = byId("setup-pref-booking-updates");
+const setupPrefMessageAlerts = byId("setup-pref-message-alerts");
+const setupPrefMarketingEmails = byId("setup-pref-marketing-emails");
+const setupPrefBrowserNotifications = byId("setup-pref-browser-notifications");
+const setupPreferencesBack = byId("setup-preferences-back");
+const setupArtistChoiceForm = byId("setup-artist-choice-form");
+const setupArtistChoiceNo = byId("setup-artist-choice-no");
+const setupArtistChoiceYes = byId("setup-artist-choice-yes");
+const setupArtistChoiceBack = byId("setup-artist-choice-back");
+const setupArtistForm = byId("setup-artist-form");
+const setupArtistCategory = byId("setup-artist-category");
+const setupArtistCategoryOptions = byId("setup-artist-category-options");
+const setupArtistMediums = byId("setup-artist-mediums");
+const setupArtistPrice = byId("setup-artist-price");
+const setupArtistAvailability = byId("setup-artist-availability");
+const setupArtistShowProfile = byId("setup-artist-show-profile");
+const setupArtistBack = byId("setup-artist-back");
+const setupReviewProfileTitle = byId("setup-review-profile-title");
+const setupReviewProfileCopy = byId("setup-review-profile-copy");
+const setupReviewPreferencesTitle = byId("setup-review-preferences-title");
+const setupReviewPreferencesCopy = byId("setup-review-preferences-copy");
+const setupReviewArtistTitle = byId("setup-review-artist-title");
+const setupReviewArtistCopy = byId("setup-review-artist-copy");
+const setupReviewBack = byId("setup-review-back");
+const setupFinish = byId("setup-finish");
+const settingsSectionButtons = Array.from(document.querySelectorAll("[data-settings-section-btn]"));
+const settingsShortcutButtons = Array.from(document.querySelectorAll("[data-settings-shortcut]"));
+const settingsSections = Array.from(document.querySelectorAll("[data-settings-section]"));
+const setupSteps = Array.from(document.querySelectorAll("[data-setup-step]"));
 
 const views = Array.from(document.querySelectorAll("[data-auth-view]"));
 
 let currentView = "login";
+let activeSettingsSection = "overview";
 const DEFAULT_ACCOUNT_PREFERENCES = {
   bookingUpdates: true,
   messageAlerts: true,
   marketingEmails: false,
   browserNotifications: false,
+};
+const DEFAULT_USER_SETUP = {
+  status: "not_started",
+  currentStep: "welcome",
+  artistOptIn: false,
+  completedAt: null,
 };
 
 function titleize(value) {
@@ -139,6 +189,29 @@ function getAccountPreferences(session) {
     ...DEFAULT_ACCOUNT_PREFERENCES,
     ...context.user.preferences,
   };
+}
+
+function getAccountSetup(session) {
+  const context = signedInContext(session);
+  if (!context?.user?.setup) {
+    return { ...DEFAULT_USER_SETUP };
+  }
+
+  return {
+    ...DEFAULT_USER_SETUP,
+    ...context.user.setup,
+  };
+}
+
+function getSetupSequence(setup) {
+  return setup?.artistOptIn
+    ? ["welcome", "profile", "preferences", "artist_prompt", "artist_profile", "review"]
+    : ["welcome", "profile", "preferences", "artist_prompt", "review"];
+}
+
+function getCurrentSetupStep(setup) {
+  const sequence = getSetupSequence(setup);
+  return sequence.includes(setup?.currentStep) ? setup.currentStep : sequence[0];
 }
 
 function signedInContext(session = getSession()) {
@@ -278,8 +351,8 @@ function parseMediumsInput(value) {
   );
 }
 
-function renderArtistCategoryOptions(db, selectedValue = "") {
-  if (!(workspaceArtistCategory instanceof HTMLInputElement)) {
+function renderCategoryOptions(input, datalist, db, selectedValue = "") {
+  if (!(input instanceof HTMLInputElement)) {
     return;
   }
 
@@ -288,17 +361,17 @@ function renderArtistCategoryOptions(db, selectedValue = "") {
     .map((category) => category.name);
   const current = selectedValue || options[0] || "Illustration";
   const values = uniqueValues([current, ...options]);
-  workspaceArtistCategory.value = current;
+  input.value = current;
 
-  if (!(workspaceArtistCategoryOptions instanceof HTMLDataListElement)) {
+  if (!(datalist instanceof HTMLDataListElement)) {
     return;
   }
 
-  workspaceArtistCategoryOptions.replaceChildren();
+  datalist.replaceChildren();
   values.forEach((value) => {
     const option = document.createElement("option");
     option.value = value;
-    workspaceArtistCategoryOptions.appendChild(option);
+    datalist.appendChild(option);
   });
 }
 
@@ -470,7 +543,7 @@ function renderArtistAccount(context) {
   const artist = context.artist;
 
   if (!artist) {
-    renderArtistCategoryOptions(context.db);
+    renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, context.db);
     if (workspaceArtistMediums instanceof HTMLInputElement) {
       workspaceArtistMediums.value = "";
     }
@@ -498,7 +571,7 @@ function renderArtistAccount(context) {
     return;
   }
 
-  renderArtistCategoryOptions(context.db, artist.category || "");
+  renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, context.db, artist.category || "");
 
   if (workspaceArtistMediums instanceof HTMLInputElement) {
     workspaceArtistMediums.value = Array.isArray(artist.mediums) ? artist.mediums.join(", ") : "";
@@ -681,7 +754,7 @@ function renderAccountPanels(session) {
     setCollectionEmptyState(workspaceBookingsList, workspaceBookingsEmpty, true, "No bookings yet.");
     setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, true, "No messages yet.");
     setCollectionEmptyState(workspaceNotificationsList, workspaceNotificationsEmpty, true, "No notifications yet.");
-    renderArtistCategoryOptions(getDB());
+    renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, getDB());
     if (workspaceArtistMediums instanceof HTMLInputElement) {
       workspaceArtistMediums.value = "";
     }
@@ -767,11 +840,191 @@ function renderAccountPanels(session) {
   renderNotifications(context);
 }
 
+function setupStepLabel(step) {
+  const labels = {
+    welcome: "Welcome",
+    profile: "Your details",
+    preferences: "Updates and alerts",
+    artist_prompt: "Artist profile",
+    artist_profile: "Artist details",
+    review: "Review and finish",
+    done: "Account ready",
+  };
+  return labels[step] || titleize(step);
+}
+
+function setActiveSettingsSection(sectionId) {
+  const available = settingsSections.map((section) => section.getAttribute("data-settings-section"));
+  activeSettingsSection = available.includes(sectionId) ? sectionId : "overview";
+
+  settingsSections.forEach((section) => {
+    section.hidden = section.getAttribute("data-settings-section") !== activeSettingsSection;
+  });
+
+  settingsSectionButtons.forEach((button) => {
+    const active = button.getAttribute("data-settings-section-btn") === activeSettingsSection;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function renderSetup(context) {
+  const session = context.session;
+  const setup = getAccountSetup(session);
+  const currentStep = getCurrentSetupStep(setup);
+  const sequence = getSetupSequence(setup);
+  const currentIndex = Math.max(0, sequence.indexOf(currentStep));
+  const progress = ((currentIndex + 1) / sequence.length) * 100;
+  const preferences = getAccountPreferences(session);
+  const user = context.user;
+  const artist = context.artist;
+  const fallbackName = titleize(String(session.cognitoEmail || "").split("@")[0] || "Member");
+
+  if (setupProgressTitle) {
+    setupProgressTitle.textContent = setupStepLabel(currentStep);
+  }
+  if (setupProgressLabel) {
+    setupProgressLabel.textContent = `Step ${currentIndex + 1} of ${sequence.length}`;
+  }
+  if (setupProgressBar) {
+    setupProgressBar.style.width = `${progress}%`;
+  }
+
+  setupSteps.forEach((step) => {
+    step.hidden = step.getAttribute("data-setup-step") !== currentStep;
+  });
+
+  if (setupName instanceof HTMLInputElement) {
+    setupName.value = user?.name || fallbackName;
+  }
+  if (setupLocation instanceof HTMLInputElement) {
+    setupLocation.value = user?.location || "";
+  }
+  if (setupBio instanceof HTMLTextAreaElement) {
+    setupBio.value = user?.bio || "";
+  }
+
+  if (setupPrefBookingUpdates instanceof HTMLInputElement) {
+    setupPrefBookingUpdates.checked = Boolean(preferences.bookingUpdates);
+  }
+  if (setupPrefMessageAlerts instanceof HTMLInputElement) {
+    setupPrefMessageAlerts.checked = Boolean(preferences.messageAlerts);
+  }
+  if (setupPrefMarketingEmails instanceof HTMLInputElement) {
+    setupPrefMarketingEmails.checked = Boolean(preferences.marketingEmails);
+  }
+  if (setupPrefBrowserNotifications instanceof HTMLInputElement) {
+    setupPrefBrowserNotifications.checked = Boolean(preferences.browserNotifications);
+  }
+
+  if (setupArtistChoiceYes instanceof HTMLInputElement && setupArtistChoiceNo instanceof HTMLInputElement) {
+    setupArtistChoiceYes.checked = Boolean(setup.artistOptIn);
+    setupArtistChoiceNo.checked = !Boolean(setup.artistOptIn);
+  }
+
+  renderCategoryOptions(setupArtistCategory, setupArtistCategoryOptions, context.db, artist?.category || "");
+  if (setupArtistMediums instanceof HTMLInputElement) {
+    setupArtistMediums.value = Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : "";
+  }
+  if (setupArtistPrice instanceof HTMLInputElement) {
+    setupArtistPrice.value = artist?.priceFrom ? String(artist.priceFrom) : "";
+  }
+  if (setupArtistAvailability instanceof HTMLSelectElement) {
+    setupArtistAvailability.value = artist?.availability || "open";
+  }
+  if (setupArtistShowProfile instanceof HTMLInputElement) {
+    const hasSavedArtistSetup = Boolean(
+      artist?.category
+        || artist?.location
+        || artist?.bio
+        || Number(artist?.priceFrom || 0) > 0
+        || artist?.mediums?.length,
+    );
+    setupArtistShowProfile.checked = hasSavedArtistSetup ? Boolean(artist?.profileVisible) : true;
+  }
+
+  if (setupReviewProfileTitle) {
+    setupReviewProfileTitle.textContent = user?.name || fallbackName;
+  }
+  if (setupReviewProfileCopy) {
+    setupReviewProfileCopy.textContent = [user?.location || null, user?.bio || null].filter(Boolean).join(" · ") || "Basic account details ready.";
+  }
+  if (setupReviewPreferencesTitle) {
+    const enabledCount = [
+      preferences.bookingUpdates,
+      preferences.messageAlerts,
+      preferences.marketingEmails,
+      preferences.browserNotifications,
+    ].filter(Boolean).length;
+    setupReviewPreferencesTitle.textContent = `${enabledCount} preference${enabledCount === 1 ? "" : "s"} on`;
+  }
+  if (setupReviewPreferencesCopy) {
+    const labels = [
+      preferences.bookingUpdates ? "Bookings" : null,
+      preferences.messageAlerts ? "Messages" : null,
+      preferences.marketingEmails ? "Product emails" : null,
+      preferences.browserNotifications ? "Browser alerts" : null,
+    ].filter(Boolean);
+    setupReviewPreferencesCopy.textContent = labels.join(", ") || "No optional alerts enabled.";
+  }
+  if (setupReviewArtistTitle) {
+    setupReviewArtistTitle.textContent = setup.artistOptIn ? (artist?.profileVisible ? "Live profile" : "Profile off") : "Not enabled";
+  }
+  if (setupReviewArtistCopy) {
+    setupReviewArtistCopy.textContent = setup.artistOptIn
+      ? [artist?.category || null, Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : null]
+          .filter(Boolean)
+          .join(" · ") || "Artist profile basics saved."
+      : "You can add an artist profile later from settings.";
+  }
+}
+
+function renderSignedInExperience(session) {
+  const context = signedInContext(session);
+  if (!context) {
+    if (setupShell) {
+      setupShell.hidden = true;
+    }
+    if (settingsShell) {
+      settingsShell.hidden = true;
+    }
+    return;
+  }
+
+  const setup = getAccountSetup(session);
+  const setupIncomplete = setup.status !== "completed";
+
+  if (setupShell) {
+    setupShell.hidden = !setupIncomplete;
+  }
+  if (settingsShell) {
+    settingsShell.hidden = setupIncomplete;
+  }
+
+  if (setupIncomplete) {
+    renderSetup(context);
+    return;
+  }
+
+  renderAccountPanels(session);
+  setActiveSettingsSection(activeSettingsSection);
+}
+
 function showView(nextView) {
   currentView = nextView;
   views.forEach((section) => {
     section.hidden = section.getAttribute("data-auth-view") !== nextView;
   });
+}
+
+function showDefaultAccountView() {
+  const session = getSession();
+  if (isCognitoAuthenticated() && session?.cognitoEmail) {
+    showView("signed_in");
+    return;
+  }
+
+  showView("login");
 }
 
 function setSignedInControls(enabled) {
@@ -806,10 +1059,14 @@ function renderLastLogin(session) {
 
 function renderAuthStatus(session) {
   const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
+  const setup = signedIn ? getAccountSetup(session) : DEFAULT_USER_SETUP;
+  const setupIncomplete = signedIn && setup.status !== "completed";
 
   if (authStatus) {
     authStatus.textContent = signedIn
-      ? "You are signed in. Your unified workspace is ready."
+      ? setupIncomplete
+        ? "Complete your setup to finish preparing the account."
+        : "Your account is ready."
       : "Log in to continue.";
   }
 
@@ -820,12 +1077,12 @@ function renderAuthStatus(session) {
   renderLastLogin(session);
 
   if (currentModeLabel) {
-    currentModeLabel.textContent = signedIn ? "Unified workspace access" : "Sign in required";
+    currentModeLabel.textContent = signedIn ? (setupIncomplete ? "Account setup" : "Workspace ready") : "Sign in required";
   }
 
   renderHeaderSessionState(session);
   setSignedInControls(signedIn);
-  renderAccountPanels(session);
+  renderSignedInExperience(session);
 }
 
 function isInlineAuthFlow(viewName) {
@@ -977,6 +1234,307 @@ function clearAuthFormFields() {
     }
   });
 }
+
+function getSignedInWizardContext() {
+  return signedInContext(ensureLinkedProfiles(getSession()));
+}
+
+async function resolveBrowserNotificationPreference(requested) {
+  if (!requested) {
+    return false;
+  }
+
+  if (!("Notification" in window)) {
+    showToast("Browser notifications are not supported on this device.", "warning");
+    return false;
+  }
+
+  if (Notification.permission === "granted") {
+    return true;
+  }
+
+  if (Notification.permission === "denied") {
+    showToast("Browser alerts are blocked in browser settings.", "warning");
+    return false;
+  }
+
+  const result = await Notification.requestPermission();
+  if (result !== "granted") {
+    showToast("Browser alerts were not enabled.", "warning");
+    return false;
+  }
+
+  return true;
+}
+
+settingsSectionButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveSettingsSection(button.getAttribute("data-settings-section-btn") || "overview");
+  });
+});
+
+settingsShortcutButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setActiveSettingsSection(button.getAttribute("data-settings-shortcut") || "overview");
+  });
+});
+
+setupWelcomeNext?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    showToast("Sign in to continue setup.", "warning");
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "profile",
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not continue setup.", "danger");
+  }
+});
+
+setupProfileBack?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "welcome",
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not return to the previous step.", "danger");
+  }
+});
+
+setupProfileForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    showToast("Sign in to continue setup.", "warning");
+    return;
+  }
+
+  const name = String(setupName?.value || "").trim();
+  const location = String(setupLocation?.value || "").trim();
+  const bio = String(setupBio?.value || "").trim();
+
+  if (!name) {
+    showToast("Name is required.", "warning");
+    return;
+  }
+
+  try {
+    await updateUserProfile(context.user.id, {
+      name,
+      location,
+      bio,
+      profileCompleted: true,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not save your details.", "danger");
+  }
+});
+
+setupPreferencesBack?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "profile",
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not return to the previous step.", "danger");
+  }
+});
+
+setupPreferencesForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    showToast("Sign in to continue setup.", "warning");
+    return;
+  }
+
+  try {
+    const browserNotifications = await resolveBrowserNotificationPreference(
+      Boolean(setupPrefBrowserNotifications?.checked),
+    );
+
+    await updateUserPreferences(context.user.id, {
+      bookingUpdates: Boolean(setupPrefBookingUpdates?.checked),
+      messageAlerts: Boolean(setupPrefMessageAlerts?.checked),
+      marketingEmails: Boolean(setupPrefMarketingEmails?.checked),
+      browserNotifications,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not save your alert preferences.", "danger");
+  }
+});
+
+setupArtistChoiceBack?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "preferences",
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not return to the previous step.", "danger");
+  }
+});
+
+setupArtistChoiceForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    showToast("Sign in to continue setup.", "warning");
+    return;
+  }
+
+  const artistOptIn = Boolean(setupArtistChoiceYes?.checked);
+  if (!artistOptIn && !setupArtistChoiceNo?.checked) {
+    showToast("Choose whether to set up an artist profile now.", "warning");
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: artistOptIn ? "artist_profile" : "review",
+      artistOptIn,
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not save that choice.", "danger");
+  }
+});
+
+setupArtistBack?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    return;
+  }
+
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "artist_prompt",
+      artistOptIn: true,
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not return to the previous step.", "danger");
+  }
+});
+
+setupArtistForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const context = getSignedInWizardContext();
+  if (!context?.artist?.id || !context?.user?.id) {
+    showToast("Sign in to continue setup.", "warning");
+    return;
+  }
+
+  const category = String(setupArtistCategory?.value || "").trim();
+  const mediums = parseMediumsInput(setupArtistMediums?.value || "");
+  const priceFrom = Math.max(0, Number(setupArtistPrice?.value || 0));
+  const availability = String(setupArtistAvailability?.value || "open").trim() || "open";
+
+  if (!category) {
+    showToast("What you do is required.", "warning");
+    return;
+  }
+  if (!mediums.length) {
+    showToast("Add at least one medium.", "warning");
+    return;
+  }
+  if (!priceFrom) {
+    showToast("Starting budget must be greater than 0.", "warning");
+    return;
+  }
+
+  try {
+    await updateArtistProfile(context.artist.id, {
+      category,
+      mediums,
+      priceFrom,
+      availability,
+      profileVisible: Boolean(setupArtistShowProfile?.checked),
+    });
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "review",
+      artistOptIn: true,
+    });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not save artist details.", "danger");
+  }
+});
+
+setupReviewBack?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    return;
+  }
+
+  const setup = getAccountSetup(getSession());
+  try {
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: setup.artistOptIn ? "artist_profile" : "artist_prompt",
+      artistOptIn: Boolean(setup.artistOptIn),
+    });
+    syncSessionFromExisting();
+  } catch (error) {
+    showToast(error?.message || "Could not return to the previous step.", "danger");
+  }
+});
+
+setupFinish?.addEventListener("click", async () => {
+  const context = getSignedInWizardContext();
+  if (!context?.user?.id) {
+    showToast("Sign in to finish setup.", "warning");
+    return;
+  }
+
+  try {
+    await completeUserSetup(context.user.id);
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    setActiveSettingsSection("overview");
+    showToast("Setup complete.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not finish setup.", "danger");
+  }
+});
 
 signInForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -1444,10 +2002,10 @@ goResetRequest?.addEventListener("click", () => {
   showView("reset_request");
 });
 
-goLoginFromSignup?.addEventListener("click", () => showView("login"));
-goLoginFromVerify?.addEventListener("click", () => showView("login"));
-goLoginFromResetRequest?.addEventListener("click", () => showView("login"));
-goLoginFromResetConfirm?.addEventListener("click", () => showView("login"));
+goLoginFromSignup?.addEventListener("click", () => showDefaultAccountView());
+goLoginFromVerify?.addEventListener("click", () => showDefaultAccountView());
+goLoginFromResetRequest?.addEventListener("click", () => showDefaultAccountView());
+goLoginFromResetConfirm?.addEventListener("click", () => showDefaultAccountView());
 
 authSignoutBtn?.addEventListener("click", async () => {
   await signOutCognito();
@@ -1466,6 +2024,6 @@ fullSignoutBtn?.addEventListener("click", async () => {
   showToast("Signed out and cleared.", "success");
 });
 
-showView("login");
+showDefaultAccountView();
 syncSessionFromExisting();
 hydrateCognitoState();

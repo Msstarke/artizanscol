@@ -992,15 +992,15 @@ function mergeUserIntoDB(db, remote) {
     cognitoSub: remote.cognitoSub || existing?.cognitoSub || null,
     cognitoEmail: remote.cognitoEmail || existing?.cognitoEmail || "",
     name: selectDisplayName([remote.name, existing?.name], "Member"),
-    email: remote.email || existing?.email || remote.cognitoEmail || "",
-    location: remote.location || existing?.location || "",
-    bio: remote.bio || existing?.bio || "",
+    email: remote.email ?? existing?.email ?? remote.cognitoEmail ?? "",
+    location: remote.location ?? existing?.location ?? "",
+    bio: remote.bio ?? existing?.bio ?? "",
     emailVerified: Boolean(remote.emailVerified ?? existing?.emailVerified),
     profileCompleted: Boolean(remote.profileCompleted ?? existing?.profileCompleted),
-    preferences: remote.preferences || existing?.preferences,
-    setup: remote.setup || existing?.setup,
-    savedArtistIds: remote.savedArtistIds || existing?.savedArtistIds || existing?.savedArtists || [],
-    bookingHistoryIds: remote.bookingHistoryIds || existing?.bookingHistoryIds || existing?.bookingHistory || [],
+    preferences: remote.preferences ?? existing?.preferences,
+    setup: remote.setup ?? existing?.setup,
+    savedArtistIds: remote.savedArtistIds ?? existing?.savedArtistIds ?? existing?.savedArtists ?? [],
+    bookingHistoryIds: remote.bookingHistoryIds ?? existing?.bookingHistoryIds ?? existing?.bookingHistory ?? [],
     deleted: Boolean(remote.deleted ?? existing?.deleted),
     createdAt: remote.createdAt || existing?.createdAt || nowIso(),
     updatedAt: remote.updatedAt || existing?.updatedAt || nowIso(),
@@ -1455,12 +1455,14 @@ export async function updateUserProfile(userId, patch) {
     return null;
   }
 
+  const has = (key) => Object.prototype.hasOwnProperty.call(patch || {}, key);
+
   const response = await apiRequest("/v1/me/profile", {
     method: "PATCH",
     body: {
-      name: String(patch?.name || user.name || "").trim(),
-      location: String(patch?.location || user.location || "").trim(),
-      bio: String(patch?.bio || user.bio || "").trim(),
+      name: String(has("name") ? patch?.name : user.name || "").trim(),
+      location: String(has("location") ? patch?.location : user.location || "").trim(),
+      bio: String(has("bio") ? patch?.bio : user.bio || "").trim(),
     },
   });
 
@@ -1488,6 +1490,56 @@ export async function updateUserPreferences(userId, preferences) {
       marketingEmails: Boolean(preferences?.marketingEmails),
       browserNotifications: Boolean(preferences?.browserNotifications),
     },
+  });
+
+  const remote = response?.data || null;
+  if (remote?.id) {
+    updateDB((db) => {
+      mergeUserIntoDB(db, remote);
+    });
+  }
+
+  return remote;
+}
+
+export async function updateUserSetup(userId, patch) {
+  const user = getUserById(getDB(), userId);
+  if (!user) {
+    return null;
+  }
+
+  const existingSetup = user.setup || {};
+  const response = await apiRequest("/v1/me/setup", {
+    method: "PATCH",
+    body: {
+      status: patch?.status ?? existingSetup.status,
+      currentStep: patch?.currentStep ?? existingSetup.currentStep,
+      artistOptIn:
+        typeof patch?.artistOptIn === "boolean"
+          ? patch.artistOptIn
+          : Boolean(existingSetup.artistOptIn),
+    },
+  });
+
+  const remote = response?.data || null;
+  if (remote?.id) {
+    updateDB((db) => {
+      mergeUserIntoDB(db, remote);
+    });
+  }
+
+  return remote;
+}
+
+export async function completeUserSetup(userId) {
+  const user = getUserById(getDB(), userId);
+  if (!user) {
+    return null;
+  }
+
+  const response = await apiRequest("/v1/me/setup/complete", {
+    method: "POST",
+    body: {},
   });
 
   const remote = response?.data || null;
