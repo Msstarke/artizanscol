@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-13
+- Removed WAF from the AWS stack and deploy path: deleted CloudFront/API Web ACL resources and associations from `aws/cloudformation/artizans-aws-stack.yaml`, removed WAF-specific deploy parameters from the backend workflow, and cleaned WAF references out of the AWS docs/config metadata.
+
 ## 2026-03-11
 - Disabled API WAF on the HTTP API stack path because WAF association for the current API Gateway v2 stage ARN is not valid in this configuration; CloudFront WAF remains in place while backend deployment proceeds.
 - Replaced the invalid custom CloudFront no-store cache policy with AWS’s managed caching-disabled policy for auth-sensitive assets so the backend CloudFormation stack can deploy successfully.

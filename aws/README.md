@@ -10,7 +10,6 @@ This folder makes your current multi-page prototype AWS-ready.
 - CloudFront
 - AWS Private Certificate Authority (ACM PCA)
 - Cognito
-- WAF & Shield (Shield Standard applies automatically on CloudFront)
 - CloudShell
 - S3
 - IAM
@@ -19,7 +18,7 @@ This folder makes your current multi-page prototype AWS-ready.
 ## What this adds
 1. CloudFormation starter stack:
 - `aws/cloudformation/artizans-aws-stack.yaml`
-- Includes S3, CloudFront, WAF, Cognito, IAM roles, optional EC2 API host, optional private CA.
+- Includes S3, CloudFront, Cognito, IAM roles, optional EC2 API host, optional private CA.
 - Includes serverless backend scaffold: API Gateway HTTP API, domain Lambda stubs, DynamoDB tables, SQS + DLQ, Secrets Manager, CloudWatch log groups and alarms.
 - Includes API JWT auth scaffold: Cognito-backed API Gateway JWT authorizer attached to protected `/v1/*` routes.
 
@@ -151,8 +150,6 @@ Optional env vars:
 - To enforce canonical host redirect (for example `artizanscollective.com -> www.artizanscollective.com`), set:
   - `DomainName=www.artizanscollective.com`
   - `RedirectFromDomainName=artizanscollective.com`
-- To attach an existing CloudFront WAF (recommended when stack region is not `us-east-1`), set:
-  - `CloudFrontWebAclArn=arn:aws:wafv2:us-east-1:<account-id>:global/webacl/<name>/<id>`
 - This template now applies no-store caching headers and disabled edge caching for:
   - `account-settings.html`
   - `js/auth.js`

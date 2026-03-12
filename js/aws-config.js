@@ -15,7 +15,6 @@ const DEFAULT_AWS_CONFIG = {
   cognitoUserPoolId: "ap-southeast-2_SW8VfLv3l",
   cognitoUserPoolClientId: "2lhd1i7taqjsk298dfsgigl1m2",
   cognitoIdentityPoolId: "",
-  wafWebAclArn: "",
 };
 
 const MUTABLE_CONSOLE_FIELDS = [
@@ -26,7 +25,6 @@ const MUTABLE_CONSOLE_FIELDS = [
   "cloudFrontDomain",
   "certificateArn",
   "privateCaArn",
-  "wafWebAclArn",
 ];
 
 function safeParse(value) {
@@ -110,7 +108,6 @@ export function getAWSConsoleLinks(config = getAWSConfig()) {
     cloudFront: `https://us-east-1.console.aws.amazon.com/cloudfront/v4/home#${distributionPath || "/distributions"}`,
     privateCa: `https://${region}.console.aws.amazon.com/acm-pca/home?region=${region}#/authorities`,
     cognito: `https://${region}.console.aws.amazon.com/cognito/v2/idp/user-pools?region=${region}`,
-    wafShield: `https://${region}.console.aws.amazon.com/wafv2/homev2/web-acls?region=${region}`,
     cloudShell: `https://${region}.console.aws.amazon.com/cloudshell/home?region=${region}`,
     s3: `https://s3.console.aws.amazon.com/s3${s3Path}`,
     iam: "https://console.aws.amazon.com/iamv2/home#/home",

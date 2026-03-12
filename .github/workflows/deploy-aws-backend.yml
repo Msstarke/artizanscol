@@ -133,8 +133,7 @@ jobs:
             --parameter-overrides \
               ProjectName="${PROJECT_NAME}" \
               EnvironmentName="${TARGET_ENV}" \
-              EnableServerlessApi=true \
-              EnableApiWaf=false
+              EnableServerlessApi=true
 
       - name: Dump CloudFormation failure events (dev)
         if: failure()
@@ -292,8 +291,7 @@ jobs:
               DomainName="${SITE_DOMAIN_NAME}" \
               RedirectFromDomainName="${SITE_REDIRECT_FROM_DOMAIN_NAME}" \
               CertificateArn="${SITE_CERTIFICATE_ARN}" \
-              EnableServerlessApi=true \
-              EnableApiWaf=false
+              EnableServerlessApi=true
 
       - name: Dump CloudFormation failure events (prod)
         if: failure()

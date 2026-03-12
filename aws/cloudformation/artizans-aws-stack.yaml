@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Artizans AWS stack (S3 + CloudFront + WAF + Cognito + serverless API + optional EC2 + optional ACM PCA)
+Description: Artizans AWS stack (S3 + CloudFront + Cognito + serverless API + optional EC2 + optional ACM PCA)
 
 Parameters:
   ProjectName:
@@ -34,19 +34,6 @@ Parameters:
     Default: 'false'
 
   EnablePrivateCA:
-    Type: String
-    AllowedValues: ['true', 'false']
-    Default: 'false'
-
-  EnableCloudFrontWaf:
-    Type: String
-    AllowedValues: ['true', 'false']
-    Default: 'true'
-  CloudFrontWebAclArn:
-    Type: String
-    Default: ''
-    Description: Optional existing CloudFront-scope WAF Web ACL ARN (overrides template-created ACL when provided)
-  EnableApiWaf:
     Type: String
     AllowedValues: ['true', 'false']
     Default: 'false'
@@ -104,15 +91,7 @@ Conditions:
     - !Condition HasRedirectFromDomainName
   UseEc2Api: !Equals [!Ref EnableEc2Api, 'true']
   UsePrivateCA: !Equals [!Ref EnablePrivateCA, 'true']
-  IsUsEast1: !Equals [!Ref 'AWS::Region', 'us-east-1']
-  HasCloudFrontWebAclArn: !Not [!Equals [!Ref CloudFrontWebAclArn, '']]
-  CreateCloudFrontWaf: !And
-    - !Equals [!Ref EnableCloudFrontWaf, 'true']
-    - !Condition IsUsEast1
   UseServerlessApi: !Equals [!Ref EnableServerlessApi, 'true']
-  CreateApiWaf: !And
-    - !Condition UseServerlessApi
-    - !Equals [!Ref EnableApiWaf, 'true']
   HasApiDomainName: !Not [!Equals [!Ref ApiDomainName, '']]
   HasApiCertificateArn: !Not [!Equals [!Ref ApiCertificateArn, '']]
   HasApiHostedZoneId: !Not [!Equals [!Ref ApiHostedZoneId, '']]
@@ -174,44 +153,6 @@ Resources:
       DomainValidationOptions:
         - DomainName: !Ref DomainName
           HostedZoneId: !Ref HostedZoneId
-
-  ArtizansWebAcl:
-    Type: AWS::WAFv2::WebACL
-    Condition: CreateCloudFrontWaf
-    Properties:
-      Name: !Sub '${ProjectName}-${EnvironmentName}-web-acl'
-      Scope: CLOUDFRONT
-      DefaultAction:
-        Allow: {}
-      VisibilityConfig:
-        CloudWatchMetricsEnabled: true
-        MetricName: !Sub '${ProjectName}-${EnvironmentName}-web-acl'
-        SampledRequestsEnabled: true
-      Rules:
-        - Name: AWSManagedRulesCommonRuleSet
-          Priority: 0
-          OverrideAction:
-            None: {}
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesCommonRuleSet
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: !Sub '${ProjectName}-${EnvironmentName}-common-rules'
-            SampledRequestsEnabled: true
-        - Name: RateLimitRule
-          Priority: 1
-          Action:
-            Block: {}
-          Statement:
-            RateBasedStatement:
-              AggregateKeyType: IP
-              Limit: 2000
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: !Sub '${ProjectName}-${EnvironmentName}-rate-limit'
-            SampledRequestsEnabled: true
 
   ArtizansResponseHeadersPolicy:
     Type: AWS::CloudFront::ResponseHeadersPolicy
@@ -469,14 +410,6 @@ Resources:
               MinimumProtocolVersion: TLSv1.2_2021
             -
               CloudFrontDefaultCertificate: true
-        WebACLId: !If
-          - HasCloudFrontWebAclArn
-          - !Ref CloudFrontWebAclArn
-          - !If
-            - CreateCloudFrontWaf
-            - !GetAtt ArtizansWebAcl.Arn
-            - !Ref AWS::NoValue
-
   ArtizansUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -1478,63 +1411,6 @@ Resources:
       StageName: '$default'
       AutoDeploy: true
 
-  ArtizansApiWebAcl:
-    Type: AWS::WAFv2::WebACL
-    Condition: CreateApiWaf
-    Properties:
-      Name: !Sub '${ProjectName}-${EnvironmentName}-api-web-acl'
-      Scope: REGIONAL
-      DefaultAction:
-        Allow: {}
-      VisibilityConfig:
-        CloudWatchMetricsEnabled: true
-        MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-web-acl'
-        SampledRequestsEnabled: true
-      Rules:
-        - Name: AwsManagedRulesCommonRuleSet
-          Priority: 0
-          OverrideAction:
-            None: {}
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesCommonRuleSet
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-common-rules'
-            SampledRequestsEnabled: true
-        - Name: AwsManagedRulesKnownBadInputsRuleSet
-          Priority: 1
-          OverrideAction:
-            None: {}
-          Statement:
-            ManagedRuleGroupStatement:
-              VendorName: AWS
-              Name: AWSManagedRulesKnownBadInputsRuleSet
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-bad-input-rules'
-            SampledRequestsEnabled: true
-        - Name: ApiRateLimitPerIp
-          Priority: 2
-          Action:
-            Block: {}
-          Statement:
-            RateBasedStatement:
-              AggregateKeyType: IP
-              Limit: 1200
-          VisibilityConfig:
-            CloudWatchMetricsEnabled: true
-            MetricName: !Sub '${ProjectName}-${EnvironmentName}-api-rate-limit'
-            SampledRequestsEnabled: true
-
-  ArtizansApiWebAclAssociation:
-    Type: AWS::WAFv2::WebACLAssociation
-    Condition: CreateApiWaf
-    Properties:
-      ResourceArn: !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/${ArtizansHttpApi}/stages/${ArtizansHttpApiStage}'
-      WebACLArn: !GetAtt ArtizansApiWebAcl.Arn
-
   ArtizansHttpApiJwtAuthorizer:
     Type: AWS::ApiGatewayV2::Authorizer
     Condition: UseServerlessApi
@@ -2095,9 +1971,6 @@ Outputs:
     Value: !Ref ArtizansDistribution
   CloudFrontDomainName:
     Value: !GetAtt ArtizansDistribution.DomainName
-  WebAclArn:
-    Condition: CreateCloudFrontWaf
-    Value: !GetAtt ArtizansWebAcl.Arn
   CognitoUserPoolId:
     Value: !Ref ArtizansUserPool
   CognitoUserPoolClientId:
@@ -2110,9 +1983,6 @@ Outputs:
   ApiJwtAuthorizerId:
     Condition: UseServerlessApi
     Value: !Ref ArtizansHttpApiJwtAuthorizer
-  ApiWebAclArn:
-    Condition: CreateApiWaf
-    Value: !GetAtt ArtizansApiWebAcl.Arn
   ApiCustomDomainUrl:
     Condition: EnableApiCustomDomain
     Value: !Sub 'https://${ApiDomainName}'
@@ -2202,8 +2072,6 @@ Outputs:
     Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/acm-pca/home?region=${AWS::Region}#/authorities'
   ConsoleCognito:
     Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cognito/v2/idp/user-pools?region=${AWS::Region}'
-  ConsoleWAFShield:
-    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/wafv2/homev2/web-acls?region=${AWS::Region}'
   ConsoleCloudShell:
     Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudshell/home?region=${AWS::Region}'
   ConsoleS3:
