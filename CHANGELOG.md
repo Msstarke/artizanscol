@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Fixed account-settings refresh flicker by deferring the signed-in render until Cognito session hydration and `/v1/me` private account hydration complete, so completed accounts no longer briefly show the setup wizard before switching back to the settings shell.
 - Reworked `/account-settings.html` into a guided account setup flow for incomplete accounts and a calmer one-section-at-a-time settings shell for completed accounts, wiring setup progress through `/v1/me/setup` and `/v1/me/setup/complete` and updating the account frontend/store to treat setup/preferences/profile data as server-backed state instead of an immediate wall of settings panels.
 - Simplified `FEATURE_FIX_LIST.md` from a granular checklist into a higher-level feature-area backlog after deciding the repo should track grouped product buckets instead of individual fix tasks.
 - Added `FEATURE_FIX_LIST.md` as a prioritized repo backlog covering the remaining product, backend, auth, trust, accessibility, and deployment gaps still worth fixing after the current production cutover work.

@@ -1089,11 +1089,12 @@ function isInlineAuthFlow(viewName) {
   return ["signup", "verify", "reset_request", "reset_confirm"].includes(viewName);
 }
 
-function syncSessionFromExisting() {
+function syncSessionFromExisting(options = {}) {
+  const { skipIdentityProvision = false } = options;
   let session = getSession();
   const signedIn = isCognitoAuthenticated() && Boolean(session.cognitoEmail);
 
-  if (signedIn) {
+  if (signedIn && !skipIdentityProvision) {
     session = ensureLinkedProfiles(session);
   }
 
@@ -1139,13 +1140,13 @@ async function hydrateCognitoState() {
 
   if (!identity) {
     clearCognitoIdentity();
-    syncSessionFromExisting();
+    syncSessionFromExisting({ skipIdentityProvision: true });
     return;
   }
 
   setCognitoIdentity(identity);
 
-  ensureLinkedProfiles({
+  setSession({
     ...getSession(),
     cognitoEmail: identity.email || null,
     cognitoSub: identity.sub || null,
@@ -2024,6 +2025,4 @@ fullSignoutBtn?.addEventListener("click", async () => {
   showToast("Signed out and cleared.", "success");
 });
 
-showDefaultAccountView();
-syncSessionFromExisting();
-hydrateCognitoState();
+await hydrateCognitoState();
