@@ -2,6 +2,7 @@ import {
   createBooking,
   ensureUserForCognito,
   getArtistById,
+  getArtistPublishSummary,
   getDB,
   hydrateDB,
   isArtistProfileLive,
@@ -246,9 +247,18 @@ function renderArtistDetails() {
   }
 
   if (!profileIsAccessible()) {
+    const publishSummary = getArtistPublishSummary(artist);
     renderUnavailableProfile(
-      "Artist profile unavailable",
-      "This artist has turned their public profile off and is not currently available for discovery or booking.",
+      viewerOwnsArtistProfile()
+        ? publishSummary.publishState === "ready"
+          ? "Profile ready to publish"
+          : "Profile draft"
+        : "Artist profile unavailable",
+      viewerOwnsArtistProfile()
+        ? publishSummary.publishState === "ready"
+          ? "This profile is saved and ready. Use Show profile in account settings to make it visible in Explore and booking."
+          : `Complete ${publishSummary.publishMissingFields.join(", ")} in account settings before this profile can go live.`
+        : "This artist has turned their public profile off and is not currently available for discovery or booking.",
     );
     return;
   }

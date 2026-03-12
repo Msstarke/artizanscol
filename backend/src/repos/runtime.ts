@@ -34,6 +34,7 @@ import type {
   SystemConfigRecord,
   UserRecord,
 } from "../domain/entities.js";
+import { isArtistLive } from "../domain/artist-publishing.js";
 import { ownerReadKey } from "../domain/index-keys.js";
 import { loadEnv, type AppEnv } from "../lib/env.js";
 import type {
@@ -395,7 +396,7 @@ class RuntimeRepository
 
   async listArtists(): Promise<ArtistRecord[]> {
     const items = await this.scanAll<ArtistRecord>({ TableName: this.env.artistsTableName });
-    return items.map(normalizeArtistRecord).filter((artist) => artist.profileVisible);
+    return items.map(normalizeArtistRecord).filter(isArtistLive);
   }
 
   async listServicesByArtistId(artistId: string): Promise<ServiceRecord[]> {

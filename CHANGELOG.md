@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Added a real artist publish-state model for profile publishing: drafts can now be saved without going live, public discovery filters out incomplete drafts even if `profileVisible` was requested, publishing is blocked with explicit missing-field feedback when required fields are incomplete, and the account/public profile UI now distinguishes draft, ready-to-publish, and live profile states consistently.
 - Fixed account-settings refresh flicker by deferring the signed-in render until Cognito session hydration and `/v1/me` private account hydration complete, so completed accounts no longer briefly show the setup wizard before switching back to the settings shell.
 - Reworked `/account-settings.html` into a guided account setup flow for incomplete accounts and a calmer one-section-at-a-time settings shell for completed accounts, wiring setup progress through `/v1/me/setup` and `/v1/me/setup/complete` and updating the account frontend/store to treat setup/preferences/profile data as server-backed state instead of an immediate wall of settings panels.
 - Simplified `FEATURE_FIX_LIST.md` from a granular checklist into a higher-level feature-area backlog after deciding the repo should track grouped product buckets instead of individual fix tasks.

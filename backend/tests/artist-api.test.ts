@@ -413,6 +413,50 @@ test("PATCH /v1/artist/me/profile accepts empty optional location", async () => 
   assert.equal(parsed.data.location, "");
 });
 
+test("PATCH /v1/artist/me/profile saves incomplete edits as a draft and turns visibility off", async () => {
+  const repo = baseRepo();
+  const handler = createArtistApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "PATCH",
+      rawPath: "/v1/artist/me/profile",
+      claims,
+      body: {
+        priceFrom: 0,
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.data.profileVisible, false);
+  assert.equal(parsed.data.publishState, "draft");
+  assert.deepEqual(parsed.data.publishMissingFields, ["Starting budget"]);
+});
+
+test("PATCH /v1/artist/me/profile rejects publishing an incomplete draft", async () => {
+  const repo = baseRepo();
+  const handler = createArtistApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "PATCH",
+      rawPath: "/v1/artist/me/profile",
+      claims,
+      body: {
+        priceFrom: 0,
+        profileVisible: true,
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 400);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.ok, false);
+  assert.match(parsed.error.message, /Starting budget/);
+});
+
 test("PUT /v1/artist/me/onboarding stores onboarding fields", async () => {
   const repo = baseRepo();
   const handler = createArtistApiHandler(repo);

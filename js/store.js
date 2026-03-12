@@ -76,6 +76,42 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
+function hasText(value) {
+  return String(value || "").trim().length > 0;
+}
+
+function hasPositiveMoney(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0;
+}
+
+export function getArtistPublishSummary(artist) {
+  const missingFields = [];
+
+  if (!hasText(artist?.category)) {
+    missingFields.push("What you do");
+  }
+
+  if (!Array.isArray(artist?.mediums) || !artist.mediums.some((item) => hasText(item))) {
+    missingFields.push("Mediums");
+  }
+
+  if (!hasPositiveMoney(artist?.priceFrom)) {
+    missingFields.push("Starting budget");
+  }
+
+  const publishReady = missingFields.length === 0;
+  const publishState = publishReady
+    ? (Boolean(artist?.profileVisible) ? "live" : "ready")
+    : "draft";
+
+  return {
+    publishState,
+    publishReady,
+    publishMissingFields: missingFields,
+  };
+}
+
 function normalizeArtistRecord(artist, db) {
   if (!artist || typeof artist !== "object") {
     return artist;
@@ -91,6 +127,10 @@ function normalizeArtistRecord(artist, db) {
 
   artist.priceFrom = Number(artist.priceFrom || 0);
   artist.profileVisible = Boolean(artist.profileVisible);
+  const publishSummary = getArtistPublishSummary(artist);
+  artist.publishState = publishSummary.publishState;
+  artist.publishReady = publishSummary.publishReady;
+  artist.publishMissingFields = publishSummary.publishMissingFields;
   return artist;
 }
 
@@ -593,7 +633,7 @@ export function getArtistById(db, artistId) {
 }
 
 export function isArtistProfileLive(artist) {
-  return Boolean(artist?.profileVisible);
+  return getArtistPublishSummary(artist).publishState === "live";
 }
 
 export function getVisibleArtists(db) {
@@ -1558,11 +1598,7 @@ export async function updateArtistProfile(artistId, patch) {
     return null;
   }
 
-  const onboardingPatch =
-    Object.prototype.hasOwnProperty.call(patch || {}, "category")
-    || Object.prototype.hasOwnProperty.call(patch || {}, "mediums")
-    || Object.prototype.hasOwnProperty.call(patch || {}, "priceFrom")
-    || Object.prototype.hasOwnProperty.call(patch || {}, "portfolio");
+  const onboardingPatch = Object.prototype.hasOwnProperty.call(patch || {}, "portfolio");
 
   const profileBody = {};
   if (Object.prototype.hasOwnProperty.call(patch || {}, "name")) {
@@ -1570,6 +1606,15 @@ export async function updateArtistProfile(artistId, patch) {
   }
   if (Object.prototype.hasOwnProperty.call(patch || {}, "handle")) {
     profileBody.handle = patch?.handle ?? artist.handle;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "category")) {
+    profileBody.category = patch?.category ?? artist.category;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "mediums")) {
+    profileBody.mediums = patch?.mediums ?? artist.mediums;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "priceFrom")) {
+    profileBody.priceFrom = patch?.priceFrom ?? artist.priceFrom;
   }
   if (Object.prototype.hasOwnProperty.call(patch || {}, "location")) {
     profileBody.location = patch?.location ?? artist.location;

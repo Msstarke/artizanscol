@@ -1,5 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { failure, success } from "../domain/api-response.js";
+import { getArtistPublishSummary, isArtistLive } from "../domain/artist-publishing.js";
 import type { ArtistRecord, CategoryRecord, ServiceRecord } from "../domain/entities.js";
 import { json } from "../lib/http.js";
 import {
@@ -157,11 +158,15 @@ function pageItems<T>(items: T[], page: PageRequest): { items: T[]; nextCursor: 
 }
 
 function mapArtistCard(artist: ArtistRecord) {
+  const publishSummary = getArtistPublishSummary(artist);
   return {
     id: artist.id,
     name: artist.name,
     handle: artist.handle,
     profileVisible: artist.profileVisible,
+    publishState: publishSummary.publishState,
+    publishReady: publishSummary.publishReady,
+    publishMissingFields: publishSummary.publishMissingFields,
     category: artist.category,
     mediums: artist.mediums,
     location: artist.location,
@@ -290,7 +295,7 @@ async function handleListArtists(
     throw new RequestError(400, "INVALID_REQUEST", "minPrice cannot be greater than maxPrice.");
   }
 
-  const all = await repository.listArtists();
+  const all = (await repository.listArtists()).filter(isArtistLive);
 
   const filtered = all.filter((artist) => {
     if (category && toLower(artist.category) !== category) {
@@ -378,7 +383,7 @@ async function handleGetArtistById(
     throw new RequestError(400, "INVALID_REQUEST", "artistId is required.");
   }
 
-  const artists = await repository.listArtists();
+  const artists = (await repository.listArtists()).filter(isArtistLive);
   const artist = artists.find((item) => item.id === artistId);
 
   if (!artist) {

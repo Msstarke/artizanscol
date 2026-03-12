@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { getArtistPublishSummary } from "../domain/artist-publishing.js";
 import { canTransitionBookingStatus } from "../domain/booking.js";
 import { failure, success } from "../domain/api-response.js";
 import type {
@@ -38,6 +39,9 @@ const ARTIST_PROFILE_PATCH_SCHEMA: JsonSchema = {
   properties: {
     name: { type: "string", minLength: 1, maxLength: 80, nullable: true },
     handle: { type: "string", minLength: 1, maxLength: 60, nullable: true },
+    category: { type: "string", maxLength: 80, nullable: true },
+    mediums: { type: "array", maxItems: 16, nullable: true },
+    priceFrom: { type: "number", minimum: 0, nullable: true },
     location: { type: "string", maxLength: 80, nullable: true },
     bio: { type: "string", maxLength: 1200, nullable: true },
     availability: { type: "string", enum: AVAILABILITY_VALUES, nullable: true },
@@ -396,6 +400,45 @@ function normalizeStringArray(value: unknown, field: string, maxItems = 12, maxL
   return Array.from(new Set(items));
 }
 
+function normalizeDraftStringArray(value: unknown, field: string, maxItems = 16, maxLength = 60): string[] {
+  if (!Array.isArray(value)) {
+    throw new RequestError(400, "INVALID_REQUEST", `${field} must be an array.`);
+  }
+
+  if (value.length > maxItems) {
+    throw new RequestError(400, "INVALID_REQUEST", `${field} cannot include more than ${maxItems} items.`);
+  }
+
+  const items = value
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+
+  items.forEach((item) => {
+    if (item.length > maxLength) {
+      throw new RequestError(400, "INVALID_REQUEST", `${field} items must be ${maxLength} characters or less.`);
+    }
+  });
+
+  return Array.from(new Set(items));
+}
+
+function normalizeDraftMoney(value: unknown, field: string): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    throw new RequestError(400, "INVALID_REQUEST", `${field} must be a number greater than or equal to 0.`);
+  }
+
+  return Math.round(numeric * 100) / 100;
+}
+
+function publishingRequirementsMessage(summary: ReturnType<typeof getArtistPublishSummary>): string {
+  if (!summary.publishMissingFields.length) {
+    return "Complete the profile before publishing.";
+  }
+
+  return `Complete ${summary.publishMissingFields.join(", ")} before publishing.`;
+}
+
 function normalizePortfolio(value: unknown): PortfolioItem[] {
   if (value == null) {
     return [];
@@ -457,6 +500,7 @@ async function emitNotification(
 
 function mapArtist(artist: ArtistRecord) {
   const normalized = normalizeArtist(artist);
+  const publishSummary = getArtistPublishSummary(normalized);
   return {
     id: normalized.id,
     cognitoSub: normalized.cognitoSub,
@@ -474,6 +518,9 @@ function mapArtist(artist: ArtistRecord) {
     availability: normalized.availability,
     bio: normalized.bio,
     profileVisible: normalized.profileVisible,
+    publishState: publishSummary.publishState,
+    publishReady: publishSummary.publishReady,
+    publishMissingFields: publishSummary.publishMissingFields,
     profileViews: normalized.profileViews,
     completedBookings: normalized.completedBookings,
     acceptanceRate: normalized.acceptanceRate,
@@ -552,6 +599,9 @@ async function handlePatchArtistProfile(
   const payload = parseBody<{
     name?: unknown;
     handle?: unknown;
+    category?: unknown;
+    mediums?: unknown;
+    priceFrom?: unknown;
     location?: unknown;
     bio?: unknown;
     availability?: unknown;
@@ -563,6 +613,15 @@ async function handlePatchArtistProfile(
       ...artist,
       name: normalizeRequiredText(payload.name ?? artist.name, "name", 80),
       handle: normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60),
+      category: payload.category == null
+        ? artist.category
+        : normalizeOptionalText(payload.category, "category", 80),
+      mediums: payload.mediums == null
+        ? artist.mediums
+        : normalizeDraftStringArray(payload.mediums, "mediums", 16, 60),
+      priceFrom: payload.priceFrom == null
+        ? artist.priceFrom
+        : normalizeDraftMoney(payload.priceFrom, "priceFrom"),
       location: normalizeOptionalText(payload.location ?? artist.location, "location", 80),
       bio: normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200),
       availability: payload.availability
@@ -575,6 +634,15 @@ async function handlePatchArtistProfile(
     },
     identitySub,
   ));
+
+  const publishSummary = getArtistPublishSummary(next);
+  if (payload.profileVisible === true && !publishSummary.publishReady) {
+    throw new RequestError(400, "INVALID_REQUEST", publishingRequirementsMessage(publishSummary));
+  }
+
+  if (!publishSummary.publishReady) {
+    next.profileVisible = false;
+  }
 
   await repository.patchArtist(next);
   return json(200, success(mapArtist(next)));
@@ -612,6 +680,15 @@ async function handlePutOnboarding(
     },
     identitySub,
   ));
+
+  const publishSummary = getArtistPublishSummary(next);
+  if (payload.profileVisible === true && !publishSummary.publishReady) {
+    throw new RequestError(400, "INVALID_REQUEST", publishingRequirementsMessage(publishSummary));
+  }
+
+  if (!publishSummary.publishReady) {
+    next.profileVisible = false;
+  }
 
   await repository.patchArtist(next);
   return json(200, success(mapArtist(next)));

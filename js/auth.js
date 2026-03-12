@@ -3,6 +3,7 @@ import {
   ensureUserForCognito,
   getArtistById,
   getDB,
+  getArtistPublishSummary,
   hydratePrivateDB,
   hydrateDB,
   markNotificationsRead,
@@ -335,11 +336,18 @@ function uniqueValues(list) {
 }
 
 function artistProfileStatus(artist) {
-  return artist?.profileVisible ? "Live" : "Off";
+  const summary = getArtistPublishSummary(artist);
+  if (summary.publishState === "live") {
+    return "Live";
+  }
+  if (summary.publishState === "ready") {
+    return "Ready";
+  }
+  return "Draft";
 }
 
 function artistVisibilityButtonLabel(artist) {
-  return artist?.profileVisible ? "Hide profile" : "Show profile";
+  return getArtistPublishSummary(artist).publishState === "live" ? "Hide profile" : "Show profile";
 }
 
 function parseMediumsInput(value) {
@@ -572,6 +580,7 @@ function renderArtistAccount(context) {
   }
 
   renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, context.db, artist.category || "");
+  const publishSummary = getArtistPublishSummary(artist);
 
   if (workspaceArtistMediums instanceof HTMLInputElement) {
     workspaceArtistMediums.value = Array.isArray(artist.mediums) ? artist.mediums.join(", ") : "";
@@ -583,17 +592,21 @@ function renderArtistAccount(context) {
     workspaceArtistAvailability.value = artist.availability || "open";
   }
   if (workspaceArtistVisibilityLabel) {
-    workspaceArtistVisibilityLabel.textContent = artist.profileVisible
+    workspaceArtistVisibilityLabel.textContent = publishSummary.publishState === "live"
       ? "Artist account is live"
-      : "Artist account is off";
+      : publishSummary.publishState === "ready"
+        ? "Artist profile is ready"
+        : "Artist profile is draft";
   }
   if (workspaceArtistVisibilityCopy) {
-    workspaceArtistVisibilityCopy.textContent = artist.profileVisible
+    workspaceArtistVisibilityCopy.textContent = publishSummary.publishState === "live"
       ? "Clients can find your profile in Explore and send briefs from your public page."
-      : "Your profile is hidden from Explore and booking until you choose Show profile.";
+      : publishSummary.publishState === "ready"
+        ? "Your saved profile is ready to publish. Choose Show profile to make it visible in Explore."
+        : `Complete ${publishSummary.publishMissingFields.join(", ")} before publishing your profile.`;
   }
   if (workspaceArtistState) {
-    workspaceArtistState.dataset.visibility = artist.profileVisible ? "live" : "off";
+    workspaceArtistState.dataset.visibility = publishSummary.publishState;
   }
   if (workspaceArtistPreview instanceof HTMLAnchorElement) {
     workspaceArtistPreview.href = `/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
@@ -968,13 +981,23 @@ function renderSetup(context) {
     setupReviewPreferencesCopy.textContent = labels.join(", ") || "No optional alerts enabled.";
   }
   if (setupReviewArtistTitle) {
-    setupReviewArtistTitle.textContent = setup.artistOptIn ? (artist?.profileVisible ? "Live profile" : "Profile off") : "Not enabled";
+    const publishSummary = getArtistPublishSummary(artist);
+    setupReviewArtistTitle.textContent = setup.artistOptIn
+      ? publishSummary.publishState === "live"
+        ? "Live profile"
+        : publishSummary.publishState === "ready"
+          ? "Ready to publish"
+          : "Draft profile"
+      : "Not enabled";
   }
   if (setupReviewArtistCopy) {
+    const publishSummary = getArtistPublishSummary(artist);
     setupReviewArtistCopy.textContent = setup.artistOptIn
-      ? [artist?.category || null, Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : null]
-          .filter(Boolean)
-          .join(" · ") || "Artist profile basics saved."
+      ? publishSummary.publishState === "draft"
+        ? `Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
+        : [artist?.category || null, Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : null]
+            .filter(Boolean)
+            .join(" · ") || "Artist profile basics saved."
       : "You can add an artist profile later from settings.";
   }
 }
@@ -1864,13 +1887,8 @@ workspaceArtistForm?.addEventListener("submit", async (event) => {
   const priceFrom = Math.max(0, Number(workspaceArtistPrice?.value || 0));
   const availability = String(workspaceArtistAvailability?.value || "open").trim() || "open";
 
-  if (!category) {
-    showToast("Choose what you do before saving the artist profile.", "warning");
-    return;
-  }
-
   try {
-    await updateArtistProfile(context.artist.id, {
+    const remote = await updateArtistProfile(context.artist.id, {
       category,
       mediums,
       priceFrom,
@@ -1879,7 +1897,15 @@ workspaceArtistForm?.addEventListener("submit", async (event) => {
 
     await hydratePrivateDB();
     syncSessionFromExisting();
-    showToast("Artist profile updated.", "success");
+    const publishSummary = getArtistPublishSummary(remote || context.artist);
+    showToast(
+      publishSummary.publishState === "draft"
+        ? `Draft saved. Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
+        : publishSummary.publishState === "ready"
+          ? "Artist profile saved and ready to publish."
+          : "Artist profile updated.",
+      "success",
+    );
   } catch (error) {
     showToast(error?.message || "Artist profile update failed.", "danger");
   }

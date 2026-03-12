@@ -170,6 +170,23 @@ const repo = new InMemoryPublicDiscoveryRepo(
       priceFrom: 220,
       createdDay: 2,
     }),
+    {
+      ...makeArtist({
+        id: "a3",
+        name: "Draft Designer",
+        category: "Branding",
+        location: "Brisbane",
+        mediums: ["Digital"],
+        availability: "open",
+        popularity: 10,
+        rating: 4.1,
+        reviewCount: 2,
+        priceFrom: 180,
+        createdDay: 1,
+      }),
+      priceFrom: 0,
+      profileVisible: true,
+    },
   ],
   [
     makeService("s1", "a1", "Logo Pack"),
@@ -225,7 +242,25 @@ test("GET /v1/artists applies filters and pagination", async () => {
   assert.equal(parsed.data.items.length, 1);
   assert.equal(parsed.data.items[0].id, "a1");
   assert.equal(parsed.data.items[0].profileVisible, true);
+  assert.equal(parsed.data.items[0].publishState, "live");
   assert.equal(parsed.data.pagination.nextCursor, null);
+});
+
+test("GET /v1/artists filters out incomplete drafts even if profileVisible is true", async () => {
+  const response = await handler(
+    makeEvent({
+      method: "GET",
+      rawPath: "/v1/artists",
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.ok, true);
+  assert.deepEqual(
+    parsed.data.items.map((item: { id: string }) => item.id).sort(),
+    ["a1", "a2"],
+  );
 });
 
 test("GET /v1/artists/{artistId} returns profile and services", async () => {
