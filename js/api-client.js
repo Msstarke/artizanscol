@@ -18,6 +18,20 @@ function joinUrl(base, path) {
 }
 
 export function getApiBaseUrl() {
+  if (typeof window !== "undefined") {
+    const protocol = String(window.location.protocol || "").toLowerCase();
+    const hostname = String(window.location.hostname || "").toLowerCase();
+    const isLocalDev =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "[::1]" ||
+      hostname.endsWith(".local");
+
+    if ((protocol === "https:" || protocol === "http:") && !isLocalDev) {
+      return "";
+    }
+  }
+
   const metaValue =
     document.querySelector(`meta[name="${API_BASE_META_NAME}"]`)?.getAttribute("content") || "";
   const injectedBase = STATIC_API_BASE_URL.includes("__ARTIZANS_API_BASE_URL__")
