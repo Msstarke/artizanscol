@@ -715,15 +715,15 @@ function renderAccountPanels(session) {
   const preferences = getAccountPreferences(session);
 
   if (accountName instanceof HTMLInputElement) {
-    accountName.value = user?.name || artist?.name || fallbackName;
+    accountName.value = user?.name || fallbackName;
   }
 
   if (accountLocation instanceof HTMLInputElement) {
-    accountLocation.value = user?.location || artist?.location || "";
+    accountLocation.value = user?.location || "";
   }
 
   if (accountBio instanceof HTMLTextAreaElement) {
-    accountBio.value = user?.bio || artist?.bio || "";
+    accountBio.value = user?.bio || "";
   }
 
   if (prefBookingUpdates instanceof HTMLInputElement) {
@@ -1124,14 +1124,6 @@ accountProfileForm?.addEventListener("submit", async (event) => {
         location,
         bio,
         profileCompleted: true,
-      });
-    }
-
-    if (context.artist?.id) {
-      await updateArtistProfile(context.artist.id, {
-        name,
-        location,
-        bio,
       });
     }
 

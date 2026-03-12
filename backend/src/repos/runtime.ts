@@ -146,6 +146,22 @@ function normalizeArtistRecord(artist: ArtistRecord): ArtistRecord {
   };
 }
 
+export function sanitizeArtistWriteRecord(artist: ArtistRecord): Record<string, unknown> {
+  const normalized = normalizeArtistRecord(artist) as Record<string, unknown>;
+
+  // These fields back GSIs. Hidden draft profiles can legitimately leave them blank,
+  // but DynamoDB key attributes cannot be empty strings.
+  if (!String(normalized.category || "").trim()) {
+    delete normalized.category;
+  }
+
+  if (!String(normalized.location || "").trim()) {
+    delete normalized.location;
+  }
+
+  return normalized;
+}
+
 function normalizeCategoryRecord(category: CategoryRecord): CategoryRecord {
   return {
     ...category,
@@ -523,7 +539,7 @@ class RuntimeRepository
   }
 
   async patchArtist(artist: ArtistRecord): Promise<void> {
-    await this.putItem(this.env.artistsTableName, normalizeArtistRecord(artist));
+    await this.putItem(this.env.artistsTableName, sanitizeArtistWriteRecord(artist));
   }
 
   async createService(service: ServiceRecord): Promise<void> {

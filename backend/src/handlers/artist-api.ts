@@ -1016,6 +1016,11 @@ export function createArtistApiHandler(
         return json(403, failure("FORBIDDEN", error.message));
       }
 
+      console.error("artist-api unexpected error", {
+        path: event.rawPath,
+        method: event.requestContext.http.method,
+        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : error,
+      });
       return json(500, failure("INTERNAL_ERROR", "Unexpected server error."));
     }
   };
