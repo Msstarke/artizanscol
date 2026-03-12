@@ -108,11 +108,28 @@ async function callCognito(target, payload) {
   const json = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    const code = String(json?.__type || json?.code || json?.Code || "")
+      .split("#")
+      .pop()
+      .trim();
     const message = json?.message || json?.Message || "Cognito request failed.";
-    throw new Error(message);
+    const error = new Error(message);
+    error.code = code || null;
+    throw error;
   }
 
   return json;
+}
+
+function isEnumerationSafeForgotPasswordError(error) {
+  const message = String(error?.message || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+  return (
+    code === "usernotfoundexception" ||
+    message.includes("username/client id combination not found") ||
+    message.includes("username or client id combination not found") ||
+    message.includes("user does not exist")
+  );
 }
 
 function identityFromIdToken(idToken) {
@@ -247,10 +264,17 @@ export async function confirmSignUpCognito({ email, code }) {
 
 export async function forgotPasswordCognito({ email }) {
   const { userPoolClientId } = getCognitoConfig();
-  return callCognito("ForgotPassword", {
-    ClientId: userPoolClientId,
-    Username: email,
-  });
+  try {
+    return await callCognito("ForgotPassword", {
+      ClientId: userPoolClientId,
+      Username: email,
+    });
+  } catch (error) {
+    if (isEnumerationSafeForgotPasswordError(error)) {
+      return { CodeDeliveryDetails: null };
+    }
+    throw error;
+  }
 }
 
 export async function confirmForgotPasswordCognito({ email, code, newPassword }) {

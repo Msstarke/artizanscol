@@ -774,6 +774,10 @@ async function handleCreateBooking(
     return json(404, failure("NOT_FOUND", "Artist not found."));
   }
 
+  if (artist.cognitoSub && artist.cognitoSub === user.cognitoSub) {
+    return json(400, failure("INVALID_REQUEST", "You cannot book your own artist profile."));
+  }
+
   const serviceLabel = service?.title || requestedServiceLabel || artist.category || "Artist profile request";
 
   const meta = createRecordMeta({

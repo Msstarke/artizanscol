@@ -959,6 +959,25 @@ function downloadJsonFile(filename, payload) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+function clearAuthFormFields() {
+  [
+    signInEmail,
+    signInPassword,
+    signUpEmail,
+    signUpPassword,
+    confirmEmail,
+    confirmCode,
+    resetRequestEmail,
+    resetConfirmEmail,
+    resetConfirmCode,
+    resetConfirmPassword,
+  ].forEach((field) => {
+    if (field instanceof HTMLInputElement) {
+      field.value = "";
+    }
+  });
+}
+
 signInForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -1062,9 +1081,9 @@ resetRequestForm?.addEventListener("submit", async (event) => {
       resetConfirmEmail.value = email;
     }
     showView("reset_confirm");
-    showToast("Verification code sent. Check your email.", "success");
+    showToast("If this email exists, a verification code will be sent.", "success");
   } catch (error) {
-    showToast(error?.message || "Could not start password reset.", "danger");
+    showToast("Could not start password reset right now.", "danger");
   }
 });
 
@@ -1433,6 +1452,7 @@ goLoginFromResetConfirm?.addEventListener("click", () => showView("login"));
 authSignoutBtn?.addEventListener("click", async () => {
   await signOutCognito();
   clearCognitoIdentity();
+  clearAuthFormFields();
   syncSessionFromExisting();
   showToast("Signed out.", "success");
 });
@@ -1440,6 +1460,7 @@ authSignoutBtn?.addEventListener("click", async () => {
 fullSignoutBtn?.addEventListener("click", async () => {
   await signOutCognito();
   clearCognitoIdentity();
+  clearAuthFormFields();
   localStorage.removeItem("artizans.last_mode.v1");
   syncSessionFromExisting();
   showToast("Signed out and cleared.", "success");

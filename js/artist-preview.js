@@ -66,6 +66,10 @@ function profileIsAccessible() {
   return Boolean(artist) && (profileIsPublic() || viewerOwnsArtistProfile());
 }
 
+function viewerCanBookArtistProfile() {
+  return Boolean(artist) && profileIsPublic() && !viewerOwnsArtistProfile();
+}
+
 function updateBookingCta() {
   if (!openBookingBtn) {
     return;
@@ -79,6 +83,12 @@ function updateBookingCta() {
 
   if (!profileIsPublic()) {
     openBookingBtn.textContent = viewerOwnsArtistProfile() ? "Profile is hidden" : "Booking unavailable";
+    openBookingBtn.disabled = true;
+    return;
+  }
+
+  if (viewerOwnsArtistProfile()) {
+    openBookingBtn.textContent = "This is your profile";
     openBookingBtn.disabled = true;
     return;
   }
@@ -258,14 +268,14 @@ function renderArtistDetails() {
   }
 
   if (artistBio) {
-    artistBio.textContent = artist.bio || "This artist has not added a profile summary yet.";
+    artistBio.textContent = artist.bio || "Profile summary coming soon.";
   }
 
   if (artistTags) {
     artistTags.innerHTML = [
       artist.category,
       ...(artist.mediums || []),
-      profileIsPublic() ? (artist.verified ? "Verified presentation" : "Review in progress") : "Profile hidden",
+      artist.verified ? "Verified" : profileIsPublic() ? "Live profile" : "Private profile",
     ]
       .filter(Boolean)
       .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
@@ -274,12 +284,17 @@ function renderArtistDetails() {
 
   if (artistMeta) {
     artistMeta.innerHTML = [
-      `Location: ${artist.location || "Not set"}`,
+      artist.location ? `Location: ${artist.location}` : null,
       Number(artist.priceFrom || 0) > 0 ? `Starting budgets from ${formatMoney(artist.priceFrom || 0)}` : "Budget shaped around the brief",
-      `Rating ${Number(artist.rating || 0).toFixed(1)}`,
+      Number(artist.reviewCount || 0) > 0 && Number(artist.rating || 0) > 0
+        ? `Rating ${Number(artist.rating || 0).toFixed(1)}`
+        : null,
       `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`,
-      `${Number(artist.completedBookings || 0)} completed booking${Number(artist.completedBookings || 0) === 1 ? "" : "s"}`,
+      Number(artist.completedBookings || 0) > 0
+        ? `${Number(artist.completedBookings || 0)} completed booking${Number(artist.completedBookings || 0) === 1 ? "" : "s"}`
+        : null,
     ]
+      .filter(Boolean)
       .map((item) => `<span>${escapeHtml(item)}</span>`)
       .join("");
   }
@@ -299,24 +314,41 @@ function renderArtistDetails() {
   }
 
   if (artistProofGrid) {
-    artistProofGrid.innerHTML = [
+    const proofItems = [
       {
         title: profileIsPublic() ? (artist.verified ? "Verified" : "Live") : "Hidden",
         label: "profile visibility",
       },
       {
-        title: `${Number(artist.reviewCount || 0)}`,
-        label: "client reviews",
-      },
-      {
-        title: `${Number(artist.popularity || artist.profileViews || 0)}`,
-        label: "interest signals",
-      },
-      {
         title: Number(artist.priceFrom || 0) > 0 ? formatMoney(artist.priceFrom || 0) : "Flexible",
         label: "starting budget",
       },
-    ]
+      Number(artist.reviewCount || 0) > 0
+        ? {
+            title: `${Number(artist.reviewCount || 0)}`,
+            label: "client reviews",
+          }
+        : {
+            title: artist.availability === "limited" ? "Limited" : "Open",
+            label: "availability",
+          },
+      Number(artist.completedBookings || 0) > 0
+        ? {
+            title: `${Number(artist.completedBookings || 0)}`,
+            label: "completed bookings",
+          }
+        : Number(artist.popularity || artist.profileViews || 0) > 0
+          ? {
+              title: `${Number(artist.popularity || artist.profileViews || 0)}`,
+              label: "interest signals",
+            }
+          : {
+              title: "New",
+              label: "public profile",
+            },
+    ];
+
+    artistProofGrid.innerHTML = proofItems
       .map(
         (item) => `
           <div class="profile-stat">
@@ -435,18 +467,28 @@ function renderArtistDetails() {
     bookingFocus.value = "";
   }
 
-  const publicActionsEnabled = profileIsPublic();
+  if (saveArtistBtn) {
+    saveArtistBtn.textContent = viewerOwnsArtistProfile() ? "Your profile" : "Save artist";
+  }
+  if (contactArtistBtn) {
+    contactArtistBtn.textContent = viewerOwnsArtistProfile() ? "Own profile" : "Contact artist";
+  }
   [saveArtistBtn, contactArtistBtn].forEach((button) => {
     if (button) {
-      button.disabled = !publicActionsEnabled;
+      button.disabled = !viewerCanBookArtistProfile();
     }
   });
-  setBookingFormEnabled(publicActionsEnabled);
+  setBookingFormEnabled(viewerCanBookArtistProfile());
 }
 
 saveArtistBtn?.addEventListener("click", async () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist profile is not available to save right now.", "warning");
+    return;
+  }
+
+  if (viewerOwnsArtistProfile()) {
+    showToast("You cannot save your own artist profile.", "warning");
     return;
   }
 
@@ -472,6 +514,11 @@ saveArtistBtn?.addEventListener("click", async () => {
 contactArtistBtn?.addEventListener("click", async () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist is not accepting public enquiries right now.", "warning");
+    return;
+  }
+
+  if (viewerOwnsArtistProfile()) {
+    showToast("You cannot message your own public profile from here.", "warning");
     return;
   }
 
@@ -506,6 +553,11 @@ contactArtistBtn?.addEventListener("click", async () => {
 openBookingBtn?.addEventListener("click", () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist profile is not currently open for booking.", "warning");
+    return;
+  }
+
+  if (viewerOwnsArtistProfile()) {
+    showToast("You cannot book your own artist profile.", "warning");
     return;
   }
 
@@ -548,6 +600,11 @@ bookingForm?.addEventListener("submit", async (event) => {
 
   if (!artist || !profileIsPublic()) {
     showToast("This artist profile is not currently available for booking.", "warning");
+    return;
+  }
+
+  if (viewerOwnsArtistProfile()) {
+    showToast("You cannot book your own artist profile.", "warning");
     return;
   }
 

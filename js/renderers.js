@@ -11,7 +11,7 @@ const FALLBACK_PORTFOLIO_IMAGE =
 
 export function artistCardHTML(artist, options = {}) {
   const previewHref = options.previewHref || `/artist-preview.html?id=${encodeURIComponent(String(artist.id || ""))}`;
-  const verifiedLabel = artist.verified ? "Verified" : "Pending verification";
+  const verifiedLabel = artist.verified ? "Verified" : "Published";
   const actionButtons = options.actionButtons || "";
   const imageSrc = sanitizeImageUrl(artist.portfolio[0]?.image || artist.portfolio[0]?.imageUrl, FALLBACK_PORTFOLIO_IMAGE);
   const availabilityLabel = artist.availability === "limited" ? "Limited availability" : "Open for briefs";
@@ -27,6 +27,10 @@ export function artistCardHTML(artist, options = {}) {
     : "Ready for first booking";
   const locationLabel = String(artist.location || "").trim() || "Remote or flexible";
   const profileCopy = bioSummary || `${mediaSummary}. ${budgetLabel}.`;
+  const ratingLabel =
+    Number(artist.reviewCount || 0) > 0 && Number(artist.rating || 0) > 0
+      ? String(Number(artist.rating || 0).toFixed(1))
+      : "New";
   return `
     <article class="artist-card">
       <a class="artist-card-media" href="${escapeHtml(previewHref)}" aria-label="Open ${escapeHtml(artist.name)} profile">
@@ -42,7 +46,7 @@ export function artistCardHTML(artist, options = {}) {
             <h3>${escapeHtml(artist.name)}</h3>
             <p class="artist-card-subtitle">${escapeHtml(artist.category || "Creative profile")} • ${escapeHtml(locationLabel)}</p>
           </div>
-          <span class="artist-card-rating">${escapeHtml(String(Number(artist.rating || 0).toFixed(1)))}</span>
+          <span class="artist-card-rating">${escapeHtml(ratingLabel)}</span>
         </div>
         <p class="artist-card-copy">${escapeHtml(profileCopy)}</p>
         <div class="tag-row">

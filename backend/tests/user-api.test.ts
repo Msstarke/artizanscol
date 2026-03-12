@@ -440,6 +440,38 @@ test("POST /v1/bookings creates booking and emits notifications", async () => {
   assert.equal(repo.notifications.length, 2);
 });
 
+test("POST /v1/bookings rejects self-booking", async () => {
+  const repo = baseRepo();
+  repo.artists = [
+    {
+      ...repo.artists[0],
+      cognitoSub: "sub-user-1",
+    },
+  ];
+  const handler = createUserApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "POST",
+      rawPath: "/v1/bookings",
+      claims,
+      body: {
+        artistId: "a1",
+        deadline: "2030-01-01T00:00:00.000Z",
+        budget: 300,
+        message: "Need a logo package",
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 400);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.ok, false);
+  assert.equal(parsed.error.code, "INVALID_REQUEST");
+  assert.equal(repo.bookings.length, 0);
+  assert.equal(repo.notifications.length, 0);
+});
+
 test("POST /v1/bookings/{id}/status rejects invalid transitions", async () => {
   const repo = baseRepo();
   const bookingMeta = createRecordMeta({ id: "b1", createdBy: "sub-user-1", now: nowIso(2) });

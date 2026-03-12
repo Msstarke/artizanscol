@@ -695,7 +695,7 @@ function createArtistRecord(db, identity) {
     reviewCount: 0,
     priceFrom: 0,
     availability: "open",
-    bio: "Add your bio to start receiving requests.",
+    bio: "",
     profileVisible: false,
     profileViews: 0,
     completedBookings: 0,

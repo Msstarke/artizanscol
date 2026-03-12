@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Hardened the public auth/profile flow: password reset now returns generic success for user-not-found Cognito cases instead of leaking raw account-existence errors, sign-out now clears all auth/reset form fields, self-booking is blocked both in the public profile UI and server-side booking creation, and public artist pages/cards no longer expose internal review wording, placeholder bios, or zero-value rating/location/completed-booking noise.
 - Synced public artist `location` and `bio` from the saved account profile on the backend, so account profile changes now propagate to the public artist profile instead of only updating the private user record.
 - Fixed opaque Cognito username leakage into profile display names: new user/artist provisioning now ignores GUID-like Cognito usernames, account settings no longer falls back to `cognitoUsername` for display, and `/v1/me` now synchronizes the public artist profile name from the saved account profile name so public listings stop showing machine IDs instead of the chosen profile name.
 - Fixed public artist visibility hydration: `/v1/artists` now returns `profileVisible`, and the frontend store now treats visible-only public artist feeds as visible by default so live profiles actually appear in Explore and homepage listings after publish.
