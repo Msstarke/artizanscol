@@ -79,3 +79,4 @@ All notable project changes are tracked via Git commits and summarized here.
 # 2026-03-12
 - Fixed deploy validation gaps by adding backend post-deploy API smoke checks and putting `/js/api-client.js` behind the no-store CloudFront behavior so browsers stop reusing stale API routing code.
 - Fixed production deploy wiring for the site certificate by pushing the CloudFront custom-domain parameters (`www.artizanscollective.com`, bare-domain redirect, and valid us-east-1 ACM certificate) through the backend deploy workflow, and updated API smoke checks to accept API Gateway's standard unauthenticated `{"message":"Unauthorized"}` response.
+- Fixed favicon delivery by generating a real multi-size `favicon.ico` from the SVG source, adding favicon links to all HTML pages, and versioning the favicon URLs to break stale browser caches.

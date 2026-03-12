@@ -1,10 +1,48 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="A">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 151.75 176.37">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#ff6a2a" />
-      <stop offset="100%" stop-color="#ff9548" />
-    </linearGradient>
+    <style>
+      .cls-1, .cls-2, .cls-3, .cls-4, .cls-5 {
+        stroke: #fff;
+        stroke-width: 4px;
+      }
+
+      .cls-1, .cls-3 {
+        stroke-miterlimit: 10;
+      }
+
+      .cls-1, .cls-4 {
+        fill: none;
+      }
+
+      .cls-2, .cls-3, .cls-5 {
+        fill: #fbb03b;
+      }
+
+      .cls-2, .cls-4 {
+        stroke-linecap: round;
+      }
+
+      .cls-2, .cls-4, .cls-5 {
+        stroke-linejoin: round;
+      }
+    </style>
   </defs>
-  <rect width="64" height="64" rx="14" fill="#141414" />
-  <path d="M32 10L50 54H42L37.5 42H26.5L22 54H14L32 10ZM29 35H35L32 26L29 35Z" fill="url(#g)"/>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <circle class="cls-3" cx="75.88" cy="73.76" r="37.55"/>
+    <rect class="cls-5" x="58.73" y="96.46" width="34.56" height="44.46"/>
+    <rect class="cls-3" x="69.24" y="71.99" width="13.26" height="24.47"/>
+    <circle class="cls-3" cx="63.62" cy="66.36" r="5.63"/>
+    <circle class="cls-3" cx="88.14" cy="66.36" r="5.63"/>
+    <polygon class="cls-2" points="76.01 174.37 75.88 174.37 58.73 140.92 93.29 140.92 76.01 174.37"/>
+    <line class="cls-1" x1="69.24" y1="96.46" x2="69.24" y2="140.92"/>
+    <line class="cls-1" x1="82.51" y1="96.46" x2="82.51" y2="140.92"/>
+    <line class="cls-4" x1="19.95" y1="119.2" x2="32.67" y2="106.68"/>
+    <line class="cls-4" x1="2" y1="70.62" x2="19.38" y2="70.53"/>
+    <line class="cls-4" x1="20.02" y1="22.13" x2="32.66" y2="34.74"/>
+    <line class="cls-4" x1="131.8" y1="119.15" x2="119.08" y2="106.63"/>
+    <line class="cls-4" x1="149.75" y1="70.56" x2="132.38" y2="70.48"/>
+    <line class="cls-4" x1="131.74" y1="22.08" x2="119.1" y2="34.69"/>
+    <line class="cls-4" x1="76.01" y1="2" x2="76.01" y2="20.72"/>
+  </g>
 </svg>
