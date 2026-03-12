@@ -70,6 +70,11 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+function parseRecordTime(value: unknown): number {
+  const time = new Date(String(value || "")).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
 function normalizeUserRecord(user: UserRecord): UserRecord {
   const savedArtistIds = asArray<string>(user.savedArtistIds).length
     ? asArray<string>(user.savedArtistIds)
@@ -160,6 +165,27 @@ export function sanitizeArtistWriteRecord(artist: ArtistRecord): Record<string, 
   }
 
   return normalized;
+}
+
+export function selectCanonicalArtistRecord(artists: ArtistRecord[]): ArtistRecord | null {
+  const matches = Array.isArray(artists) ? artists.map((artist) => normalizeArtistRecord(artist)) : [];
+  if (!matches.length) {
+    return null;
+  }
+
+  return [...matches].sort((left, right) => {
+    const updatedDelta = parseRecordTime(right.updatedAt) - parseRecordTime(left.updatedAt);
+    if (updatedDelta !== 0) {
+      return updatedDelta;
+    }
+
+    const visibilityDelta = Number(Boolean(right.profileVisible)) - Number(Boolean(left.profileVisible));
+    if (visibilityDelta !== 0) {
+      return visibilityDelta;
+    }
+
+    return parseRecordTime(right.createdAt) - parseRecordTime(left.createdAt);
+  })[0];
 }
 
 function normalizeCategoryRecord(category: CategoryRecord): CategoryRecord {
@@ -306,11 +332,9 @@ class RuntimeRepository
       ExpressionAttributeValues: {
         ":cognitoSub": cognitoSub,
       },
-      Limit: 1,
     });
 
-    const artist = items[0] || null;
-    return artist ? normalizeArtistRecord(artist) : null;
+    return selectCanonicalArtistRecord(items);
   }
 
   private async scanMessagesByParticipant(participantId: string): Promise<MessageRecord[]> {
@@ -540,6 +564,23 @@ class RuntimeRepository
 
   async patchArtist(artist: ArtistRecord): Promise<void> {
     await this.putItem(this.env.artistsTableName, sanitizeArtistWriteRecord(artist));
+
+    if (artist.cognitoSub) {
+      const duplicates = await this.scanAll<ArtistRecord>({
+        TableName: this.env.artistsTableName,
+        FilterExpression: "cognitoSub = :cognitoSub",
+        ExpressionAttributeValues: {
+          ":cognitoSub": artist.cognitoSub,
+        },
+      });
+
+      await Promise.all(
+        duplicates
+          .map(normalizeArtistRecord)
+          .filter((item) => item.id !== artist.id)
+          .map((item) => this.deleteById(this.env.artistsTableName, item.id)),
+      );
+    }
   }
 
   async createService(service: ServiceRecord): Promise<void> {

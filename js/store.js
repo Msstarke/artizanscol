@@ -290,6 +290,29 @@ function preferRemoteRecord(existing, remote) {
   return remoteTime >= localTime;
 }
 
+function selectCanonicalArtistRecord(artists, cognitoSub = null) {
+  const matches = asArray(artists)
+    .filter((artist) => artist && (!cognitoSub || artist.cognitoSub === cognitoSub));
+
+  if (!matches.length) {
+    return null;
+  }
+
+  return [...matches].sort((left, right) => {
+    const timeDelta = parseTime(right?.updatedAt) - parseTime(left?.updatedAt);
+    if (timeDelta !== 0) {
+      return timeDelta;
+    }
+
+    const visibilityDelta = Number(Boolean(right?.profileVisible)) - Number(Boolean(left?.profileVisible));
+    if (visibilityDelta !== 0) {
+      return visibilityDelta;
+    }
+
+    return parseTime(right?.createdAt) - parseTime(left?.createdAt);
+  })[0];
+}
+
 function migrateArtistReferences(db, fromArtistId, toArtistId) {
   if (!fromArtistId || !toArtistId || fromArtistId === toArtistId) {
     return;
@@ -551,7 +574,7 @@ export function getArtistByCognitoSub(db, cognitoSub) {
   if (!cognitoSub) {
     return null;
   }
-  return asArray(db?.artists).find((artist) => artist.cognitoSub === cognitoSub) || null;
+  return selectCanonicalArtistRecord(db?.artists, cognitoSub);
 }
 
 export function getServiceById(db, serviceId) {
@@ -902,7 +925,9 @@ function mergeArtistCardIntoDB(db, artistCard) {
     db,
   );
 
-  db.artists = asArray(db.artists).filter((artist) => artist.id !== next.id);
+  db.artists = asArray(db.artists).filter(
+    (artist) => artist.id !== next.id && artist.cognitoSub !== next.cognitoSub,
+  );
   db.artists.push(next);
   return next;
 }

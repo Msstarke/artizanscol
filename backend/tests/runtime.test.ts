@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeArtistWriteRecord } from "../src/repos/runtime.js";
+import { sanitizeArtistWriteRecord, selectCanonicalArtistRecord } from "../src/repos/runtime.js";
 import { createRecordMeta } from "../src/domain/record-meta.js";
 import type { ArtistRecord } from "../src/domain/entities.js";
 
@@ -34,4 +34,44 @@ test("sanitizeArtistWriteRecord removes blank indexed artist attributes", () => 
   assert.equal("location" in payload, false);
   assert.equal(payload.handle, "artist");
   assert.equal(payload.profileVisible, false);
+});
+
+test("selectCanonicalArtistRecord prefers the newest updated artist record", () => {
+  const base = {
+    cognitoSub: "sub-1",
+    cognitoEmail: "artist@example.com",
+    name: "Artist",
+    handle: "artist",
+    category: "",
+    mediums: [],
+    location: "",
+    verified: false,
+    popularity: 0,
+    rating: 0,
+    reviewCount: 0,
+    priceFrom: 0,
+    availability: "open" as const,
+    bio: "",
+    profileViews: 0,
+    completedBookings: 0,
+    acceptanceRate: 0,
+    portfolio: [],
+  };
+
+  const older: ArtistRecord = {
+    ...createRecordMeta({ id: "a-old", createdBy: "seed", now: "2026-03-11T00:00:00.000Z" }),
+    ...base,
+    profileVisible: false,
+  };
+
+  const newer: ArtistRecord = {
+    ...createRecordMeta({ id: "a-new", createdBy: "seed", now: "2026-03-12T00:00:00.000Z" }),
+    ...base,
+    profileVisible: true,
+  };
+
+  const selected = selectCanonicalArtistRecord([older, newer]);
+
+  assert.equal(selected?.id, "a-new");
+  assert.equal(selected?.profileVisible, true);
 });
