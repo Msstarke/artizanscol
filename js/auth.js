@@ -710,7 +710,7 @@ function renderAccountPanels(session) {
 
   const { db, user, artist } = context;
   const fallbackName = titleize(
-    session.cognitoUsername || String(session.cognitoEmail || "").split("@")[0] || "Member",
+    String(session.cognitoEmail || "").split("@")[0] || "Member",
   );
   const preferences = getAccountPreferences(session);
 

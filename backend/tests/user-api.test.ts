@@ -33,6 +33,19 @@ class InMemoryUserWorkspaceRepo implements UserWorkspaceRepository {
     this.users.unshift(user);
   }
 
+  async getArtistByCognitoSub(cognitoSub: string): Promise<ArtistRecord | null> {
+    return this.artists.find((artist) => artist.cognitoSub === cognitoSub) || null;
+  }
+
+  async patchArtist(artist: ArtistRecord): Promise<void> {
+    const index = this.artists.findIndex((item) => item.id === artist.id);
+    if (index >= 0) {
+      this.artists[index] = artist;
+      return;
+    }
+    this.artists.unshift(artist);
+  }
+
   async getArtistById(artistId: string): Promise<ArtistRecord | null> {
     return this.artists.find((artist) => artist.id === artistId) || null;
   }
@@ -271,6 +284,45 @@ test("GET /v1/me returns current profile", async () => {
   assert.equal(parsed.data.id, "u1");
 });
 
+test("GET /v1/me syncs the artist display name from the saved user profile", async () => {
+  const repo = baseRepo();
+  repo.users = [
+    {
+      ...repo.users[0],
+      id: "u-sync",
+      cognitoSub: "sub-shared",
+      cognitoEmail: "matthew@example.com",
+      email: "matthew@example.com",
+      name: "Matthew Starke",
+    },
+  ];
+  repo.artists = [
+    {
+      ...repo.artists[0],
+      id: "a-sync",
+      cognitoSub: "sub-shared",
+      cognitoEmail: "matthew@example.com",
+      name: "794ee4e8 0061 70ab 595b 274a71206fcd",
+    },
+  ];
+
+  const handler = createUserApiHandler(repo, undefined, repo);
+  const response = await handler(
+    makeEvent({
+      method: "GET",
+      rawPath: "/v1/me",
+      claims: {
+        sub: "sub-shared",
+        email: "matthew@example.com",
+        "cognito:username": "794ee4e8 0061 70ab 595b 274a71206fcd",
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(repo.artists[0].name, "Matthew Starke");
+});
+
 test("PATCH /v1/me/profile validates payload and updates profile", async () => {
   const repo = baseRepo();
   const handler = createUserApiHandler(repo);
@@ -291,6 +343,28 @@ test("PATCH /v1/me/profile validates payload and updates profile", async () => {
   const parsed = JSON.parse(String(response.body));
   assert.equal(parsed.data.name, "Updated Name");
   assert.equal(repo.users[0].name, "Updated Name");
+});
+
+test("GET /v1/me provisions a readable name when cognito username is opaque", async () => {
+  const repo = baseRepo();
+  repo.users = [];
+  const handler = createUserApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "GET",
+      rawPath: "/v1/me",
+      claims: {
+        sub: "sub-new",
+        email: "matthew@example.com",
+        "cognito:username": "794ee4e8-0061-70ab-595b-274a71206fcd",
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.data.name, "Matthew");
 });
 
 test("POST /v1/bookings validates required fields", async () => {

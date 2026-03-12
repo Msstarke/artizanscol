@@ -106,15 +106,28 @@ class RequestError extends Error {
   }
 }
 
-function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
-  const fromUsername = String(identity.username || "").trim();
-  if (fromUsername) {
-    return fromUsername;
+function normalizeDisplayName(value: string | null | undefined): string {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function isOpaqueIdentityName(value: string | null | undefined): boolean {
+  const trimmed = normalizeDisplayName(value);
+  if (!trimmed) {
+    return false;
   }
 
-  const emailPrefix = String(identity.email || "").trim().split("@")[0] || "";
+  const compact = trimmed.replace(/[\s-]+/g, "");
+  if (compact.length === 32 && /^[a-f0-9]{32}$/i.test(compact)) {
+    return true;
+  }
+
+  return /^[a-f0-9]{8}(?:[\s-]?[a-f0-9]{4}){3}[\s-]?[a-f0-9]{12}$/i.test(trimmed);
+}
+
+function emailPrefixDisplayName(email: string | null | undefined): string {
+  const emailPrefix = String(email || "").trim().split("@")[0] || "";
   if (!emailPrefix) {
-    return "Artist";
+    return "";
   }
 
   return emailPrefix
@@ -122,6 +135,20 @@ function displayNameFromIdentity(identity: { email: string | null; username: str
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
+  const fromUsername = normalizeDisplayName(identity.username);
+  if (fromUsername && !isOpaqueIdentityName(fromUsername)) {
+    return fromUsername;
+  }
+
+  const fromEmail = emailPrefixDisplayName(identity.email);
+  if (!fromEmail) {
+    return "Artist";
+  }
+
+  return fromEmail;
 }
 
 function slugify(value: string): string {

@@ -344,6 +344,28 @@ test("GET /v1/artist/me returns profile summary", async () => {
   assert.equal(parsed.data.serviceCount, 1);
 });
 
+test("GET /v1/artist/me provisions a readable name when cognito username is opaque", async () => {
+  const repo = baseRepo();
+  repo.artists = [];
+  const handler = createArtistApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "GET",
+      rawPath: "/v1/artist/me",
+      claims: {
+        sub: "sub-new-artist",
+        email: "matthew@example.com",
+        "cognito:username": "794ee4e8-0061-70ab-595b-274a71206fcd",
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.data.name, "Matthew");
+});
+
 test("PATCH /v1/artist/me/profile updates editable fields", async () => {
   const repo = baseRepo();
   const handler = createArtistApiHandler(repo);

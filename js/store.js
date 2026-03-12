@@ -173,9 +173,50 @@ function normalizeIdentity(identity) {
   };
 }
 
+function normalizeDisplayName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function isOpaqueIdentityName(value) {
+  const trimmed = normalizeDisplayName(value);
+  if (!trimmed) {
+    return false;
+  }
+
+  const compact = trimmed.replace(/[\s-]+/g, "");
+  if (compact.length === 32 && /^[a-f0-9]{32}$/i.test(compact)) {
+    return true;
+  }
+
+  return /^[a-f0-9]{8}(?:[\s-]?[a-f0-9]{4}){3}[\s-]?[a-f0-9]{12}$/i.test(trimmed);
+}
+
+function isPlaceholderDisplayName(value) {
+  const normalized = normalizeDisplayName(value).toLowerCase();
+  return ["member", "artist", "new user", "new artist"].includes(normalized);
+}
+
+function selectDisplayName(candidates, fallback = "") {
+  for (const candidate of candidates) {
+    const trimmed = normalizeDisplayName(candidate);
+    if (trimmed && !isOpaqueIdentityName(trimmed) && !isPlaceholderDisplayName(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  for (const candidate of candidates) {
+    const trimmed = normalizeDisplayName(candidate);
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return fallback;
+}
+
 function displayNameFromIdentity(identity, fallback = "Member") {
   const normalized = normalizeIdentity(identity);
-  const fromUsername = toTitle(normalized.username || "");
+  const fromUsername = isOpaqueIdentityName(normalized.username) ? "" : toTitle(normalized.username || "");
   if (fromUsername) {
     return fromUsername;
   }
@@ -730,11 +771,10 @@ export function ensureUserForCognito(identity) {
           id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("u", db.users),
           cognitoSub: remote.cognitoSub || normalized.sub,
           cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name:
-            (remoteIsPreferred ? remote.name : "") ||
-            existing?.name ||
-            remote.name ||
+          name: selectDisplayName(
+            [remoteIsPreferred ? remote.name : "", existing?.name, remote.name],
             displayNameFromIdentity(normalized, "New User"),
+          ),
           email: remote.email || normalized.email || "",
           location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
           bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
@@ -812,11 +852,10 @@ export function ensureArtistForCognito(identity) {
           id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("a", db.artists),
           cognitoSub: remote.cognitoSub || normalized.sub,
           cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name:
-            (remoteIsPreferred ? remote.name : "") ||
-            existing?.name ||
-            remote.name ||
+          name: selectDisplayName(
+            [remoteIsPreferred ? remote.name : "", existing?.name, remote.name],
             displayNameFromIdentity(normalized, "New Artist"),
+          ),
           handle:
             (remoteIsPreferred ? remote.handle : "") ||
             existing?.handle ||
@@ -901,7 +940,7 @@ function mergeArtistCardIntoDB(db, artistCard) {
       id: artistCard.id,
       cognitoSub: artistCard.cognitoSub || existing?.cognitoSub || null,
       cognitoEmail: artistCard.cognitoEmail || existing?.cognitoEmail || null,
-      name: artistCard.name || existing?.name || "Artist",
+      name: selectDisplayName([artistCard.name, existing?.name], "Artist"),
       handle: artistCard.handle || existing?.handle || "",
       category: artistCard.category || existing?.category || "",
       mediums: asArray(artistCard.mediums).length ? asArray(artistCard.mediums) : asArray(existing?.mediums),
@@ -952,7 +991,7 @@ function mergeUserIntoDB(db, remote) {
     id: remote.id,
     cognitoSub: remote.cognitoSub || existing?.cognitoSub || null,
     cognitoEmail: remote.cognitoEmail || existing?.cognitoEmail || "",
-    name: remote.name || existing?.name || "Member",
+    name: selectDisplayName([remote.name, existing?.name], "Member"),
     email: remote.email || existing?.email || remote.cognitoEmail || "",
     location: remote.location || existing?.location || "",
     bio: remote.bio || existing?.bio || "",

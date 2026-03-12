@@ -24,10 +24,18 @@ import {
   type RoleAssignmentsRepository,
 } from "../repos/role-assignments.js";
 import {
+  NoopArtistWorkspaceRepository,
+  type ArtistWorkspaceRepository,
+} from "../repos/artist-workspace.js";
+import {
   NoopUserWorkspaceRepository,
   type UserWorkspaceRepository,
 } from "../repos/user-workspace.js";
-import { getRoleAssignmentsRepository, getUserWorkspaceRepository } from "../repos/runtime.js";
+import {
+  getArtistWorkspaceRepository,
+  getRoleAssignmentsRepository,
+  getUserWorkspaceRepository,
+} from "../repos/runtime.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -119,15 +127,30 @@ const DEFAULT_USER_SETUP = {
   completedAt: null,
 } as const;
 
-function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
-  const fromUsername = String(identity.username || "").trim();
-  if (fromUsername) {
-    return fromUsername;
+type ArtistNameSyncRepository = Pick<ArtistWorkspaceRepository, "getArtistByCognitoSub" | "patchArtist">;
+
+function normalizeDisplayName(value: string | null | undefined): string {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function isOpaqueIdentityName(value: string | null | undefined): boolean {
+  const trimmed = normalizeDisplayName(value);
+  if (!trimmed) {
+    return false;
   }
 
-  const emailPrefix = String(identity.email || "").trim().split("@")[0] || "";
+  const compact = trimmed.replace(/[\s-]+/g, "");
+  if (compact.length === 32 && /^[a-f0-9]{32}$/i.test(compact)) {
+    return true;
+  }
+
+  return /^[a-f0-9]{8}(?:[\s-]?[a-f0-9]{4}){3}[\s-]?[a-f0-9]{12}$/i.test(trimmed);
+}
+
+function emailPrefixDisplayName(email: string | null | undefined): string {
+  const emailPrefix = String(email || "").trim().split("@")[0] || "";
   if (!emailPrefix) {
-    return "Member";
+    return "";
   }
 
   return emailPrefix
@@ -135,6 +158,50 @@ function displayNameFromIdentity(identity: { email: string | null; username: str
     .replace(/\s+/g, " ")
     .trim()
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function displayNameFromIdentity(identity: { email: string | null; username: string | null }): string {
+  const fromUsername = normalizeDisplayName(identity.username);
+  if (fromUsername && !isOpaqueIdentityName(fromUsername)) {
+    return fromUsername;
+  }
+
+  const fromEmail = emailPrefixDisplayName(identity.email);
+  if (!fromEmail) {
+    return "Member";
+  }
+
+  return fromEmail;
+}
+
+async function syncArtistNameFromUser(
+  artistRepository: ArtistNameSyncRepository,
+  user: UserRecord,
+  identitySub: string,
+): Promise<void> {
+  const userName = normalizeDisplayName(user.name);
+  if (!user.cognitoSub || !userName) {
+    return;
+  }
+
+  const artist = await artistRepository.getArtistByCognitoSub(user.cognitoSub);
+  if (!artist) {
+    return;
+  }
+
+  if (normalizeDisplayName(artist.name) === userName) {
+    return;
+  }
+
+  await artistRepository.patchArtist(
+    touchRecordMeta(
+      {
+        ...artist,
+        name: userName,
+      },
+      identitySub,
+    ),
+  );
 }
 
 function normalizeUserPreferences(
@@ -442,13 +509,19 @@ async function emitNotification(
   });
 }
 
-async function handleGetMe(user: UserRecord): Promise<APIGatewayProxyStructuredResultV2> {
+async function handleGetMe(
+  user: UserRecord,
+  artistRepository: ArtistNameSyncRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  await syncArtistNameFromUser(artistRepository, user, identitySub);
   return json(200, success(mapMe(user)));
 }
 
 async function handlePatchProfile(
   event: APIGatewayProxyEventV2,
   repository: UserWorkspaceRepository,
+  artistRepository: ArtistNameSyncRepository,
   user: UserRecord,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -476,6 +549,7 @@ async function handlePatchProfile(
   ));
 
   await repository.patchUser(next);
+  await syncArtistNameFromUser(artistRepository, next, identitySub);
   return json(200, success(mapMe(next)));
 }
 
@@ -893,8 +967,9 @@ async function handleMarkNotificationsRead(
 }
 
 export function createUserApiHandler(
-  repository: UserWorkspaceRepository,
+  repository: UserWorkspaceRepository = new NoopUserWorkspaceRepository(),
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
+  artistRepository: ArtistNameSyncRepository = new NoopArtistWorkspaceRepository(),
 ) {
   return async function handler(
     event: APIGatewayProxyEventV2,
@@ -919,11 +994,11 @@ export function createUserApiHandler(
       user = normalizeUser(user);
 
       if (method === "GET" && path === "/v1/me") {
-        return await handleGetMe(user);
+        return await handleGetMe(user, artistRepository, identity.sub);
       }
 
       if (method === "PATCH" && path === "/v1/me/profile") {
-        return await handlePatchProfile(event, repository, user, identity.sub);
+        return await handlePatchProfile(event, repository, artistRepository, user, identity.sub);
       }
 
       if (method === "PATCH" && path === "/v1/me/preferences") {
@@ -1001,6 +1076,10 @@ export function createUserApiHandler(
 let runtimeHandler: ReturnType<typeof createUserApiHandler> | null = null;
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  runtimeHandler ||= createUserApiHandler(getUserWorkspaceRepository(), getRoleAssignmentsRepository());
+  runtimeHandler ||= createUserApiHandler(
+    getUserWorkspaceRepository(),
+    getRoleAssignmentsRepository(),
+    getArtistWorkspaceRepository(),
+  );
   return await runtimeHandler(event);
 };

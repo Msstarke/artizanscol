@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Fixed opaque Cognito username leakage into profile display names: new user/artist provisioning now ignores GUID-like Cognito usernames, account settings no longer falls back to `cognitoUsername` for display, and `/v1/me` now synchronizes the public artist profile name from the saved account profile name so public listings stop showing machine IDs instead of the chosen profile name.
 - Fixed public artist visibility hydration: `/v1/artists` now returns `profileVisible`, and the frontend store now treats visible-only public artist feeds as visible by default so live profiles actually appear in Explore and homepage listings after publish.
 - Removed WAF from the AWS stack and deploy path: deleted CloudFront/API Web ACL resources and associations from `aws/cloudformation/artizans-aws-stack.yaml`, removed WAF-specific deploy parameters from the backend workflow, and cleaned WAF references out of the AWS docs/config metadata.
 
