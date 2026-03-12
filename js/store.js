@@ -1439,6 +1439,26 @@ export async function updateArtistProfile(artistId, patch) {
     || Object.prototype.hasOwnProperty.call(patch || {}, "priceFrom")
     || Object.prototype.hasOwnProperty.call(patch || {}, "portfolio");
 
+  const profileBody = {};
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "name")) {
+    profileBody.name = patch?.name ?? artist.name;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "handle")) {
+    profileBody.handle = patch?.handle ?? artist.handle;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "location")) {
+    profileBody.location = patch?.location ?? artist.location;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "bio")) {
+    profileBody.bio = patch?.bio ?? artist.bio;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "availability")) {
+    profileBody.availability = patch?.availability ?? artist.availability;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch || {}, "profileVisible")) {
+    profileBody.profileVisible = Boolean(patch?.profileVisible);
+  }
+
   const response = onboardingPatch
     ? await apiRequest("/v1/artist/me/onboarding", {
         method: "PUT",
@@ -1460,15 +1480,7 @@ export async function updateArtistProfile(artistId, patch) {
       })
     : await apiRequest("/v1/artist/me/profile", {
         method: "PATCH",
-        body: {
-          name: patch?.name ?? artist.name,
-          handle: patch?.handle ?? artist.handle,
-          location: patch?.location ?? artist.location,
-          bio: patch?.bio ?? artist.bio,
-          availability: patch?.availability ?? artist.availability,
-          profileVisible:
-            typeof patch?.profileVisible === "boolean" ? patch.profileVisible : artist.profileVisible,
-        },
+        body: profileBody,
       });
 
   const remote = response?.data || null;

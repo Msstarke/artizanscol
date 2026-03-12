@@ -38,7 +38,7 @@ const ARTIST_PROFILE_PATCH_SCHEMA: JsonSchema = {
   properties: {
     name: { type: "string", minLength: 1, maxLength: 80, nullable: true },
     handle: { type: "string", minLength: 1, maxLength: 60, nullable: true },
-    location: { type: "string", minLength: 1, maxLength: 80, nullable: true },
+    location: { type: "string", maxLength: 80, nullable: true },
     bio: { type: "string", maxLength: 1200, nullable: true },
     availability: { type: "string", enum: AVAILABILITY_VALUES, nullable: true },
     profileVisible: { type: "boolean", nullable: true },

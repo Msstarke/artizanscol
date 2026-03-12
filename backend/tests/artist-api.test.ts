@@ -369,6 +369,28 @@ test("PATCH /v1/artist/me/profile updates editable fields", async () => {
   assert.equal(repo.artists[0].availability, "limited");
 });
 
+test("PATCH /v1/artist/me/profile accepts empty optional location", async () => {
+  const repo = baseRepo();
+  const handler = createArtistApiHandler(repo);
+
+  const response = await handler(
+    makeEvent({
+      method: "PATCH",
+      rawPath: "/v1/artist/me/profile",
+      claims,
+      body: {
+        profileVisible: true,
+        location: "",
+      },
+    }),
+  );
+
+  assert.equal(response.statusCode, 200);
+  const parsed = JSON.parse(String(response.body));
+  assert.equal(parsed.data.profileVisible, true);
+  assert.equal(parsed.data.location, "");
+});
+
 test("PUT /v1/artist/me/onboarding stores onboarding fields", async () => {
   const repo = baseRepo();
   const handler = createArtistApiHandler(repo);

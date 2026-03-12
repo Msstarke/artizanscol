@@ -84,6 +84,7 @@ All notable project changes are tracked via Git commits and summarized here.
 - Fixed authenticated save requests failing with `Failed to fetch` by making deployed frontend environments prefer same-origin `/v1/*` requests through CloudFront again, avoiding cross-origin preflight on authenticated saves; kept the explicit unauthenticated `OPTIONS /v1/{proxy+}` route in place as a defensive fallback and removed the failing execute-api preflight smoke check.
 # 2026-03-12
 
+- fixed `Show profile` failing when artist location was blank by allowing empty optional artist locations and by sending only explicitly changed artist fields on profile patch requests
 - fixed account settings save failures by decoupling user profile saves from artist profile writes
 - hardened artist persistence to strip blank indexed fields before DynamoDB writes so hidden draft profiles do not trigger backend 500s
 - added backend logging for unexpected user and artist API failures to make live debugging actionable
