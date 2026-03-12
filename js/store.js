@@ -482,7 +482,10 @@ export async function hydrateDB() {
           priceFrom: Number(artist.priceFrom || 0),
           availability: artist.availability || "open",
           bio: artist.bio || "",
-          profileVisible: Boolean(artist.profileVisible),
+          profileVisible:
+            typeof artist.profileVisible === "boolean"
+              ? artist.profileVisible
+              : true,
           profileViews: Number(artist.profileViews || 0),
           completedBookings: Number(artist.completedBookings || 0),
           acceptanceRate: Number(artist.acceptanceRate || 0),
@@ -671,18 +674,24 @@ function syncIdentityFields(record, identity) {
     return;
   }
 
+  let changed = false;
+
   if (!record.cognitoSub) {
     record.cognitoSub = normalized.sub;
+    changed = true;
   }
 
   if (normalized.email && record.cognitoEmail !== normalized.email) {
     record.cognitoEmail = normalized.email;
+    changed = true;
     if (Object.prototype.hasOwnProperty.call(record, "email") && !record.email) {
       record.email = normalized.email;
     }
   }
 
-  record.updatedAt = nowIso();
+  if (changed) {
+    record.updatedAt = nowIso();
+  }
 }
 
 export function ensureUserForCognito(identity) {

@@ -161,6 +161,7 @@ function mapArtistCard(artist: ArtistRecord) {
     id: artist.id,
     name: artist.name,
     handle: artist.handle,
+    profileVisible: artist.profileVisible,
     category: artist.category,
     mediums: artist.mediums,
     location: artist.location,

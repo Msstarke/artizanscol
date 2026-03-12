@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Fixed public artist visibility hydration: `/v1/artists` now returns `profileVisible`, and the frontend store now treats visible-only public artist feeds as visible by default so live profiles actually appear in Explore and homepage listings after publish.
 - Removed WAF from the AWS stack and deploy path: deleted CloudFront/API Web ACL resources and associations from `aws/cloudformation/artizans-aws-stack.yaml`, removed WAF-specific deploy parameters from the backend workflow, and cleaned WAF references out of the AWS docs/config metadata.
 
 ## 2026-03-11

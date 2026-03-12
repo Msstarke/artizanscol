@@ -224,6 +224,7 @@ test("GET /v1/artists applies filters and pagination", async () => {
   assert.equal(parsed.ok, true);
   assert.equal(parsed.data.items.length, 1);
   assert.equal(parsed.data.items[0].id, "a1");
+  assert.equal(parsed.data.items[0].profileVisible, true);
   assert.equal(parsed.data.pagination.nextCursor, null);
 });
 
