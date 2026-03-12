@@ -284,7 +284,7 @@ test("GET /v1/me returns current profile", async () => {
   assert.equal(parsed.data.id, "u1");
 });
 
-test("GET /v1/me syncs the artist display name from the saved user profile", async () => {
+test("GET /v1/me syncs the artist profile fields from the saved user profile", async () => {
   const repo = baseRepo();
   repo.users = [
     {
@@ -294,6 +294,8 @@ test("GET /v1/me syncs the artist display name from the saved user profile", asy
       cognitoEmail: "matthew@example.com",
       email: "matthew@example.com",
       name: "Matthew Starke",
+      location: "Sydney",
+      bio: "Independent illustrator and designer.",
     },
   ];
   repo.artists = [
@@ -303,6 +305,8 @@ test("GET /v1/me syncs the artist display name from the saved user profile", asy
       cognitoSub: "sub-shared",
       cognitoEmail: "matthew@example.com",
       name: "794ee4e8 0061 70ab 595b 274a71206fcd",
+      location: "",
+      bio: "",
     },
   ];
 
@@ -321,11 +325,31 @@ test("GET /v1/me syncs the artist display name from the saved user profile", asy
 
   assert.equal(response.statusCode, 200);
   assert.equal(repo.artists[0].name, "Matthew Starke");
+  assert.equal(repo.artists[0].location, "Sydney");
+  assert.equal(repo.artists[0].bio, "Independent illustrator and designer.");
 });
 
 test("PATCH /v1/me/profile validates payload and updates profile", async () => {
   const repo = baseRepo();
-  const handler = createUserApiHandler(repo);
+  repo.users = [
+    {
+      ...repo.users[0],
+      cognitoSub: "sub-user-1",
+      name: "User One",
+      location: "Sydney",
+      bio: "",
+    },
+  ];
+  repo.artists = [
+    {
+      ...repo.artists[0],
+      cognitoSub: "sub-user-1",
+      name: "Old Artist Name",
+      location: "",
+      bio: "",
+    },
+  ];
+  const handler = createUserApiHandler(repo, undefined, repo);
 
   const response = await handler(
     makeEvent({
@@ -335,6 +359,7 @@ test("PATCH /v1/me/profile validates payload and updates profile", async () => {
       body: {
         name: "Updated Name",
         location: "Brisbane",
+        bio: "Short bio",
       },
     }),
   );
@@ -343,6 +368,9 @@ test("PATCH /v1/me/profile validates payload and updates profile", async () => {
   const parsed = JSON.parse(String(response.body));
   assert.equal(parsed.data.name, "Updated Name");
   assert.equal(repo.users[0].name, "Updated Name");
+  assert.equal(repo.artists[0].name, "Updated Name");
+  assert.equal(repo.artists[0].location, "Brisbane");
+  assert.equal(repo.artists[0].bio, "Short bio");
 });
 
 test("GET /v1/me provisions a readable name when cognito username is opaque", async () => {

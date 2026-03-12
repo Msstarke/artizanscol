@@ -174,7 +174,7 @@ function displayNameFromIdentity(identity: { email: string | null; username: str
   return fromEmail;
 }
 
-async function syncArtistNameFromUser(
+async function syncArtistProfileFromUser(
   artistRepository: ArtistNameSyncRepository,
   user: UserRecord,
   identitySub: string,
@@ -189,7 +189,14 @@ async function syncArtistNameFromUser(
     return;
   }
 
-  if (normalizeDisplayName(artist.name) === userName) {
+  const nextLocation = String(user.location || "").trim();
+  const nextBio = String(user.bio || "").trim();
+
+  if (
+    normalizeDisplayName(artist.name) === userName &&
+    String(artist.location || "").trim() === nextLocation &&
+    String(artist.bio || "").trim() === nextBio
+  ) {
     return;
   }
 
@@ -198,6 +205,8 @@ async function syncArtistNameFromUser(
       {
         ...artist,
         name: userName,
+        location: nextLocation,
+        bio: nextBio,
       },
       identitySub,
     ),
@@ -514,7 +523,7 @@ async function handleGetMe(
   artistRepository: ArtistNameSyncRepository,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
-  await syncArtistNameFromUser(artistRepository, user, identitySub);
+  await syncArtistProfileFromUser(artistRepository, user, identitySub);
   return json(200, success(mapMe(user)));
 }
 
@@ -549,7 +558,7 @@ async function handlePatchProfile(
   ));
 
   await repository.patchUser(next);
-  await syncArtistNameFromUser(artistRepository, next, identitySub);
+  await syncArtistProfileFromUser(artistRepository, next, identitySub);
   return json(200, success(mapMe(next)));
 }
 
