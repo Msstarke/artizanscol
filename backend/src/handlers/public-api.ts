@@ -424,6 +424,17 @@ export function createPublicApiHandler(repository: PublicDiscoveryRepository) {
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
 
+      if (method === "OPTIONS" && path.startsWith("/v1/")) {
+        return {
+          statusCode: 204,
+          headers: {
+            "cache-control": "no-store",
+            "strict-transport-security": "max-age=31536000; includeSubDomains",
+            "x-content-type-options": "nosniff",
+          },
+        };
+      }
+
       if (method === "GET" && path === "/v1/categories") {
         return await handleListCategories(event, repository);
       }

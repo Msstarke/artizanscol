@@ -100,10 +100,50 @@ PY
   rm -f "${tmp_body}" "${tmp_headers}"
 }
 
+check_preflight() {
+  local path="$1"
+  local tmp_body tmp_headers status
+  tmp_body="$(mktemp)"
+  tmp_headers="$(mktemp)"
+
+  status="$(
+    curl -sS \
+      -D "${tmp_headers}" \
+      -o "${tmp_body}" \
+      -w "%{http_code}" \
+      -X OPTIONS \
+      -H "Origin: https://www.artizanscollective.com" \
+      -H "Access-Control-Request-Method: PATCH" \
+      -H "Access-Control-Request-Headers: authorization,content-type" \
+      "${BASE_URL}${path}"
+  )"
+
+  if [[ "${status}" != "204" && "${status}" != "200" ]]; then
+    echo "FAIL OPTIONS ${path}: expected 200/204, got ${status}" >&2
+    echo "Headers:" >&2
+    cat "${tmp_headers}" >&2
+    echo "Body:" >&2
+    cat "${tmp_body}" >&2
+    rm -f "${tmp_body}" "${tmp_headers}"
+    exit 1
+  fi
+
+  if ! grep -qi '^access-control-allow-origin:' "${tmp_headers}"; then
+    echo "FAIL OPTIONS ${path}: missing access-control-allow-origin header." >&2
+    cat "${tmp_headers}" >&2
+    rm -f "${tmp_body}" "${tmp_headers}"
+    exit 1
+  fi
+
+  echo "PASS OPTIONS ${path} -> ${status}"
+  rm -f "${tmp_body}" "${tmp_headers}"
+}
+
 echo "[smoke] Public marketplace endpoints..."
 check_endpoint "GET" "/v1/categories" "200" "true"
 check_endpoint "GET" "/v1/artists" "200" "true"
 check_endpoint "GET" "/v1/me" "401" "false"
+check_preflight "/v1/me/profile"
 
 echo "[smoke] Authenticated core marketplace endpoints..."
 if [[ -n "${AUTH_BEARER_TOKEN}" ]]; then

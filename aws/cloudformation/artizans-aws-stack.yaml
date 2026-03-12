@@ -1643,6 +1643,14 @@ Resources:
       RouteKey: 'GET /v1/artists/{artistId}'
       Target: !Sub 'integrations/${ArtizansPublicApiIntegration}'
 
+  ArtizansRouteOptionsProxy:
+    Type: AWS::ApiGatewayV2::Route
+    Condition: UseServerlessApi
+    Properties:
+      ApiId: !Ref ArtizansHttpApi
+      RouteKey: 'OPTIONS /v1/{proxy+}'
+      Target: !Sub 'integrations/${ArtizansPublicApiIntegration}'
+
   ArtizansRouteUserMe:
     Type: AWS::ApiGatewayV2::Route
     Condition: UseServerlessApi
