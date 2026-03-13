@@ -1,49 +1,21 @@
-# ARTIZANS.COLLECTIVE Catalog
+# ARTIZANS.COLLECTIVE
 
-This catalog is the primary index for the repository.
+This repository uses the changelog as the main running record of product, backend, and deploy changes.
 
-## Product
-- Multi-page web app for artist discovery, hiring, and booking flows.
-- Unified signed-in workspace at `/account-settings.html` (user + artist workflows combined).
-- Stack: static frontend (HTML/CSS/JavaScript) + backend workspace (Node.js/TypeScript).
-- Auth: Cognito-based browser auth flows.
+- Main update log: [CHANGELOG.md](./CHANGELOG.md)
+- Repo catalog: [CATALOG.md](./CATALOG.md)
+- Feature backlog: [FEATURE_FIX_LIST.md](./FEATURE_FIX_LIST.md)
+- Implementation roadmap: [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)
+- QA and cutover checklist: [QA_UAT_CUTOVER.md](./QA_UAT_CUTOVER.md)
+- Repo workflow rules: [REPO_RULES.md](./REPO_RULES.md)
 
-## Top-Level Structure
-- `index.html`, `explore.html`, `artist-preview.html`, `account-settings.html`: main public/app entry pages.
-- `artist/`, `user/`: legacy route stubs that redirect into unified workspace.
-- `admin/`: admin/support pages.
-- `js/`: app logic modules.
-- `backend/`: backend API workspace and tests (TypeScript).
-- `styles/`: shared and page-level styles.
-- `aws/`: CloudFormation and deploy scripts for AWS hosting.
-- `.github/workflows/`: CI/CD workflows.
-- `.well-known/`: security metadata.
+## Latest Changes
 
-## Core Runtime Modules
-- `js/auth.js`: account access flows and account settings logic.
-- `js/cognito-auth.js`: Cognito API calls and token session handling.
-- `js/session.js`: browser session model.
-- `js/store.js`: local data state and domain operations.
-- `js/shared-nav.js`: header/nav/session UI wiring across pages.
+Current focus is profile publishing and account/settings reliability:
 
-## Deployment
-- Auto deploy pipeline: `.github/workflows/deploy-aws-static-site.yml`
-- Backend CI/CD pipeline: `.github/workflows/deploy-aws-backend.yml`
-- Infrastructure template: `aws/cloudformation/artizans-aws-stack.yaml`
-- CloudShell deploy script: `aws/scripts/cloudshell-deploy.sh`
-- API smoke script: `aws/scripts/api-smoke.sh`
-- Stack now includes serverless backend scaffolding (HTTP API, Lambda domain functions, DynamoDB tables, SQS, Secrets Manager, CloudWatch alarms).
+- Artist profiles now use an explicit `draft` / `ready` / `live` publish model.
+- Incomplete profiles save as drafts and cannot accidentally publish.
+- Public discovery only shows live profiles.
+- Completed accounts now skip the setup flash on refresh and go straight to settings.
 
-## Backend Foundation
-- API response contract: `backend/src/domain/api-response.ts`
-- Runtime environment contract: `backend/src/lib/env.ts`
-- Starter Lambda handler: `backend/src/handlers/health.ts`
-- Execution roadmap: `IMPLEMENTATION_PLAN.md`
-- Auth scaffold: `backend/src/domain/auth.ts`, `backend/src/middleware/auth-context.ts`, `backend/src/middleware/authorization.ts`, `backend/src/repos/role-assignments.ts`
-- Data/persistence scaffold: `backend/src/domain/record-meta.ts`, `backend/src/domain/booking.ts`, `backend/src/domain/entities.ts`, `backend/src/domain/index-keys.ts`, `backend/src/repos/contracts.ts`, `backend/src/repos/table-contracts.ts`
-- Public discovery scaffold: `backend/src/handlers/public-api.ts`, `backend/src/repos/public-discovery.ts`
-
-## Repo Rules
-- Operational workflow rules: `REPO_RULES.md`
-- Human-readable change history: `CHANGELOG.md`
-- QA/UAT/cutover checklist: `QA_UAT_CUTOVER.md`
+For the full history, read [CHANGELOG.md](./CHANGELOG.md).
