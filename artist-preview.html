@@ -45,7 +45,7 @@
             <div>
               <p class="site-tag" id="artist-status-label">Artist profile</p>
               <h1 id="artist-name" class="section-title">Artist Name</h1>
-              <p id="artist-bio" class="section-copy"></p>
+              <p id="artist-bio" class="section-copy" hidden></p>
             </div>
             <div class="profile-pill-stack" id="artist-proof-grid"></div>
           </div>
@@ -99,7 +99,7 @@
             </div>
             <p class="section-copy">Use the public profile details to decide whether the fit is right before you brief.</p>
           </div>
-          <div id="services-list" class="collection service-collection"></div>
+          <ul id="services-list" class="collection service-collection"></ul>
         </article>
 
         <article class="site-card detail-card">
@@ -110,7 +110,7 @@
             </div>
             <p class="section-copy">Early credibility matters, even when an artist is still building their reputation.</p>
           </div>
-          <div id="reviews-list" class="collection"></div>
+          <ul id="reviews-list" class="collection"></ul>
         </article>
       </section>
 
@@ -141,19 +141,10 @@
                   <input id="booking-deadline" type="date" required />
                 </label>
               </div>
-              <div class="form-row">
-                <label>
-                  Budget
-                  <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
-                </label>
-                <label>
-                  Contact preference
-                  <select id="booking-contact">
-                    <option value="message">Message thread</option>
-                    <option value="email">Email update</option>
-                  </select>
-                </label>
-              </div>
+              <label>
+                Budget
+                <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
+              </label>
               <label>
                 Project message
                 <textarea

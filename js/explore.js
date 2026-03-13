@@ -238,8 +238,11 @@ function getActiveFilterLabels() {
   if (categoryFilter?.value) labels.push(`Category: ${categoryFilter.value}`);
   if (mediumFilter?.value) labels.push(`Medium: ${mediumFilter.value}`);
   if (locationFilter?.value) labels.push(`Location: ${locationFilter.value}`);
-  if (availabilityFilter?.value) labels.push(`Availability: ${availabilityFilter.value}`);
-  if (priceFilter?.value) labels.push(`Max price: ${priceFilter.value}`);
+  if (availabilityFilter?.value) {
+    const availLabel = availabilityFilter.value === "limited" ? "Limited" : availabilityFilter.value === "open" ? "Open" : availabilityFilter.value;
+    labels.push(`Availability: ${availLabel}`);
+  }
+  if (priceFilter?.value) labels.push(`Max price: $${Number(priceFilter.value).toLocaleString()}`);
   if ((sortSelect?.value || "newest") !== "newest") {
     const label = sortSelect?.selectedOptions?.[0]?.textContent || sortSelect?.value;
     labels.push(`Sort: ${label}`);

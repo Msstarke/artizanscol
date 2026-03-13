@@ -21,11 +21,13 @@ export function artistCardHTML(artist, options = {}) {
     : "Human-made creative work";
   const rawBio = String(artist.bio || "").trim();
   const bioSummary = rawBio.length > 8 && rawBio.toLowerCase() !== "bio" && rawBio.toLowerCase() !== "placeholder" ? rawBio : "";
-  const reviewLabel = Number(artist.reviewCount || 0) > 0 ? `${artist.reviewCount} review${artist.reviewCount === 1 ? "" : "s"}` : null;
+  const reviewCount = Number(artist.reviewCount || 0);
+  const reviewLabel = reviewCount > 0 ? `${reviewCount} review${reviewCount === 1 ? "" : "s"}` : null;
   const profileMomentum = Number(artist.popularity || 0) > 0 ? `${artist.popularity} interest` : null;
   const budgetLabel = Number(artist.priceFrom || 0) > 0 ? `Starts around ${formatMoney(artist.priceFrom)}` : "Budget on request";
-  const profileAgeLabel = Number(artist.completedBookings || 0) > 0
-    ? `${artist.completedBookings} completed booking${artist.completedBookings === 1 ? "" : "s"}`
+  const completedBookings = Number(artist.completedBookings || 0);
+  const profileAgeLabel = completedBookings > 0
+    ? `${completedBookings} completed booking${completedBookings === 1 ? "" : "s"}`
     : "Ready for first booking";
   const locationLabel = String(artist.location || "").trim() || "Remote or flexible";
   const profileCopy = bioSummary || `${mediaSummary}. ${budgetLabel}.`;
@@ -69,7 +71,6 @@ export function artistCardHTML(artist, options = {}) {
           <span>${escapeHtml(artist.handle && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(artist.handle) ? `@${artist.handle}` : "Direct enquiries enabled")}</span>
         </div>
         <div class="artist-card-footer">
-          <small class="muted">${escapeHtml(locationLabel)}</small>
           ${actionButtons}
         </div>
       </div>

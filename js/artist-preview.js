@@ -277,9 +277,10 @@ function renderArtistDetails() {
     artistName.textContent = artist.name;
   }
 
+  const bioText = String(artist.bio || "").trim();
+  const safeBio = bioText.length > 8 && bioText.toLowerCase() !== "bio" && bioText.toLowerCase() !== "placeholder" ? bioText : "";
+
   if (artistBio) {
-    const bioText = String(artist.bio || "").trim();
-    const safeBio = bioText.length > 8 && bioText.toLowerCase() !== "bio" && bioText.toLowerCase() !== "placeholder" ? bioText : "";
     artistBio.textContent = safeBio;
     artistBio.hidden = !safeBio;
   }
@@ -499,10 +500,6 @@ function renderArtistDetails() {
             </div>
           </article>
         `;
-  }
-
-  if (bookingFocus instanceof HTMLInputElement) {
-    bookingFocus.value = "";
   }
 
   if (saveArtistBtn) {
