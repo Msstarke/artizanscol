@@ -1,7 +1,8 @@
-import { getDB, getVisibleArtists, hydrateDB } from "./store.js";
+import { getDB, getVisibleArtists, hydrateDB, getArtistById, getUserById } from "./store.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, formatMoney } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
+import { getSession } from "./session.js";
 
 initSharedPage();
 await hydrateDB();
@@ -71,3 +72,25 @@ if (heroStats) {
     )
     .join("");
 }
+
+// Adapt artist CTAs based on session state
+const session = getSession();
+const signedIn = Boolean(session?.cognitoEmail);
+
+if (signedIn) {
+  const user = getUserById(db, session.activeUserId);
+  const artist = getArtistById(db, session.activeArtistId);
+  const artistOptIn = Boolean(user?.setup?.artistOptIn);
+  const publishState = artist?.publishState;
+
+  let label = "Go to workspace";
+  if (artistOptIn && publishState === "draft") label = "Finish your profile";
+  else if (artistOptIn && publishState === "ready") label = "Publish your profile";
+
+  document.querySelectorAll("[data-artist-cta]").forEach((el) => {
+    if (!(el instanceof HTMLAnchorElement)) return;
+    el.textContent = label;
+    el.href = "/account-settings.html";
+  });
+}
+// signed out: leave default text/href unchanged
