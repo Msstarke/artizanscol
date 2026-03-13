@@ -91,29 +91,30 @@ function getSuggestedMediums(limit = 4) {
     }));
 }
 
-function renderDiscoveryInsights() {
+function renderDiscoveryInsights(filteredArtists) {
   if (!discoveryInsights) {
     return;
   }
 
   const liveArtists = getLiveArtists();
+  const displayArtists = filteredArtists ?? liveArtists;
   const activeCategories = db.categories.filter((category) => category.active).length;
-  const verifiedCount = liveArtists.filter((artist) => artist.verified).length;
-  const openCount = liveArtists.filter((artist) => artist.availability !== "limited").length;
-  const startingBudgets = liveArtists.map((artist) => Number(artist.priceFrom || 0)).filter((value) => value > 0);
+  const verifiedCount = displayArtists.filter((artist) => artist.verified).length;
+  const openCount = displayArtists.filter((artist) => artist.availability !== "limited").length;
+  const startingBudgets = displayArtists.map((artist) => Number(artist.priceFrom || 0)).filter((value) => value > 0);
   const lowestBudget = startingBudgets.length ? Math.min(...startingBudgets) : null;
 
   const items = liveArtists.length
     ? [
-        { value: liveArtists.length, label: "live profiles" },
-        { value: verifiedCount || "New", label: "reviewed profiles" },
+        { value: displayArtists.length, label: displayArtists.length === liveArtists.length ? "live profiles" : "matching profiles" },
+        { value: verifiedCount || "—", label: "reviewed profiles" },
         { value: openCount, label: "open for briefs" },
         { value: lowestBudget ? `From ${formatMoney(lowestBudget)}` : "Flexible", label: "starting budgets" },
       ]
     : [
-        { value: activeCategories || 0, label: "ready categories" },
-        { value: "Setup", label: "artist publish flow" },
-        { value: "Preview", label: "profile journey live" },
+        { value: activeCategories || "—", label: "ready categories" },
+        { value: "Coming", label: "artist profiles" },
+        { value: "Open", label: "for registrations" },
       ];
 
   discoveryInsights.innerHTML = items
@@ -134,7 +135,7 @@ fillSelect(locationFilter, unique(getVisibleArtists(db).map((artist) => artist.l
 
 function seedFiltersFromQuery() {
   if (searchInput) {
-    searchInput.value = getQueryParam("search") || "";
+    searchInput.value = getQueryParam("q") || getQueryParam("search") || "";
   }
   if (categoryFilter) {
     categoryFilter.value = getQueryParam("category") || "";
@@ -181,11 +182,11 @@ function getFilteredArtists() {
       return false;
     }
 
-    if (medium && !(artist.mediums || []).includes(medium)) {
+    if (medium && !(artist.mediums || []).some((m) => m.toLowerCase() === medium.toLowerCase())) {
       return false;
     }
 
-    if (location && artist.location !== location) {
+    if (location && !String(artist.location || "").toLowerCase().includes(location.toLowerCase())) {
       return false;
     }
 
@@ -203,10 +204,10 @@ function getFilteredArtists() {
   if (sort === "newest") {
     artists.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
-  if (sort === "popular") {
+  if (sort === "most_popular") {
     artists.sort((a, b) => b.popularity - a.popularity);
   }
-  if (sort === "rating") {
+  if (sort === "highest_rated") {
     artists.sort((a, b) => b.rating - a.rating);
   }
 
@@ -216,7 +217,7 @@ function getFilteredArtists() {
 function syncQueryState() {
   const params = new URLSearchParams();
   const search = (searchInput?.value || "").trim();
-  if (search) params.set("search", search);
+  if (search) params.set("q", search);
   if (categoryFilter?.value) params.set("category", categoryFilter.value);
   if (mediumFilter?.value) params.set("medium", mediumFilter.value);
   if (locationFilter?.value) params.set("location", locationFilter.value);
@@ -325,9 +326,9 @@ function renderEmptyState() {
       <article class="empty-state empty-state-rich">
         <p class="site-tag">Discovery is ready</p>
         <h3>No artist profiles are live yet.</h3>
-        <p>Categories and profile pages are in place. Public profiles will appear here once artists finish setup and choose Show profile.</p>
+        <p>The platform is open. Artist profiles will appear here once creators complete their setup and go live. Check back soon or browse the categories below.</p>
         <div class="form-actions">
-          <a class="btn btn-outline btn-small" href="/account-settings.html">Open account settings</a>
+          <a class="btn btn-outline btn-small" href="/about.html">About the platform</a>
           <a class="btn btn-ghost btn-small" href="/artist-preview.html">Preview profile layout</a>
         </div>
         ${renderSuggestedLinks(getSuggestedCategories(4))}
@@ -355,7 +356,7 @@ function render() {
   const activeLabels = getActiveFilterLabels();
   const liveArtists = getLiveArtists();
 
-  renderDiscoveryInsights();
+  renderDiscoveryInsights(artists);
   syncQueryState();
   updateExploreBookingCta(artists);
 
