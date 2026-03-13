@@ -280,7 +280,8 @@ function renderArtistDetails() {
   if (artistBio) {
     const bioText = String(artist.bio || "").trim();
     const safeBio = bioText.length > 8 && bioText.toLowerCase() !== "bio" && bioText.toLowerCase() !== "placeholder" ? bioText : "";
-    artistBio.textContent = safeBio || "Profile summary coming soon.";
+    artistBio.textContent = safeBio;
+    artistBio.hidden = !safeBio;
   }
 
   if (artistTags) {

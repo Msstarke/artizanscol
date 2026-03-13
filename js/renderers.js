@@ -66,7 +66,7 @@ export function artistCardHTML(artist, options = {}) {
         </div>
         <div class="artist-card-support">
           <span>${escapeHtml(profileAgeLabel)}</span>
-          <span>${escapeHtml(artist.handle ? `@${artist.handle}` : "Direct enquiries enabled")}</span>
+          <span>${escapeHtml(artist.handle && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(artist.handle) ? `@${artist.handle}` : "Direct enquiries enabled")}</span>
         </div>
         <div class="artist-card-footer">
           <small class="muted">${escapeHtml(locationLabel)}</small>

@@ -52,7 +52,7 @@ if (heroStats) {
   const stats = visibleArtists.length
     ? [
         { value: visibleArtists.length, label: `live profile${visibleArtists.length === 1 ? "" : "s"}` },
-        { value: verifiedCount || "New", label: "reviewed" },
+        { value: verifiedCount || "—", label: "reviewed" },
         { value: lowestBudget ? `From ${formatMoney(lowestBudget)}` : "Flexible", label: "starting budgets" },
       ]
     : [
