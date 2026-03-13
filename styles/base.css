@@ -453,14 +453,6 @@ iframe {
   gap: 0.42rem;
 }
 
-.hero-proof-row {
-  margin-top: 1.15rem;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.hero-proof-row .site-card,
 .section-intro,
 .section-intro-actions {
   min-width: 0;
@@ -544,9 +536,6 @@ iframe {
     display: none;
   }
 
-  .hero-proof-row {
-    grid-template-columns: 1fr;
-  }
 
   .section-intro {
     align-items: start;

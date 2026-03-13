@@ -14,17 +14,11 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="ARTIZANS.COLLECTIVE" />
     <meta property="og:title" content="ARTIZANS.COLLECTIVE | Hire Human Artists" />
-    <meta
-      property="og:description"
-      content="Find and hire verified emerging artists for AI-free creative work."
-    />
+    <meta property="og:description" content="Find and hire verified human artists for authentic creative work." />
     <meta property="og:url" content="https://www.artizanscollective.com/index.html" />
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:title" content="ARTIZANS.COLLECTIVE | Hire Human Artists" />
-    <meta
-      property="twitter:description"
-      content="Find and hire verified emerging artists for AI-free creative work."
-    />
+    <meta property="twitter:description" content="Find and hire verified human artists for authentic creative work." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
     <link rel="stylesheet" href="/styles/base.css" />
@@ -53,232 +47,79 @@
     </header>
 
     <main>
-      <section class="hero container hero-split public-hero">
-        <div class="hero-copy">
+
+      <!-- Hero -->
+      <section class="home-hero container">
+        <div class="home-hero-copy">
           <p class="eyebrow">VERIFIED HUMAN-MADE CREATIVE WORK</p>
-          <h1>Hire human artists with clear profiles and clear pricing.</h1>
-          <p class="lead">Browse verified profiles, compare fit fast, and send a brief when you're ready.</p>
+          <h1>Hire human artists.<br>Not AI.</h1>
+          <p class="lead">AI is flooding creative markets with generated content. We built a marketplace exclusively for verified human creators — real portfolios, clear pricing, direct booking.</p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="/explore.html">Explore Artists</a>
-            <a class="btn btn-outline" href="/artist-preview.html">Preview a profile</a>
-            <a class="auth-text-link" href="#how-it-works">How hiring works</a>
+            <a class="btn btn-primary" href="/explore.html">Browse artists</a>
+            <a class="btn btn-outline" href="/account-settings.html">Join as an artist</a>
           </div>
-          <div class="hero-proof-row" id="hero-proof-row" aria-label="Platform proof points"></div>
         </div>
-
-        <aside class="hero-panel site-card">
-          <p class="site-tag">Client-ready marketplace</p>
-          <h2 class="hero-panel-title">Built to help clients decide faster.</h2>
-          <p class="section-copy">See what an artist does, what they charge, and whether they are available.</p>
-          <ul class="hero-checklist">
-            <li>Reviewed artist profiles</li>
-            <li>Visible starting prices</li>
-            <li>Simple booking briefs</li>
-          </ul>
-          <div id="hero-spotlight"></div>
-        </aside>
+        <div id="hero-proof-row" class="home-hero-stats" aria-label="Platform stats"></div>
       </section>
 
-      <section class="container content-section" aria-labelledby="trust-strip-title">
+      <!-- Featured Artists -->
+      <section class="container content-section" aria-labelledby="artists-title">
         <div class="section-intro">
           <div>
-            <p class="eyebrow">WHY CLIENTS START HERE</p>
-            <h2 class="section-title" id="trust-strip-title">Why clients use Artizans.</h2>
+            <p class="eyebrow">LIVE PROFILES</p>
+            <h2 class="section-title" id="artists-title">Human artists, ready to work.</h2>
           </div>
-          <p class="section-copy">Less guesswork. Better profiles. A faster path to hiring.</p>
-        </div>
-        <div class="trust-strip">
-          <article class="trust-card">
-            <p class="site-tag">Verified profiles</p>
-            <h3>Human-made work comes first.</h3>
-            <p class="site-desc">Profiles focus on real work, clear mediums, and direct presentation.</p>
-          </article>
-          <article class="trust-card">
-            <p class="site-tag">Clear briefs</p>
-            <h3>Clients know what to send.</h3>
-            <p class="site-desc">Budget, timing, and project details are easy to set from the start.</p>
-          </article>
-          <article class="trust-card">
-            <p class="site-tag">Direct hiring</p>
-            <h3>From discovery to booking in one flow.</h3>
-            <p class="site-desc">Browse, shortlist, preview, and send a request without switching context.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="container content-section" aria-labelledby="upcoming-title">
-        <div class="section-intro">
-          <div>
-            <p class="eyebrow">FEATURED ARTISTS</p>
-            <h2 class="section-title" id="upcoming-title">Emerging artists ready for client work.</h2>
-          </div>
-          <div class="section-intro-actions">
-            <p class="section-copy">A quick view of active profiles, styles, and starting prices.</p>
-            <a class="btn btn-small btn-outline" href="/explore.html">Browse all artists</a>
-          </div>
+          <a class="btn btn-small btn-outline" href="/explore.html">Browse all</a>
         </div>
         <div id="upcoming-artists" class="artist-grid"></div>
       </section>
 
-      <section class="container content-section" aria-labelledby="categories-title">
+      <!-- How it works -->
+      <section class="container content-section" id="how-it-works" aria-labelledby="how-title">
         <div class="section-intro">
           <div>
-            <p class="eyebrow">BROWSE BY CATEGORY</p>
-            <h2 class="section-title" id="categories-title">Start from the kind of creative work you need.</h2>
+            <p class="eyebrow">HOW IT WORKS</p>
+            <h2 class="section-title" id="how-title">Browse, shortlist, hire.</h2>
           </div>
-          <p class="section-copy">Pick a category and go straight to matching artists.</p>
-        </div>
-        <div id="top-categories" class="category-grid"></div>
-      </section>
-
-      <section class="container content-section" aria-labelledby="profiles-title">
-        <div class="section-intro">
-          <div>
-            <p class="eyebrow">LIVE PROFILES</p>
-            <h2 class="section-title" id="profiles-title">Real creators, real work, real availability.</h2>
-          </div>
-          <p class="section-copy">Each profile shows you what an artist does, what they charge, and whether they can take on work right now.</p>
-        </div>
-        <div id="profile-story-grid" class="profile-story-grid"></div>
-      </section>
-
-      <section class="container content-section" aria-labelledby="why-human-title">
-        <div class="section-intro">
-          <div>
-            <p class="eyebrow">WHY IT MATTERS</p>
-            <h2 class="section-title" id="why-human-title">AI is replacing creative work. We're pushing back.</h2>
-          </div>
-          <p class="section-copy">The AI art market is projected to reach $2.1 billion by 2030. 64% of clients already can't tell AI-generated images from human-made ones. Real creators are losing income, recognition, and motivation.</p>
-        </div>
-        <div class="why-human-grid">
-          <article class="why-human-card site-card">
-            <p class="site-tag">The problem</p>
-            <h3>AI floods the market with soulless output.</h3>
-            <p>Tools like Midjourney and DALL·E generate in seconds what once took hours of skill. The market is saturated and trust is eroding.</p>
-          </article>
-          <article class="why-human-card site-card">
-            <p class="site-tag">The cost</p>
-            <h3>Real artists are being pushed out.</h3>
-            <p>Prices are being driven down by AI speed. Clients struggle to tell what's genuine. Originality and craft are losing their value.</p>
-          </article>
-          <article class="why-human-card site-card">
-            <p class="site-tag">Our answer</p>
-            <h3>Verified human work, clearly labelled.</h3>
-            <p>Every profile on this platform is a real person. We verify creators, surface authentic portfolios, and make hiring human talent straightforward.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="container content-section" aria-labelledby="how-it-works-title" id="how-it-works">
-        <div class="section-intro">
-          <div>
-            <p class="eyebrow">HOW HIRING WORKS</p>
-            <h2 class="section-title" id="how-it-works-title">Discover, shortlist, hire.</h2>
-          </div>
-          <p class="section-copy">Three steps. No extra clutter.</p>
+          <p class="section-copy muted">Three steps. No extra clutter.</p>
         </div>
         <div class="journey-grid">
           <article class="journey-card">
             <span class="journey-step">01</span>
-            <h3>Discover</h3>
-            <p>Browse categories, filter fast, and compare artists.</p>
+            <h3>Browse</h3>
+            <p>Search by category, medium, location, and price. Filter to a real shortlist.</p>
           </article>
           <article class="journey-card">
             <span class="journey-step">02</span>
-            <h3>Shortlist</h3>
-            <p>Open profiles, review work, and save the right fit.</p>
+            <h3>Review</h3>
+            <p>Open profiles, check availability and pricing, save the ones that fit.</p>
           </article>
           <article class="journey-card">
             <span class="journey-step">03</span>
             <h3>Hire</h3>
-            <p>Send a brief with scope, timing, and budget.</p>
+            <p>Send a brief directly from the profile. No middlemen, no bidding wars.</p>
           </article>
         </div>
       </section>
 
-      <section class="container content-section" aria-labelledby="for-artists-title">
-        <article class="featured-card for-artists-card">
-          <div>
+      <!-- Bottom CTA -->
+      <section class="container content-section" aria-labelledby="cta-title">
+        <div class="home-cta-split">
+          <article class="home-cta-card site-card">
+            <p class="site-tag">For clients</p>
+            <h2 id="cta-title" class="home-cta-title">Find your artist.</h2>
+            <p>Browse verified profiles with visible pricing and direct booking. No guesswork.</p>
+            <a class="btn btn-primary" href="/explore.html">Explore artists</a>
+          </article>
+          <article class="home-cta-card home-cta-card-dark">
             <p class="site-tag">For artists</p>
-            <h2 id="for-artists-title" class="section-title">Are you a human creator? Join the platform.</h2>
-            <p class="section-copy">Set up a profile, publish your work and pricing, and let clients find you directly. No bidding, no race to the bottom.</p>
-            <ul class="feature-list">
-              <li>Publish a profile in minutes from your account.</li>
-              <li>Set your starting price and availability openly.</li>
-              <li>Receive booking requests directly from clients.</li>
-            </ul>
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="/account-settings.html">Create your profile</a>
-              <a class="btn btn-outline" href="/about.html">Learn more</a>
-            </div>
-          </div>
-          <div class="for-artists-panel">
-            <div class="for-artists-steps">
-              <div class="for-artists-step">
-                <span class="journey-step">01</span>
-                <div>
-                  <strong>Sign up</strong>
-                  <p>Create an account and opt in as an artist.</p>
-                </div>
-              </div>
-              <div class="for-artists-step">
-                <span class="journey-step">02</span>
-                <div>
-                  <strong>Build your profile</strong>
-                  <p>Add your category, mediums, and starting price.</p>
-                </div>
-              </div>
-              <div class="for-artists-step">
-                <span class="journey-step">03</span>
-                <div>
-                  <strong>Go live</strong>
-                  <p>Publish your profile and start receiving briefs.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
+            <h2 class="home-cta-title">Publish your profile.</h2>
+            <p>Set up in minutes. Add your category, mediums, and starting price. Let clients come to you.</p>
+            <a class="btn btn-outline-light" href="/account-settings.html">Create your profile</a>
+          </article>
+        </div>
       </section>
 
-      <section class="container content-section" aria-labelledby="mission-title">
-        <article class="featured-card mission-card">
-          <div>
-            <p class="site-tag">Trust promise</p>
-            <h2 id="mission-title" class="section-title">A simpler way to hire emerging artists.</h2>
-            <p class="section-copy">The platform is built to make discovery clearer and hiring more direct.</p>
-            <ul class="feature-list">
-              <li>Work and mediums are visible up front.</li>
-              <li>Pricing and availability are easier to assess.</li>
-              <li>Hiring stays tied to the profile you reviewed.</li>
-            </ul>
-            <div class="hero-actions">
-              <a class="btn btn-primary" href="/explore.html">Start browsing</a>
-              <a class="btn btn-outline" href="/about.html">Read about Artizans</a>
-            </div>
-          </div>
-          <div class="mission-art">
-            <div class="mission-art-panel">
-              <p class="site-tag">Platform focus</p>
-              <h3>Quality signals over marketplace noise.</h3>
-              <p>Clients should be able to review a strong profile and act quickly.</p>
-              <div class="mission-stat-row">
-                <div class="mission-stat">
-                  <strong>$2.1B</strong>
-                  <span>projected AI art market by 2030</span>
-                </div>
-                <div class="mission-stat">
-                  <strong>64%</strong>
-                  <span>of clients can't tell AI from human work</span>
-                </div>
-                <div class="mission-stat">
-                  <strong>Human</strong>
-                  <span>every profile, verified</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-      </section>
     </main>
 
     <footer class="site-footer">
