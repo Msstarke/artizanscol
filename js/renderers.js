@@ -19,7 +19,8 @@ export function artistCardHTML(artist, options = {}) {
   const mediaSummary = Array.isArray(artist.mediums) && artist.mediums.length
     ? artist.mediums.slice(0, 2).join(" • ")
     : "Human-made creative work";
-  const bioSummary = String(artist.bio || "").trim();
+  const rawBio = String(artist.bio || "").trim();
+  const bioSummary = rawBio.length > 8 && rawBio.toLowerCase() !== "bio" && rawBio.toLowerCase() !== "placeholder" ? rawBio : "";
   const reviewLabel = Number(artist.reviewCount || 0) > 0 ? `${artist.reviewCount} review${artist.reviewCount === 1 ? "" : "s"}` : null;
   const profileMomentum = Number(artist.popularity || 0) > 0 ? `${artist.popularity} interest` : null;
   const budgetLabel = Number(artist.priceFrom || 0) > 0 ? `Starts around ${formatMoney(artist.priceFrom)}` : "Budget on request";

@@ -278,7 +278,9 @@ function renderArtistDetails() {
   }
 
   if (artistBio) {
-    artistBio.textContent = artist.bio || "Profile summary coming soon.";
+    const bioText = String(artist.bio || "").trim();
+    const safeBio = bioText.length > 8 && bioText.toLowerCase() !== "bio" && bioText.toLowerCase() !== "placeholder" ? bioText : "";
+    artistBio.textContent = safeBio || "Profile summary coming soon.";
   }
 
   if (artistTags) {
@@ -317,7 +319,7 @@ function renderArtistDetails() {
         <div class="profile-media-card-copy">
           <p class="site-tag">Profile highlight</p>
           <h3>${escapeHtml(artist.portfolio?.[0]?.title || artist.category || "Published profile")}</h3>
-          <p>${escapeHtml(artist.bio || "Published profile with live availability, pricing signals, and direct booking access.")}</p>
+          <p>${escapeHtml(safeBio || "Published profile with live availability, pricing signals, and direct booking access.")}</p>
         </div>
       </article>
     `;
@@ -410,7 +412,7 @@ function renderArtistDetails() {
       },
       {
         title: "Best fit for",
-        detail: artist.bio || "Clients looking for a clear creative practice and direct booking flow.",
+        detail: safeBio || "Clients looking for a clear creative practice and direct booking flow.",
       },
     ];
 
