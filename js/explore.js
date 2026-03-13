@@ -3,7 +3,7 @@ import { isCognitoAuthenticated } from "./cognito-auth.js";
 import { getSession, setSession } from "./session.js";
 import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, getQueryParam, qsa, showToast } from "./utils.js";
+import { byId, escapeHtml, formatMoney, getQueryParam, qsa, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
 
 initSharedPage();
@@ -25,6 +25,7 @@ const resultCount = byId("result-count");
 const resultSummary = byId("result-summary");
 const exploreBookingCta = byId("explore-booking-cta");
 const activeFilterSummary = byId("active-filter-summary");
+const discoveryInsights = byId("discovery-insights");
 
 function unique(list) {
   return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
@@ -40,6 +41,91 @@ function fillSelect(select, values) {
     option.textContent = value;
     select.append(option);
   });
+}
+
+function countBy(list, selector) {
+  return list.reduce((accumulator, item) => {
+    const key = selector(item);
+    if (!key) return accumulator;
+    accumulator[key] = (accumulator[key] || 0) + 1;
+    return accumulator;
+  }, {});
+}
+
+function getLiveArtists() {
+  return getVisibleArtists(db);
+}
+
+function getSuggestedCategories(limit = 4) {
+  const liveArtists = getLiveArtists();
+  const liveCounts = Object.entries(countBy(liveArtists, (artist) => artist.category))
+    .sort((left, right) => right[1] - left[1] || String(left[0]).localeCompare(String(right[0])))
+    .slice(0, limit)
+    .map(([name, count]) => ({
+      label: name,
+      count,
+      href: `/explore.html?category=${encodeURIComponent(name)}`,
+    }));
+
+  if (liveCounts.length) {
+    return liveCounts;
+  }
+
+  return db.categories
+    .filter((category) => category.active)
+    .slice(0, limit)
+    .map((category) => ({
+      label: category.name,
+      count: null,
+      href: `/explore.html?category=${encodeURIComponent(category.name)}`,
+    }));
+}
+
+function getSuggestedMediums(limit = 4) {
+  return Object.entries(countBy(getLiveArtists().flatMap((artist) => artist.mediums || []), (medium) => medium))
+    .sort((left, right) => right[1] - left[1] || String(left[0]).localeCompare(String(right[0])))
+    .slice(0, limit)
+    .map(([name]) => ({
+      label: name,
+      href: `/explore.html?medium=${encodeURIComponent(name)}`,
+    }));
+}
+
+function renderDiscoveryInsights() {
+  if (!discoveryInsights) {
+    return;
+  }
+
+  const liveArtists = getLiveArtists();
+  const activeCategories = db.categories.filter((category) => category.active).length;
+  const verifiedCount = liveArtists.filter((artist) => artist.verified).length;
+  const openCount = liveArtists.filter((artist) => artist.availability !== "limited").length;
+  const startingBudgets = liveArtists.map((artist) => Number(artist.priceFrom || 0)).filter((value) => value > 0);
+  const lowestBudget = startingBudgets.length ? Math.min(...startingBudgets) : null;
+
+  const items = liveArtists.length
+    ? [
+        { value: liveArtists.length, label: "live profiles" },
+        { value: verifiedCount || "New", label: "reviewed profiles" },
+        { value: openCount, label: "open for briefs" },
+        { value: lowestBudget ? `From ${formatMoney(lowestBudget)}` : "Flexible", label: "starting budgets" },
+      ]
+    : [
+        { value: activeCategories || 0, label: "ready categories" },
+        { value: "Setup", label: "artist publish flow" },
+        { value: "Preview", label: "profile journey live" },
+      ];
+
+  discoveryInsights.innerHTML = items
+    .map(
+      (item) => `
+        <article class="site-card discovery-insight-card">
+          <strong>${escapeHtml(String(item.value))}</strong>
+          <span>${escapeHtml(item.label)}</span>
+        </article>
+      `,
+    )
+    .join("");
 }
 
 fillSelect(categoryFilter, unique(db.categories.filter((category) => category.active).map((category) => category.name)));
@@ -127,6 +213,23 @@ function getFilteredArtists() {
   return artists;
 }
 
+function syncQueryState() {
+  const params = new URLSearchParams();
+  const search = (searchInput?.value || "").trim();
+  if (search) params.set("search", search);
+  if (categoryFilter?.value) params.set("category", categoryFilter.value);
+  if (mediumFilter?.value) params.set("medium", mediumFilter.value);
+  if (locationFilter?.value) params.set("location", locationFilter.value);
+  if (availabilityFilter?.value) params.set("availability", availabilityFilter.value);
+  if (priceFilter?.value) params.set("maxPrice", priceFilter.value);
+  if ((sortSelect?.value || "newest") !== "newest") params.set("sort", sortSelect.value);
+
+  const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+  if (next !== `${window.location.pathname}${window.location.search}`) {
+    window.history.replaceState({}, "", next);
+  }
+}
+
 function getActiveFilterLabels() {
   const labels = [];
   const search = (searchInput?.value || "").trim();
@@ -191,13 +294,69 @@ function updateExploreBookingCta(artists = db.artists) {
 
   const liveArtists = artists.length ? artists : getVisibleArtists(db);
   const firstArtist = liveArtists[0] || null;
-  exploreBookingCta.textContent = firstArtist ? "View featured profile" : "Preview hiring flow";
+  exploreBookingCta.textContent = firstArtist ? "View featured profile" : "Preview profile layout";
   exploreBookingCta.href = firstArtist ? `/artist-preview.html?id=${encodeURIComponent(firstArtist.id)}` : "/artist-preview.html";
+}
+
+function renderSuggestedLinks(items, className = "empty-state-links") {
+  if (!items.length) {
+    return "";
+  }
+
+  return `
+    <div class="${className}">
+      ${items
+        .map(
+          (item) => `
+            <a class="filter-chip filter-chip-link" href="${escapeHtml(item.href)}">
+              ${escapeHtml(item.label)}${item.count ? ` <span>${escapeHtml(String(item.count))}</span>` : ""}
+            </a>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderEmptyState() {
+  const liveArtists = getLiveArtists();
+  if (!liveArtists.length) {
+    return `
+      <article class="empty-state empty-state-rich">
+        <p class="site-tag">Discovery is ready</p>
+        <h3>No artist profiles are live yet.</h3>
+        <p>Categories and profile pages are in place. Public profiles will appear here once artists finish setup and choose Show profile.</p>
+        <div class="form-actions">
+          <a class="btn btn-outline btn-small" href="/account-settings.html">Open account settings</a>
+          <a class="btn btn-ghost btn-small" href="/artist-preview.html">Preview profile layout</a>
+        </div>
+        ${renderSuggestedLinks(getSuggestedCategories(4))}
+      </article>
+    `;
+  }
+
+  return `
+    <article class="empty-state empty-state-rich">
+      <p class="site-tag">No matches right now</p>
+      <h3>Nothing matches this exact filter set.</h3>
+      <p>Clear one or two filters or jump into a live category to get back to real profiles quickly.</p>
+      <div class="form-actions">
+        <button class="btn btn-outline btn-small" type="button" data-clear-empty-state>Reset filters</button>
+        <a class="btn btn-ghost btn-small" href="/explore.html">View all live profiles</a>
+      </div>
+      ${renderSuggestedLinks(getSuggestedCategories(4))}
+      ${renderSuggestedLinks(getSuggestedMediums(4), "empty-state-links empty-state-links-secondary")}
+    </article>
+  `;
 }
 
 function render() {
   const artists = getFilteredArtists();
   const activeLabels = getActiveFilterLabels();
+  const liveArtists = getLiveArtists();
+
+  renderDiscoveryInsights();
+  syncQueryState();
   updateExploreBookingCta(artists);
 
   if (activeFilterSummary) {
@@ -220,9 +379,7 @@ function render() {
   if (resultsRoot) {
     resultsRoot.classList.toggle("has-empty-state", !artists.length);
     if (!artists.length) {
-      resultsRoot.innerHTML = getVisibleArtists(db).length
-        ? `<div class="empty-state">No artists match this filter set. Reset filters or widen the brief to see more profiles.</div>`
-        : `<div class="empty-state">No artist profiles are live yet. Published profiles will appear here once artists start listing their work.</div>`;
+      resultsRoot.innerHTML = renderEmptyState();
     } else {
       resultsRoot.innerHTML = artists
         .map((artist) => {
@@ -240,19 +397,32 @@ function render() {
     }
   }
 
+  const clearEmptyStateBtn = resultsRoot?.querySelector("[data-clear-empty-state]");
+  clearEmptyStateBtn?.addEventListener("click", () => {
+    resetBtn?.click();
+  });
+
   if (resultCount) {
-    resultCount.textContent = `${artists.length} artist${artists.length === 1 ? "" : "s"}`;
+    if (!liveArtists.length) {
+      resultCount.textContent = "No live profiles";
+    } else if (!artists.length) {
+      resultCount.textContent = "0 matches";
+    } else {
+      resultCount.textContent = `${artists.length} live profile${artists.length === 1 ? "" : "s"}`;
+    }
   }
 
   if (resultSummary) {
-    if (!artists.length) {
-      resultSummary.textContent = "Try widening category, medium, or price filters.";
+    if (!liveArtists.length) {
+      resultSummary.textContent = "Categories are ready. Discovery fills in as artists publish live profiles.";
+    } else if (!artists.length) {
+      resultSummary.textContent = "Reset filters or start from one of the live categories below.";
     } else if (artists.length <= 2) {
-      resultSummary.textContent = "A narrow shortlist. Open profiles to compare fit before sending a brief.";
+      resultSummary.textContent = "A narrow shortlist. Open each profile and compare fit before sending a brief.";
     } else {
       const verifiedCount = artists.filter((artist) => artist.verified).length;
-      const pricedCount = artists.filter((artist) => Number(artist.priceFrom || 0) > 0).length;
-      resultSummary.textContent = `${verifiedCount} verified profile${verifiedCount === 1 ? "" : "s"} and ${pricedCount} with visible starting budgets.`;
+      const openCount = artists.filter((artist) => artist.availability !== "limited").length;
+      resultSummary.textContent = `${verifiedCount} reviewed profile${verifiedCount === 1 ? "" : "s"} and ${openCount} open for briefs in this view.`;
     }
   }
 

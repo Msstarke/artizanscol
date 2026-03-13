@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-13
+- Refined public discovery across the homepage, Explore, and artist preview flow: Explore now shows live discovery insight cards, keeps filters synced to the URL, uses richer no-results and no-live-profile states with direct recovery actions, the homepage fallbacks now explain discovery readiness more clearly, and related profiles on artist pages are ranked by category/medium fit instead of arbitrary order.
 - Replaced the catalog-style `README.md` with a thin changelog-first wrapper so the GitHub repo landing page now points readers at `CHANGELOG.md` while still linking to the catalog, backlog, roadmap, QA checklist, and repo rules.
 - Added a real artist publish-state model for profile publishing: drafts can now be saved without going live, public discovery filters out incomplete drafts even if `profileVisible` was requested, publishing is blocked with explicit missing-field feedback when required fields are incomplete, and the account/public profile UI now distinguishes draft, ready-to-publish, and live profile states consistently.
 - Fixed account-settings refresh flicker by deferring the signed-in render until Cognito session hydration and `/v1/me` private account hydration complete, so completed accounts no longer briefly show the setup wizard before switching back to the settings shell.

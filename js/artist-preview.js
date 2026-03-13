@@ -459,6 +459,22 @@ function renderArtistDetails() {
   if (relatedProfiles) {
     const items = getVisibleArtists(db)
       .filter((item) => item.id !== artist.id)
+      .map((item) => {
+        const sameCategory = item.category && artist.category && item.category === artist.category ? 3 : 0;
+        const sharedMediums = (item.mediums || []).filter((medium) => (artist.mediums || []).includes(medium)).length;
+        const availabilityBoost = item.availability === "open" ? 1 : 0;
+        return {
+          item,
+          score: sameCategory + sharedMediums + availabilityBoost,
+        };
+      })
+      .sort((left, right) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+        return new Date(right.item.updatedAt || right.item.createdAt || 0).getTime() - new Date(left.item.updatedAt || left.item.createdAt || 0).getTime();
+      })
+      .map((entry) => entry.item)
       .slice(0, 3);
 
     relatedProfiles.classList.toggle("has-empty-state", !items.length);
@@ -470,7 +486,16 @@ function renderArtistDetails() {
               actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="/artist-preview.html?id=${encodeURIComponent(String(item.id || ""))}">View profile</a></div>`,
             }))
           .join("")
-      : `<div class="empty-state">No other live profiles are available yet.</div>`;
+      : `
+          <article class="empty-state empty-state-rich">
+            <p class="site-tag">Keep exploring</p>
+            <h3>No related live profiles yet.</h3>
+            <p>Return to Explore to browse the wider live directory and compare profiles across categories and mediums.</p>
+            <div class="form-actions">
+              <a class="btn btn-outline btn-small" href="/explore.html">Open Explore</a>
+            </div>
+          </article>
+        `;
   }
 
   if (bookingFocus instanceof HTMLInputElement) {

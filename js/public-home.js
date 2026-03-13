@@ -30,13 +30,13 @@ if (upcomingRoot) {
         })
         .join("")
     : `
-        <article class="site-card spotlight-card">
+        <article class="site-card spotlight-card discovery-fallback-card">
           <p class="site-tag">Profiles opening soon</p>
-          <h3>Profiles are coming soon.</h3>
-          <p>Use the preview flow while the first live accounts are being published.</p>
+          <h3>Live discovery starts here.</h3>
+          <p>The public feed is ready. As soon as artists finish setup and choose Show profile, they will appear here and in Explore.</p>
           <div class="form-actions">
             <a class="btn btn-outline btn-small" href="/artist-preview.html">Preview the profile flow</a>
-            <a class="btn btn-ghost btn-small" href="/account-settings.html">Open account access</a>
+            <a class="btn btn-ghost btn-small" href="/explore.html">Open Explore</a>
           </div>
         </article>
       `;
@@ -93,11 +93,19 @@ if (heroProofRow) {
   const visibleProfileCount = visibleArtists.length;
   const activeCategories = db.categories.filter((category) => category.active).length;
 
-  heroProofRow.innerHTML = [
-    { value: verifiedCount || visibleArtists.length, label: "published profiles" },
-    { value: visibleProfileCount || db.artists.length, label: "live artist accounts" },
-    { value: activeCategories, label: "browseable categories" },
-  ]
+  const proofItems = visibleArtists.length
+    ? [
+        { value: verifiedCount || visibleArtists.length, label: "published profiles" },
+        { value: visibleProfileCount, label: "live artist accounts" },
+        { value: activeCategories, label: "browseable categories" },
+      ]
+    : [
+        { value: activeCategories, label: "ready categories" },
+        { value: "Profile", label: "preview flow live" },
+        { value: "Brief", label: "booking path ready" },
+      ];
+
+  heroProofRow.innerHTML = proofItems
     .map(
       (item) => `
         <article class="site-card hero-proof-card">
@@ -129,8 +137,8 @@ if (heroSpotlight) {
     heroSpotlight.innerHTML = `
       <article class="spotlight-card">
         <p class="site-tag">Preview the flow</p>
-        <h3>The hiring flow is ready.</h3>
-        <p>Browse categories, then open the profile preview to see the client journey.</p>
+        <h3>Discovery is ready for the first live profiles.</h3>
+        <p>Browse categories now, then open the profile preview to see the client journey end to end.</p>
         <a class="btn btn-outline btn-small" href="/artist-preview.html">Open preview flow</a>
       </article>
     `;
@@ -159,9 +167,9 @@ if (profileStoryGrid) {
     : `
         <article class="site-card profile-story-card">
           <p class="site-tag">Published profiles</p>
-          <h3>Live profiles will appear here.</h3>
-          <p>Once an artist turns on their public profile, it will show up across the homepage, Explore, and the profile preview flow.</p>
-          <a class="btn btn-outline btn-small" href="/account-settings.html">Open account settings</a>
+          <h3>Published profiles will appear here.</h3>
+          <p>Once a profile is live, it will show up across the homepage, Explore, and the booking flow with the same saved details.</p>
+          <a class="btn btn-outline btn-small" href="/explore.html">Open Explore</a>
         </article>
       `;
 }

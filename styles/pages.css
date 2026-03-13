@@ -391,6 +391,29 @@
   gap: 0.65rem;
 }
 
+.discovery-insights {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.discovery-insight-card {
+  padding: 1rem;
+}
+
+.discovery-insight-card strong {
+  display: block;
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.2rem;
+}
+
+.discovery-insight-card span {
+  font-size: 0.82rem;
+  color: rgba(24, 24, 24, 0.62);
+}
+
 .explore-layout {
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
@@ -494,6 +517,48 @@
   border: 1px solid rgba(24, 24, 24, 0.08);
   font-size: 0.78rem;
   font-weight: 600;
+}
+
+.filter-chip-link {
+  text-decoration: none;
+  color: inherit;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.filter-chip-link span {
+  margin-left: 0.45rem;
+  font-size: 0.74rem;
+  opacity: 0.72;
+}
+
+.filter-chip-link:hover {
+  background: rgba(24, 24, 24, 0.1);
+  border-color: rgba(24, 24, 24, 0.14);
+  transform: translateY(-1px);
+}
+
+.empty-state-rich {
+  display: grid;
+  gap: 0.8rem;
+  justify-items: center;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.empty-state-rich h3,
+.empty-state-rich p {
+  margin: 0;
+}
+
+.empty-state-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.empty-state-links-secondary {
+  margin-top: -0.15rem;
 }
 
 .preview-hero {
@@ -627,7 +692,8 @@
   .category-grid,
   .trust-strip,
   .journey-grid,
-  .profile-story-grid {
+  .profile-story-grid,
+  .discovery-insights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -647,7 +713,8 @@
   .category-grid,
   .trust-strip,
   .journey-grid,
-  .profile-story-grid {
+  .profile-story-grid,
+  .discovery-insights {
     grid-template-columns: 1fr;
   }
 
