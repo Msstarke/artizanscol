@@ -53,39 +53,41 @@ if (topCategoriesRoot) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6);
 
-  if (topCategories.length) {
-    topCategoriesRoot.innerHTML = topCategories
-      .map(
-        ([name, count]) => `
-          <a class="category-link-card" href="/explore.html?category=${encodeURIComponent(name)}">
-            <p class="site-tag">Active category</p>
-            <h3>${escapeHtml(name)}</h3>
-            <div class="category-link-meta">
-              <span>${count} artist${count === 1 ? "" : "s"}</span>
-              <span>Browse now</span>
-            </div>
-          </a>
-        `,
-      )
-      .join("");
-  } else {
-    topCategoriesRoot.innerHTML = db.categories
-      .filter((category) => category.active)
-      .slice(0, 6)
-      .map(
-        (category) => `
-          <a class="category-link-card" href="/explore.html?category=${encodeURIComponent(category.name)}">
-            <p class="site-tag">Active category</p>
-            <h3>${escapeHtml(category.name)}</h3>
-            <div class="category-link-meta">
-              <span>Open shortlist</span>
-              <span>Browse now</span>
-            </div>
-          </a>
-        `,
-      )
-      .join("");
-  }
+  // Supplement with platform categories if fewer than 6 artist-derived ones
+  const platformCategories = db.categories.filter((category) => category.active);
+  const supplementNames = new Set(topCategories.map(([name]) => name.toLowerCase()));
+  const supplement = platformCategories
+    .filter((c) => !supplementNames.has(c.name.toLowerCase()))
+    .slice(0, Math.max(0, 6 - topCategories.length));
+
+  const artistCards = topCategories.map(
+    ([name, count]) => `
+      <a class="category-link-card" href="/explore.html?category=${encodeURIComponent(name)}">
+        <p class="site-tag">Active category</p>
+        <h3>${escapeHtml(name)}</h3>
+        <div class="category-link-meta">
+          <span>${count} artist${count === 1 ? "" : "s"}</span>
+          <span>Browse now</span>
+        </div>
+      </a>
+    `,
+  );
+
+  const supplementCards = supplement.map(
+    (category) => `
+      <a class="category-link-card" href="/explore.html?category=${encodeURIComponent(category.name)}">
+        <p class="site-tag">Browse category</p>
+        <h3>${escapeHtml(category.name)}</h3>
+        <div class="category-link-meta">
+          <span>Explore now</span>
+          <span>Browse now</span>
+        </div>
+      </a>
+    `,
+  );
+
+  topCategoriesRoot.innerHTML = [...artistCards, ...supplementCards].join("") ||
+    `<p class="muted">No categories available yet.</p>`;
 }
 
 if (heroProofRow) {
