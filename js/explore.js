@@ -26,6 +26,10 @@ const resultSummary = byId("result-summary");
 const exploreBookingCta = byId("explore-booking-cta");
 const activeFilterSummary = byId("active-filter-summary");
 const discoveryInsights = byId("discovery-insights");
+const toggleFiltersBtn = byId("toggle-filters");
+const toggleFiltersLabel = byId("toggle-filters-label");
+const filterCountBadge = byId("filter-count-badge");
+const exploreSidebar = byId("explore-sidebar");
 
 function unique(list) {
   return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
@@ -132,6 +136,32 @@ function renderDiscoveryInsights(filteredArtists) {
 fillSelect(categoryFilter, unique(db.categories.filter((category) => category.active).map((category) => category.name)));
 fillSelect(mediumFilter, unique(getVisibleArtists(db).flatMap((artist) => artist.mediums || [])));
 fillSelect(locationFilter, unique(getVisibleArtists(db).map((artist) => artist.location).filter(Boolean)));
+
+// Hide filter selects that have no real options (single-value filters add friction)
+[categoryFilter, mediumFilter, locationFilter].forEach((select) => {
+  if (!select) return;
+  const hasOptions = select.querySelectorAll("option:not([value=''])").length > 0;
+  const wrapper = select.closest("label");
+  if (wrapper) wrapper.hidden = !hasOptions;
+});
+
+// Filter sidebar toggle (mobile/tablet)
+function setSidebarOpen(open) {
+  exploreSidebar?.classList.toggle("is-open", open);
+  toggleFiltersBtn?.setAttribute("aria-expanded", String(open));
+  if (toggleFiltersLabel) toggleFiltersLabel.textContent = open ? "Hide filters" : "Filters";
+}
+
+toggleFiltersBtn?.addEventListener("click", () => {
+  setSidebarOpen(!exploreSidebar?.classList.contains("is-open"));
+});
+
+// Close sidebar if viewport grows past the mobile breakpoint
+window.addEventListener("resize", () => {
+  if (window.innerWidth > 1100 && exploreSidebar?.classList.contains("is-open")) {
+    setSidebarOpen(false);
+  }
+}, { passive: true });
 
 function seedFiltersFromQuery() {
   if (searchInput) {
@@ -362,6 +392,12 @@ function render() {
   renderDiscoveryInsights(artists);
   syncQueryState();
   updateExploreBookingCta(artists);
+
+  if (filterCountBadge) {
+    const count = activeLabels.length;
+    filterCountBadge.textContent = String(count);
+    filterCountBadge.hidden = count === 0;
+  }
 
   if (activeFilterSummary) {
     activeFilterSummary.replaceChildren();

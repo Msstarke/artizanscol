@@ -2,6 +2,13 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14
+- Simplified homepage from 9 sections to 4 (Hero, Featured Artists, How it works, Bottom CTA split); removed why-human, for-artists, mission, trust strip, and categories sections that made the page feel overwhelming and inconsistent.
+- Made homepage artist CTAs auth-aware: signed-out visitors see "Join as an artist" / "Create your profile"; signed-in users with an incomplete artist profile see "Finish your profile" or "Publish your profile" based on publish state; all other signed-in users see "Go to workspace".
+- Made account-settings workspace fully responsive: settings-shell-head now flex row (title + actions side-by-side) on desktop; workspace KPI stats grid steps from 5-col → 3-col at 1100px → 2-col at 720px; settings nav buttons get white-space nowrap + ellipsis to prevent wrapping in the horizontal scroll strip on mobile.
+- Fixed 4 confirmed frontend audit bugs: raw UUID-format artist handles are now suppressed and replaced with "Direct enquiries enabled"; bio element is hidden when no valid bio instead of showing placeholder copy; verified count shows "—" not "New" when zero; "How it works" grid stays 3-col down to 720px instead of collapsing to 2-col at 1100px (which left the 3rd step alone on a new row).
+- Fixed 8 further frontend bugs found in deep code audit: safeBio variable scope gap that caused ReferenceError crashing the profile page; booking focus input cleared on every render (wiped user-typed text); dead booking-contact select field removed (was never read by JS); services-list and reviews-list changed from div to ul for valid HTML; duplicate artist location removed from card footer (already shown in subtitle); reviewCount and completedBookings type comparison bugs fixed (string === number was always false for "1", causing "1 reviews" instead of "1 review"); filter active chips now show human-readable labels ("Open"/"Limited", "$500" not "500").
+
 ## 2026-03-13
 - Refined public discovery across the homepage, Explore, and artist preview flow: Explore now shows live discovery insight cards, keeps filters synced to the URL, uses richer no-results and no-live-profile states with direct recovery actions, the homepage fallbacks now explain discovery readiness more clearly, and related profiles on artist pages are ranked by category/medium fit instead of arbitrary order.
 - Replaced the catalog-style `README.md` with a thin changelog-first wrapper so the GitHub repo landing page now points readers at `CHANGELOG.md` while still linking to the catalog, backlog, roadmap, QA checklist, and repo rules.

@@ -58,7 +58,7 @@
       </section>
 
       <section class="container content-section explore-layout">
-        <aside class="site-card explore-sidebar">
+        <aside class="site-card explore-sidebar" id="explore-sidebar">
           <div class="sidebar-intro">
             <p class="site-tag">Refine your search</p>
             <h2 class="sidebar-title">Search first, then narrow with active filters.</h2>
@@ -142,6 +142,9 @@
                 <h2 class="section-title results-title">Curated matches for your brief.</h2>
               </div>
               <div class="results-toolbar-meta">
+                <button class="btn btn-outline btn-small filter-toggle-btn" type="button" id="toggle-filters" aria-expanded="false" aria-controls="explore-sidebar">
+                  <span id="toggle-filters-label">Filters</span><span class="filter-count-badge" id="filter-count-badge" hidden></span>
+                </button>
                 <strong id="result-count">0 artists</strong>
                 <span class="muted" id="result-summary">Adjust search and filters to refine the shortlist.</span>
               </div>

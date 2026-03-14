@@ -648,6 +648,39 @@
   text-align: right;
 }
 
+.filter-toggle-btn {
+  display: none;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filter-toggle-btn > span:first-child {
+  pointer-events: none;
+}
+
+.filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-orange);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  line-height: 1;
+}
+
+.artist-grid:not(.has-empty-state):empty::after {
+  content: "Loading artists\2026";
+  display: block;
+  padding: 2.5rem 1rem;
+  color: rgba(24, 24, 24, 0.45);
+  font-size: 0.9rem;
+}
+
 .filter-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -860,6 +893,15 @@
 
   .explore-sidebar {
     position: static;
+    display: none;
+  }
+
+  .explore-sidebar.is-open {
+    display: grid;
+  }
+
+  .filter-toggle-btn {
+    display: inline-flex;
   }
 }
 
