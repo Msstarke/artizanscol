@@ -263,8 +263,6 @@ function renderArtistDetails() {
     return;
   }
 
-  document.title = `ARTIZANS.COLLECTIVE | ${artist.name}`;
-
   if (artistStatusLabel) {
     if (!profileIsPublic()) {
       artistStatusLabel.textContent = "Artist account off";
@@ -275,6 +273,10 @@ function renderArtistDetails() {
 
   if (artistName) {
     artistName.textContent = artist.name;
+  }
+
+  if (artist.name) {
+    document.title = `ARTIZANS.COLLECTIVE | ${artist.name}`;
   }
 
   const bioText = String(artist.bio || "").trim();
@@ -378,19 +380,23 @@ function renderArtistDetails() {
     if (artist.portfolio?.length) {
       portfolioGrid.innerHTML = artist.portfolio
         .map(
-          (item) => `
-        <article class="artist-card">
-          <img src="${escapeHtml(safeImageUrl(item.image))}" alt="${escapeHtml(item.title)}" />
-          <div class="artist-card-body">
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>Portfolio sample from the artist's published body of work.</p>
-          </div>
-        </article>
-      `,
+          (item) => {
+            const imgSrc = safeImageUrl(item.image || item.imageUrl);
+            const caption = String(item.description || item.title || "").trim();
+            return `
+              <article class="artist-card">
+                <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio sample")}" />
+                <div class="artist-card-body">
+                  <h3>${escapeHtml(item.title || "Untitled")}</h3>
+                  ${caption ? `<p>${escapeHtml(caption)}</p>` : ""}
+                </div>
+              </article>
+            `;
+          },
         )
         .join("");
     } else {
-      setEmptyCollection(portfolioGrid, "No portfolio samples uploaded yet.");
+      setEmptyCollection(portfolioGrid, "No portfolio samples added yet. Check back after the artist updates their profile.");
     }
   }
 
@@ -432,31 +438,45 @@ function renderArtistDetails() {
 
   if (reviewsList) {
     const reviewCount = Number(artist.reviewCount || 0);
-    if (reviewCount > 0 && Number(artist.rating || 0) > 0) {
-      const rendered = Math.min(reviewCount, 4);
-      reviewsList.innerHTML = Array.from({ length: rendered })
-        .map((_, index) => {
-          const score = Number((artist.rating - index * 0.1).toFixed(1));
-          return `<li class="collection-item"><h4>${score} / 5.0</h4><p>Reliable communication, clear brief handling, and professional follow-through.</p></li>`;
-        })
-        .join("");
+    const rating = Number(artist.rating || 0);
+    if (reviewCount > 0 && rating > 0) {
+      reviewsList.innerHTML = `
+        <li class="collection-item">
+          <h4>${escapeHtml(rating.toFixed(1))} / 5.0</h4>
+          <p>${escapeHtml(`${reviewCount} completed booking${reviewCount === 1 ? "" : "s"} with a client rating on record.`)}</p>
+        </li>
+      `;
     } else {
-      reviewsList.innerHTML = `<li class="empty-state">${escapeHtml("No client reviews yet.")}</li>`;
+      reviewsList.innerHTML = `<li class="empty-state">No client reviews yet. Reviews appear here after completed bookings.</li>`;
     }
   }
 
   if (availabilityList) {
-    availabilityList.innerHTML = Array.from({ length: 4 })
-      .map((_, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() + (index + 1) * 3);
-        return `<li class="collection-item">
-          <strong>${escapeHtml(
-            date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
-          )}</strong>
-          <p>${escapeHtml(index === 0 ? "Earliest likely start" : "Available project window")}</p>
-        </li>`;
-      })
+    const isLimited = artist.availability === "limited";
+    const budget = Number(artist.priceFrom || 0);
+    const signals = [
+      {
+        label: "Availability",
+        value: isLimited ? "Limited — reach out early" : "Open for new briefs",
+      },
+      {
+        label: "Starting budget",
+        value: budget > 0 ? `From ${formatMoney(budget)}` : "Discussed per brief",
+      },
+      {
+        label: "Response",
+        value: "Artist reviews requests and confirms fit before starting",
+      },
+    ];
+    availabilityList.innerHTML = signals
+      .map(
+        (s) => `
+          <li class="collection-item">
+            <strong>${escapeHtml(s.label)}</strong>
+            <p>${escapeHtml(s.value)}</p>
+          </li>
+        `,
+      )
       .join("");
   }
 

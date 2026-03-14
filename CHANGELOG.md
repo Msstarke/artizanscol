@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued 2)
+- Polished artist profile page: removed fake fabricated review entries (replaced with honest rating summary from real data); removed fake availability date windows (replaced with real availability status, starting budget, and response note); fixed portfolio to use imageUrl as fallback image field and only show a description paragraph when one actually exists; page title now dynamically set to the artist's name; empty portfolio message updated to be more informative.
+
 ## 2026-03-14 (continued)
 - Rebuilt About page from a near-empty stub into a full trust-building page: hero with mission statement, problem section (AI flooding creative markets), how-it-works steps (verification, transparent pricing, direct booking), who-it's-for split card for clients and artists, and values section. Added pages.css, fixed nav to match site-wide header, fixed script reference.
 - Fixed redundant owner buttons on artist profile page: "Your profile", "Own profile", and "This is your profile" are now hidden when viewing your own profile; replaced with a single "Edit your profile" link to workspace.
