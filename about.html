@@ -3,44 +3,171 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARTIZANS.COLLECTIVE | About</title>
+    <meta
+      name="description"
+      content="Artizans Collective is a marketplace built exclusively for verified human artists. Learn why we built it, how verification works, and what makes us different."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#f8f8f8" />
+    <link rel="canonical" href="https://www.artizanscollective.com/about.html" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
-    <title>ARTIZANS.COLLECTIVE | About</title>
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
   </head>
   <body>
     <div class="noise-overlay" aria-hidden="true"></div>
+
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
-        <nav class="main-nav">
+        <nav class="main-nav" aria-label="Main nav">
           <a href="/index.html">Home</a>
-          <a href="/explore.html">Explore</a>
+          <a href="/explore.html">Explore Artists</a>
           <a href="/about.html">About</a>
-          <a href="/faq.html">FAQ</a>
-          <a href="/blog.html">Blog</a>
           <a href="/contact.html">Contact</a>
-          <a href="/legal.html">Legal</a>
+          <a href="/account-settings.html" data-auth-link>Workspace</a>
         </nav>
-        <div class="header-actions"><span class="role-chip" data-role-chip>Session: signed out</span><a class="btn btn-outline btn-small" href="/account-settings.html" data-auth-link>Workspace</a></div>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" data-logout hidden>Logout</button>
+        </div>
       </div>
     </header>
+
     <main class="page-shell">
+
+      <!-- Hero -->
       <section class="container content-section">
-        <article class="site-card">
-          <p class="site-tag">About</p>
-          <h1 class="section-title">Why Artizans exists</h1>
-          <p class="section-copy">Artizans helps beginner artists win real paid work and helps clients hire with confidence through verified human-made portfolios and clear booking workflows.</p>
-          <ul class="feature-list">
-            <li>Fair visibility for beginner creatives.</li>
-            <li>Trust-first profile verification.</li>
-            <li>Structured client-artist collaboration flow.</li>
-          </ul>
-        </article>
+        <div class="browse-hero">
+          <div>
+            <p class="eyebrow">OUR MISSION</p>
+            <h1 class="section-title browse-title">A marketplace built for human artists.<br>Not generated content.</h1>
+            <p class="section-copy browse-copy">
+              AI tools are flooding creative markets with generated work that undercuts and obscures real human skill.
+              We built Artizans Collective to push back — a space where verified human creators get clear visibility,
+              fair pricing, and direct access to clients who want the real thing.
+            </p>
+          </div>
+          <div class="browse-hero-actions">
+            <a class="btn btn-primary" href="/explore.html">Browse artists</a>
+            <a class="btn btn-outline" href="/account-settings.html">Join as an artist</a>
+          </div>
+        </div>
       </section>
+
+      <!-- The problem -->
+      <section class="container content-section" aria-labelledby="problem-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">THE PROBLEM</p>
+            <h2 class="section-title" id="problem-title">AI is making it harder to find and hire real artists.</h2>
+          </div>
+        </div>
+        <div class="why-human-grid">
+          <article class="why-human-card site-card">
+            <h3>Flooded search results</h3>
+            <p>Generated images, AI-written copy, and synthetic portfolios are crowding out human creators in every creative category — making it hard for clients to know what's real.</p>
+          </article>
+          <article class="why-human-card site-card">
+            <h3>Race to the bottom on price</h3>
+            <p>When AI can produce unlimited content at near-zero cost, human artists face pressure to undercut their own rates just to compete — devaluing genuine creative skill.</p>
+          </article>
+          <article class="why-human-card site-card">
+            <h3>No verification anywhere</h3>
+            <p>Most platforms have no mechanism to confirm that a portfolio represents real human work. Clients have no way to know what they're hiring until the project is already underway.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- How we work -->
+      <section class="container content-section" aria-labelledby="how-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">HOW IT WORKS</p>
+            <h2 class="section-title" id="how-title">Verified profiles. Direct booking. No guesswork.</h2>
+          </div>
+          <p class="section-copy muted">Three principles that shape everything we build.</p>
+        </div>
+        <div class="journey-grid">
+          <article class="journey-card">
+            <span class="journey-step">01</span>
+            <h3>Human verification</h3>
+            <p>Every artist profile is reviewed before it goes live. We check that portfolios represent genuine human-made work — not generated output passed off as original creative practice.</p>
+          </article>
+          <article class="journey-card">
+            <span class="journey-step">02</span>
+            <h3>Transparent pricing</h3>
+            <p>Artists set a visible starting budget on their profile. Clients know roughly what to expect before they reach out — no awkward back-and-forth to establish basic scope.</p>
+          </article>
+          <article class="journey-card">
+            <span class="journey-step">03</span>
+            <h3>Direct booking</h3>
+            <p>Clients submit a structured brief directly from the artist's profile. No auction model, no platform middlemen — just a clear project request that the artist can review and accept.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- Who it's for -->
+      <section class="container content-section" aria-labelledby="for-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">WHO IT'S FOR</p>
+            <h2 class="section-title" id="for-title">Built for both sides of the creative brief.</h2>
+          </div>
+        </div>
+        <div class="home-cta-split">
+          <article class="home-cta-card site-card">
+            <p class="site-tag">For clients</p>
+            <h3 class="home-cta-title">Hire with confidence.</h3>
+            <p>Browse verified portfolios with visible pricing and real availability signals. Filter by category, medium, and location. Send a structured brief directly from the profile — no platform overhead.</p>
+            <a class="btn btn-primary" href="/explore.html">Browse artists</a>
+          </article>
+          <article class="home-cta-card home-cta-card-dark">
+            <p class="site-tag">For artists</p>
+            <h3 class="home-cta-title">Get seen for real work.</h3>
+            <p>Set up a profile that puts your category, mediums, and starting price front and centre. No algorithm-driven visibility, no race to the bottom. Clients come to you through your published profile.</p>
+            <a class="btn btn-outline-light" href="/account-settings.html">Publish your profile</a>
+          </article>
+        </div>
+      </section>
+
+      <!-- Values -->
+      <section class="container content-section" aria-labelledby="values-title">
+        <div class="section-intro">
+          <div>
+            <p class="eyebrow">WHAT WE STAND FOR</p>
+            <h2 class="section-title" id="values-title">A few things we won't compromise on.</h2>
+          </div>
+        </div>
+        <div class="why-human-grid">
+          <article class="why-human-card site-card">
+            <h3>Human work only</h3>
+            <p>Every profile on this platform represents a real person doing real creative work. We don't host AI-generated portfolios, synthetic artists, or content farms. That's not a rule — it's the entire point.</p>
+          </article>
+          <article class="why-human-card site-card">
+            <h3>Transparent by default</h3>
+            <p>Pricing, availability, and booking flow are visible upfront. We don't hide information behind requests or sign-up walls. Clients should be able to make an informed decision before they reach out.</p>
+          </article>
+          <article class="why-human-card site-card">
+            <h3>Artists keep control</h3>
+            <p>Artists decide when to publish, what to show, and what to charge. Profiles can go live or come down at any time. There's no lock-in and no commission taken from direct bookings.</p>
+          </article>
+        </div>
+      </section>
+
     </main>
-    <footer class="site-footer"><div class="container footer-inner"><p>About Artizans</p><p>Mission and platform purpose</p></div></footer>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>ARTIZANS.COLLECTIVE</p>
+        <p>A marketplace for verified human creative work</p>
+      </div>
+    </footer>
+
     <script type="module" src="/js/static-page.js"></script>
   </body>
 </html>

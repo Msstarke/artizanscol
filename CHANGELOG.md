@@ -2,6 +2,10 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued)
+- Rebuilt About page from a near-empty stub into a full trust-building page: hero with mission statement, problem section (AI flooding creative markets), how-it-works steps (verification, transparent pricing, direct booking), who-it's-for split card for clients and artists, and values section. Added pages.css, fixed nav to match site-wide header, fixed script reference.
+- Fixed redundant owner buttons on artist profile page: "Your profile", "Own profile", and "This is your profile" are now hidden when viewing your own profile; replaced with a single "Edit your profile" link to workspace.
+
 ## 2026-03-14
 - Simplified homepage from 9 sections to 4 (Hero, Featured Artists, How it works, Bottom CTA split); removed why-human, for-artists, mission, trust strip, and categories sections that made the page feel overwhelming and inconsistent.
 - Made homepage artist CTAs auth-aware: signed-out visitors see "Join as an artist" / "Create your profile"; signed-in users with an incomplete artist profile see "Finish your profile" or "Publish your profile" based on publish state; all other signed-in users see "Go to workspace".
