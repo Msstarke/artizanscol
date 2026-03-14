@@ -2,6 +2,10 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued 3)
+- Fixed disabled buttons animating on hover — added `.btn:disabled` rule with opacity 0.45, cursor not-allowed, and no transform/shadow so disabled buttons look and feel inert.
+- Removed redundant `hydrateDB()` fire-and-forget call inside `shared-nav.js` that fired on every page load just to re-check the maintenance banner; the already-loaded DB is sufficient.
+
 ## 2026-03-14 (continued 2)
 - Polished artist profile page: removed fake fabricated review entries (replaced with honest rating summary from real data); removed fake availability date windows (replaced with real availability status, starting budget, and response note); fixed portfolio to use imageUrl as fallback image field and only show a description paragraph when one actually exists; page title now dynamically set to the artist's name; empty portfolio message updated to be more informative.
 
