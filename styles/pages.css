@@ -1357,3 +1357,25 @@
     grid-auto-columns: minmax(100px, 1fr);
   }
 }
+
+/* FAQ / Legal page */
+.faq-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.faq-item h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+}
+
+.faq-item p {
+  margin: 0;
+  color: var(--color-ink-soft);
+  line-height: 1.65;
+}
+
+.faq-item a {
+  color: var(--color-orange);
+  font-weight: 600;
+}

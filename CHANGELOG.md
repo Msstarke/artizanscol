@@ -2,6 +2,11 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued 6)
+- Rebuilt FAQ page from a 3-question stub into a full trust page with 13 questions across three sections (For clients, For artists, Platform) covering verification, booking flow, pricing, visibility, data, and dispute handling. Added a bottom CTA split card linking to Contact and Explore.
+- Rebuilt Legal page from a 3-bullet stub into a full legal reference with four sections (Terms of service, Privacy policy, Content policy, Contact) covering AI content rules, copyright, data collection and retention, cookies, prohibited content, and reporting.
+- Added `.faq-list` and `.faq-item` styles to pages.css for the new FAQ/Legal card grid layout.
+
 ## 2026-03-14 (continued 5)
 - Standardised header across all pages: index, explore, artist-preview, account-settings, and unauthorized.html all had `<span class="role-chip" data-role-chip>Session: signed out</span>` without the `hidden` attribute, causing the chip text to flash briefly before JS hid it. Added `hidden` to all. Fixed account-settings.html which also had an old 3-link nav (Home, Explore, Workspace) — updated to the standard 4-link nav matching all other pages.
 
