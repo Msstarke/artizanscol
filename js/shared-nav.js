@@ -256,9 +256,5 @@ export function initSharedPage() {
   bindGlobalButtons();
   bindToastEvent();
 
-  void hydrateDB().then((freshDb) => {
-    mountMaintenanceBanner(freshDb, session);
-  });
-
   return { session, db };
 }

@@ -25,6 +25,15 @@
   box-shadow: 0 12px 22px rgba(24, 24, 24, 0.1);
 }
 
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
 .btn-small {
   min-height: 38px;
   padding-block: 0.45rem;
