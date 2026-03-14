@@ -48,6 +48,7 @@ const relatedProfiles = byId("related-profiles");
 const saveArtistBtn = byId("save-artist-btn");
 const contactArtistBtn = byId("contact-artist-btn");
 const openBookingBtn = byId("open-booking-btn");
+const ownerEditBtn = byId("owner-edit-btn");
 const bookingForm = byId("booking-form");
 const bookingFocus = byId("booking-service");
 const bookingDeadline = byId("booking-deadline");
@@ -89,8 +90,7 @@ function updateBookingCta() {
   }
 
   if (viewerOwnsArtistProfile()) {
-    openBookingBtn.textContent = "This is your profile";
-    openBookingBtn.disabled = true;
+    openBookingBtn.hidden = true;
     return;
   }
 
@@ -502,16 +502,26 @@ function renderArtistDetails() {
         `;
   }
 
+  if (viewerOwnsArtistProfile()) {
+    if (saveArtistBtn) saveArtistBtn.hidden = true;
+    if (contactArtistBtn) contactArtistBtn.hidden = true;
+    if (ownerEditBtn) ownerEditBtn.hidden = false;
+    setBookingFormEnabled(false);
+    return;
+  }
+
+  if (ownerEditBtn) ownerEditBtn.hidden = true;
+
   if (saveArtistBtn) {
-    saveArtistBtn.textContent = viewerOwnsArtistProfile() ? "Your profile" : "Save artist";
+    saveArtistBtn.hidden = false;
+    saveArtistBtn.textContent = "Save artist";
   }
   if (contactArtistBtn) {
-    contactArtistBtn.textContent = viewerOwnsArtistProfile() ? "Own profile" : "Contact artist";
+    contactArtistBtn.hidden = false;
+    contactArtistBtn.textContent = "Contact artist";
   }
   [saveArtistBtn, contactArtistBtn].forEach((button) => {
-    if (button) {
-      button.disabled = !viewerCanBookArtistProfile();
-    }
+    if (button) button.disabled = !viewerCanBookArtistProfile();
   });
   setBookingFormEnabled(viewerCanBookArtistProfile());
 }
