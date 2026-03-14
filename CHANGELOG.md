@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued 5)
+- Standardised header across all pages: index, explore, artist-preview, account-settings, and unauthorized.html all had `<span class="role-chip" data-role-chip>Session: signed out</span>` without the `hidden` attribute, causing the chip text to flash briefly before JS hid it. Added `hidden` to all. Fixed account-settings.html which also had an old 3-link nav (Home, Explore, Workspace) — updated to the standard 4-link nav matching all other pages.
+
 ## 2026-03-14 (continued 4)
 - Fixed nav flash on contact, blog, FAQ, and legal pages: static HTML had a 7-link nav (Home, Explore, About, FAQ, Blog, Contact, Legal) that was briefly visible before `shared-nav.js` rewrote it to the standard 5 links — now all pages start with the correct 5-link nav so there is zero visible change on load. Also fixed role-chip to have `hidden` attribute and added missing logout button to all four pages. Added `pages.css` to blog, faq, and legal which were missing it.
 - Fixed Workspace link flash on all pages: the "Workspace" link was included as a 5th item inside the static `<nav>` which caused it to briefly appear centred in the nav bar before `shared-nav.js` rewrote the nav to 4 links and moved Sign in/Workspace to the header-actions area. Removed the Workspace nav link from all 8 pages' static HTML — it only belongs in header-actions.

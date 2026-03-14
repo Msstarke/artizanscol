@@ -18,12 +18,17 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
-        <nav class="main-nav">
+        <nav class="main-nav" aria-label="Main nav">
           <a href="/index.html">Home</a>
-          <a href="/explore.html">Explore</a>
-          <a href="/account-settings.html">Workspace</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
         </nav>
-        <div class="header-actions"><span class="role-chip" data-role-chip>Session: signed out</span></div>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" type="button" data-logout hidden>Logout</button>
+        </div>
       </div>
     </header>
 
