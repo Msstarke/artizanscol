@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-14 (continued 4)
+- Fixed nav flash on contact, blog, FAQ, and legal pages: static HTML had a 7-link nav (Home, Explore, About, FAQ, Blog, Contact, Legal) that was briefly visible before `shared-nav.js` rewrote it to the standard 5 links — now all pages start with the correct 5-link nav so there is zero visible change on load. Also fixed role-chip to have `hidden` attribute and added missing logout button to all four pages. Added `pages.css` to blog, faq, and legal which were missing it.
+
 ## 2026-03-14 (continued 3)
 - Fixed disabled buttons animating on hover — added `.btn:disabled` rule with opacity 0.45, cursor not-allowed, and no transform/shadow so disabled buttons look and feel inert.
 - Removed redundant `hydrateDB()` fire-and-forget call inside `shared-nav.js` that fired on every page load just to re-check the maintenance banner; the already-loaded DB is sufficient.

@@ -8,10 +8,27 @@
     <title>ARTIZANS.COLLECTIVE | Blog</title>
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
   </head>
   <body>
     <div class="noise-overlay" aria-hidden="true"></div>
-    <header class="site-header"><div class="container header-inner"><a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a><nav class="main-nav"><a href="/index.html">Home</a><a href="/explore.html">Explore</a><a href="/about.html">About</a><a href="/faq.html">FAQ</a><a href="/blog.html">Blog</a><a href="/contact.html">Contact</a><a href="/legal.html">Legal</a></nav><div class="header-actions"><span class="role-chip" data-role-chip>Session: signed out</span><a class="btn btn-outline btn-small" href="/account-settings.html" data-auth-link>Workspace</a></div></div></header>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
+          <a href="/account-settings.html" data-auth-link>Workspace</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" type="button" data-logout hidden>Logout</button>
+        </div>
+      </div>
+    </header>
     <main class="page-shell"><section class="container content-section"><div class="card-grid"><article class="site-card"><p class="site-tag">Update</p><h3>Verification guide for artists</h3><p class="site-desc">How to structure process evidence and improve moderation approval speed.</p></article><article class="site-card"><p class="site-tag">Update</p><h3>How clients can brief better</h3><p class="site-desc">Tips for scope, timelines, and budget clarity to reduce revision loops.</p></article><article class="site-card"><p class="site-tag">Update</p><h3>Improving beginner visibility</h3><p class="site-desc">Algorithm updates focused on category and service-fit ranking.</p></article></div></section></main>
     <footer class="site-footer"><div class="container footer-inner"><p>Blog and updates</p><p>Platform product notes</p></div></footer>
     <script type="module" src="/js/static-page.js"></script>
