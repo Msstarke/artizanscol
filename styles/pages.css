@@ -1358,24 +1358,102 @@
   }
 }
 
-/* FAQ / Legal page */
-.faq-list {
-  display: grid;
-  gap: 0.75rem;
+/* FAQ page */
+.faq-group {
+  margin-bottom: 2.5rem;
 }
 
-.faq-item h3 {
-  margin: 0 0 0.45rem;
+.faq-group-title {
   font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(34, 34, 34, 0.5);
+  margin: 0 0 0.75rem;
+}
+
+.faq-accordion {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface-strong);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.faq-item:last-child {
+  border-bottom: 0;
+}
+
+.faq-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.96rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: rgba(34, 34, 34, 0.4);
+  flex-shrink: 0;
+  transition: transform 180ms ease;
+}
+
+.faq-item[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq-item summary:hover {
+  background: rgba(24, 24, 24, 0.03);
 }
 
 .faq-item p {
   margin: 0;
+  padding: 0 1.1rem 1rem;
   color: var(--color-ink-soft);
   line-height: 1.65;
+  font-size: 0.92rem;
 }
 
 .faq-item a {
   color: var(--color-orange);
   font-weight: 600;
+}
+
+/* Legal page */
+.legal-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.legal-section h2 {
+  font-size: 1rem;
+  margin: 1.2rem 0 0.35rem;
+}
+
+.legal-section h2:first-of-type {
+  margin-top: 0.6rem;
+}
+
+.legal-section p {
+  margin: 0 0 0.5rem;
+  color: var(--color-ink-soft);
+  line-height: 1.7;
+  font-size: 0.92rem;
 }
