@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-16
+- Polished artist profile page to feel more portfolio-led: replaced the 3-col artist-discovery card grid with a proper 2-col image showcase grid (`.portfolio-grid` / `.portfolio-item`) — larger images (300px height), hover zoom, dark gradient title overlay. Removed the "Profile focus / Reviews" split section which just repeated data already visible in the hero tags and booking rail. Tightened verbose section headings throughout. Added `loading="lazy"` to portfolio images.
+
 ## 2026-03-14 (continued 6)
 - Rebuilt FAQ page from a 3-question stub into a full trust page with 13 questions across three sections (For clients, For artists, Platform) covering verification, booking flow, pricing, visibility, data, and dispute handling. Added a bottom CTA split card linking to Contact and Explore.
 - Rebuilt Legal page from a 3-bullet stub into a full legal reference with four sections (Terms of service, Privacy policy, Content policy, Contact) covering AI content rules, copyright, data collection and retention, cookies, prohibited content, and reporting.

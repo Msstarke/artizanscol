@@ -140,6 +140,58 @@
   flex-wrap: wrap;
 }
 
+.portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.portfolio-grid.has-empty-state > * {
+  grid-column: 1 / -1;
+}
+
+.portfolio-item {
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(135deg, #efe4d3 0%, #dac3a8 100%);
+  cursor: default;
+}
+
+.portfolio-item img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+  transition: transform 320ms ease;
+}
+
+.portfolio-item:hover img {
+  transform: scale(1.03);
+}
+
+.portfolio-item-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(transparent, rgba(20, 20, 20, 0.62));
+}
+
+.portfolio-item-caption h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.portfolio-item-caption p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .muted {
   color: rgba(24, 24, 24, 0.62);
 }
@@ -869,6 +921,7 @@
 
 @media (max-width: 1100px) {
   .artist-grid,
+  .portfolio-grid,
   .category-grid,
   .trust-strip,
   .profile-story-grid,
@@ -907,6 +960,7 @@
 
 @media (max-width: 720px) {
   .artist-grid,
+  .portfolio-grid,
   .category-grid,
   .trust-strip,
   .journey-grid,

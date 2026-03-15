@@ -41,8 +41,6 @@ const artistMeta = byId("artist-meta");
 const profileHeroMedia = byId("profile-hero-media");
 const artistProofGrid = byId("artist-proof-grid");
 const portfolioGrid = byId("portfolio-grid");
-const servicesList = byId("services-list");
-const reviewsList = byId("reviews-list");
 const availabilityList = byId("availability-list");
 const relatedProfiles = byId("related-profiles");
 const saveArtistBtn = byId("save-artist-btn");
@@ -220,8 +218,6 @@ function renderUnavailableProfile(title, message) {
   }
 
   setEmptyCollection(portfolioGrid, "Portfolio samples will appear here once the profile is live.");
-  setEmptyCollection(servicesList, "Profile details are unavailable right now.", "li");
-  setEmptyCollection(reviewsList, "No client reviews available.", "li");
   setEmptyCollection(availabilityList, "No availability published.", "li");
 
   [saveArtistBtn, contactArtistBtn, openBookingBtn].forEach((button) => {
@@ -382,14 +378,16 @@ function renderArtistDetails() {
         .map(
           (item) => {
             const imgSrc = safeImageUrl(item.image || item.imageUrl);
-            const caption = String(item.description || item.title || "").trim();
+            const title = String(item.title || "").trim();
+            const desc = String(item.description || "").trim();
             return `
-              <article class="artist-card">
-                <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio sample")}" />
-                <div class="artist-card-body">
-                  <h3>${escapeHtml(item.title || "Untitled")}</h3>
-                  ${caption ? `<p>${escapeHtml(caption)}</p>` : ""}
-                </div>
+              <article class="portfolio-item">
+                <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(title || "Portfolio sample")}" loading="lazy" />
+                ${title || desc ? `
+                <div class="portfolio-item-caption">
+                  ${title ? `<h3>${escapeHtml(title)}</h3>` : ""}
+                  ${desc ? `<p>${escapeHtml(desc)}</p>` : ""}
+                </div>` : ""}
               </article>
             `;
           },
@@ -397,57 +395,6 @@ function renderArtistDetails() {
         .join("");
     } else {
       setEmptyCollection(portfolioGrid, "No portfolio samples added yet. Check back after the artist updates their profile.");
-    }
-  }
-
-  if (servicesList) {
-    const focusItems = [
-      {
-        title: "What they do",
-        detail: artist.category || "Creative practice",
-      },
-      {
-        title: "Works across",
-        detail: (artist.mediums || []).join(", ") || "Human-made creative work",
-      },
-      {
-        title: "Starting budget",
-        detail: Number(artist.priceFrom || 0) > 0 ? formatMoney(artist.priceFrom || 0) : "Discussed per brief",
-      },
-      {
-        title: "Availability",
-        detail: artist.availability === "limited" ? "Limited availability" : "Open for briefs",
-      },
-      {
-        title: "Best fit for",
-        detail: safeBio || "Clients looking for a clear creative practice and direct booking flow.",
-      },
-    ];
-
-    servicesList.innerHTML = focusItems
-      .map(
-        (item) => `
-          <li class="collection-item">
-            <h4>${escapeHtml(item.title)}</h4>
-            <p>${escapeHtml(item.detail)}</p>
-          </li>
-        `,
-      )
-      .join("");
-  }
-
-  if (reviewsList) {
-    const reviewCount = Number(artist.reviewCount || 0);
-    const rating = Number(artist.rating || 0);
-    if (reviewCount > 0 && rating > 0) {
-      reviewsList.innerHTML = `
-        <li class="collection-item">
-          <h4>${escapeHtml(rating.toFixed(1))} / 5.0</h4>
-          <p>${escapeHtml(`${reviewCount} completed booking${reviewCount === 1 ? "" : "s"} with a client rating on record.`)}</p>
-        </li>
-      `;
-    } else {
-      reviewsList.innerHTML = `<li class="empty-state">No client reviews yet. Reviews appear here after completed bookings.</li>`;
     }
   }
 
