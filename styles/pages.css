@@ -900,6 +900,21 @@
   margin-bottom: 0;
 }
 
+.booking-success {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+.booking-success .section-title {
+  margin: 0;
+}
+
+.booking-success .section-copy {
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
 .preview-detail-grid {
   align-items: start;
 }

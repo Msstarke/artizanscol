@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-16 (continued)
+- Improved booking flow: submit button now shows "Sending…" and disables the form during the API call so users know the request is in flight. On success the form is replaced with a clear confirmation card ("Brief submitted.") with "View in workspace" and "Browse more artists" actions — replaces the easy-to-miss toast. On failure the form re-enables and restores the button. For signed-out visitors the submit button reads "Sign in to send a brief" so the required action is obvious before they try.
+
 ## 2026-03-16
 - Polished artist profile page to feel more portfolio-led: replaced the 3-col artist-discovery card grid with a proper 2-col image showcase grid (`.portfolio-grid` / `.portfolio-item`) — larger images (300px height), hover zoom, dark gradient title overlay. Removed the "Profile focus / Reviews" split section which just repeated data already visible in the hero tags and booking rail. Tightened verbose section headings throughout. Added `loading="lazy"` to portfolio images.
 

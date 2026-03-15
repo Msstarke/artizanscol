@@ -491,6 +491,11 @@ function renderArtistDetails() {
     if (button) button.disabled = !viewerCanBookArtistProfile();
   });
   setBookingFormEnabled(viewerCanBookArtistProfile());
+
+  if (!isCognitoAuthenticated() && bookingForm) {
+    const submitBtn = bookingForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.textContent = "Sign in to send a brief";
+  }
 }
 
 saveArtistBtn?.addEventListener("click", async () => {
@@ -656,6 +661,15 @@ bookingForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const submitBtn = bookingForm.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn?.textContent || "Send booking request";
+
+  setBookingFormEnabled(false);
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+  }
+
   try {
     const booking = await createBooking({
       userId,
@@ -668,14 +682,35 @@ bookingForm?.addEventListener("submit", async (event) => {
 
     if (!booking) {
       showToast("Booking could not be created.", "danger");
+      setBookingFormEnabled(true);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
       return;
     }
 
     db = getDB();
-    showToast(`Booking ${booking.id} created.`, "success");
-    bookingForm.reset();
+
+    const successDiv = document.createElement("div");
+    successDiv.className = "booking-success";
+    successDiv.innerHTML = `
+      <p class="site-tag">Request sent</p>
+      <h2 class="section-title detail-title">Brief submitted.</h2>
+      <p class="section-copy">The artist has your request and will respond from their workspace. You can track the status from your bookings.</p>
+      <div class="form-actions">
+        <a class="btn btn-primary" href="/account-settings.html">View in workspace</a>
+        <a class="btn btn-outline" href="/explore.html">Browse more artists</a>
+      </div>
+    `;
+    bookingForm.replaceWith(successDiv);
   } catch (error) {
     showToast(error?.message || "Booking could not be created.", "danger");
+    setBookingFormEnabled(true);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
   }
 });
 
