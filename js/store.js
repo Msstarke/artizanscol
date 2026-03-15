@@ -1303,9 +1303,7 @@ function recalcArtistMetrics(db, artistId) {
 }
 
 export async function createBooking(payload) {
-  const artist = getArtistById(getDB(), payload?.artistId);
-  const user = getUserById(getDB(), payload?.userId);
-  if (!artist || !user) {
+  if (!payload?.artistId) {
     return null;
   }
 
