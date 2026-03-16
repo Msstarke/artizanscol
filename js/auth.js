@@ -1998,7 +1998,7 @@ workspaceMessageForm?.addEventListener("submit", async (event) => {
   let payload = null;
   if (context.user?.id && booking.userId === context.user.id) {
     payload = {
-      threadId: `t-${booking.userId}-${booking.artistId}`,
+      threadId: booking.threadId,
       bookingId: booking.id,
       fromRole: "user",
       fromId: booking.userId,
@@ -2008,7 +2008,7 @@ workspaceMessageForm?.addEventListener("submit", async (event) => {
     };
   } else if (context.artist?.id && booking.artistId === context.artist.id) {
     payload = {
-      threadId: `t-${booking.userId}-${booking.artistId}`,
+      threadId: booking.threadId,
       bookingId: booking.id,
       fromRole: "artist",
       fromId: booking.artistId,

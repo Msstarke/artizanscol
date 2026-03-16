@@ -1082,7 +1082,7 @@ function upsertBookings(db, items) {
     deadline: item.deadline || "",
     message: item.message || "",
     status: item.status || "requested",
-    threadId: item.threadId || `t-${item.userId}-${item.artistId}`,
+    threadId: item.threadId || `t_${item.userId}_${item.artistId}`,
     history: asArray(item.history),
     createdAt: item.createdAt || nowIso(),
     updatedAt: item.updatedAt || nowIso(),
@@ -1256,7 +1256,7 @@ export async function sendMessage(payload) {
     return null;
   }
 
-  const threadId = payload.threadId || `t-${payload.fromId}-${payload.toId}`;
+  const threadId = payload.threadId || `t_${payload.fromId}_${payload.toId}`;
   const body = String(payload.body || "").trim();
   if (!threadId || !body) {
     return null;
