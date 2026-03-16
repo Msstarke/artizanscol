@@ -233,6 +233,42 @@ function checkSpamPatterns(text: string, field: string): ModerationReason[] {
     }
   }
 
+  // Names in bios (potential doxxing / calling out other users)
+  if (field === "bio" || field === "description") {
+    // Match "Firstname Lastname" patterns — two capitalized words in a row
+    const namePattern = /\b([A-Z][a-z]{1,20})\s+([A-Z][a-z]{1,20})\b/g;
+    // Common two-word capitalized phrases that aren't names
+    const notNames = new Set([
+      "New York", "Los Angeles", "San Francisco", "San Diego", "Las Vegas",
+      "New Zealand", "New Orleans", "El Salvador", "South Wales", "North Carolina",
+      "South Carolina", "West Virginia", "North Dakota", "South Dakota",
+      "New Hampshire", "New Jersey", "New Mexico", "Rhode Island",
+      "Central Coast", "Gold Coast", "Sunshine Coast", "Byron Bay",
+      "Fine Art", "Mixed Media", "Digital Art", "Graphic Design",
+      "Art Director", "Creative Director", "Visual Design",
+      "High School", "Primary School", "Middle School",
+      "Saint Martins", "Central Saint",
+    ]);
+    const matches = [...text.matchAll(namePattern)].filter((m) => !notNames.has(m[0]));
+    // 2+ name-like patterns = likely listing people → block
+    // 1 name-like pattern = flag for review (could be legitimate)
+    if (matches.length >= 2) {
+      reasons.push({
+        rule: "names_in_content",
+        severity: "block",
+        field,
+        detail: `Multiple names detected in ${field} — possible doxxing.`,
+      });
+    } else if (matches.length === 1) {
+      reasons.push({
+        rule: "name_in_content",
+        severity: "flag",
+        field,
+        detail: `Possible name detected in ${field}.`,
+      });
+    }
+  }
+
   // Gibberish / keyboard mash
   if (isGibberish(text)) {
     reasons.push({
