@@ -31,10 +31,9 @@
 3. Frontend workflow `Deploy AWS Static Site` is green for latest commit.
 4. Public domain responds with JSON API envelopes on `/v1/categories`, `/v1/artists`, and auth error JSON on `/v1/me`.
 5. CloudWatch alarms are green for API 5xx and Lambda errors.
-6. WAF Web ACLs are attached and metrics are emitting.
-7. Core categories are seeded via `aws/scripts/seed-core-categories.sh`.
-8. At least one real artist profile has been created and published through the live account flow.
-9. Rollback steps are ready: `aws/ROLLBACK_PLAYBOOK.md`.
+6. Core categories are seeded via `aws/scripts/seed-core-categories.sh`.
+7. At least one real artist profile has been created and published through the live account flow.
+8. Rollback steps are ready: `aws/ROLLBACK_PLAYBOOK.md`.
 
 ## Cutover Notes
 - This repo now treats backend API as source of truth for business state.

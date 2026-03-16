@@ -207,7 +207,14 @@ jobs:
             --exclude ".github/*" \
             --exclude ".codex_state/*" \
             --exclude "output/*" \
-            --exclude "aws/*"
+            --exclude "aws/*" \
+            --exclude "backend/*" \
+            --exclude "scripts/*" \
+            --exclude "*.md" \
+            --exclude "*.sh" \
+            --exclude "*.json" \
+            --exclude "*.lock" \
+            --exclude "*.ai"
 
       - name: Invalidate CloudFront cache
         run: |
