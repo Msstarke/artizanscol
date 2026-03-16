@@ -146,10 +146,10 @@ function renderReportItems(items) {
       ${reasonsHtml}
       ${snapshotHtml}
       <div class="form-actions" style="margin-top:0.75rem;flex-wrap:wrap;gap:0.4rem;">
+        ${meta.handler && report.status !== "resolved" ? `<button class="btn btn-outline btn-small" data-report-id="${escapeHtml(report.id)}" data-reset-content style="color:var(--color-error);border-color:var(--color-error);">Reset content</button>` : ""}
         ${report.status !== "resolved" ? `<button class="btn btn-outline btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="resolved" data-report-note="Reviewed and resolved — no further action needed.">Resolve</button>` : ""}
         ${report.status !== "dismissed" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="dismissed" data-report-note="Dismissed — does not violate platform guidelines.">Dismiss</button>` : ""}
-        ${report.status !== "reviewing" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="reviewing" data-report-note="Under review by admin.">Mark reviewing</button>` : ""}
-        ${report.status !== "open" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="open" data-report-note="">Reopen</button>` : ""}
+        ${report.status === "resolved" || report.status === "dismissed" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="reviewing" data-report-note="Reopened for review.">Reopen</button>` : ""}
       </div>
     `;
 
@@ -158,6 +158,30 @@ function renderReportItems(items) {
 }
 
 reportsListEl?.addEventListener("click", async (e) => {
+  // Reset content button
+  const resetBtn = e.target.closest("[data-reset-content]");
+  if (resetBtn) {
+    const reportId = resetBtn.dataset.reportId;
+    if (!reportId) return;
+
+    resetBtn.disabled = true;
+    resetBtn.textContent = "Resetting…";
+
+    try {
+      const res = await apiRequest(`/v1/admin/reports/${encodeURIComponent(reportId)}/reset-content`, { method: "POST" });
+      if (!res?.ok) throw new Error(res?.error?.message || "Failed to reset content.");
+      const fields = res.data?.resetFields?.join(", ") || "content";
+      showToast(`Cleared ${fields} and resolved report.`, "success");
+      await loadReportsSection();
+    } catch (err) {
+      showToast(err?.message || "Failed to reset content.", "error");
+      resetBtn.disabled = false;
+      resetBtn.textContent = "Reset content";
+    }
+    return;
+  }
+
+  // Status change buttons
   const btn = e.target.closest("[data-report-action]");
   if (!btn) return;
 

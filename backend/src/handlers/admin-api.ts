@@ -549,6 +549,84 @@ async function handleUpdateReportStatus(
   return json(200, success(mapReport(next)));
 }
 
+// ─── Reset reported content ──────────────────────────────────────────────
+
+const HANDLER_RESET_MAP: Record<string, { entity: "user" | "artist" | "service"; fields: string[] }> = {
+  "user-api/profile": { entity: "user", fields: ["bio", "name"] },
+  "artist-api/profile": { entity: "artist", fields: ["bio", "name"] },
+  "artist-api/onboarding": { entity: "artist", fields: ["bio"] },
+  "artist-api/service": { entity: "service", fields: ["title", "description"] },
+  "artist-api/service-update": { entity: "service", fields: ["title", "description"] },
+};
+
+async function handleResetReportedContent(
+  event: APIGatewayProxyEventV2,
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const reportId = parseReportId(event);
+  if (!reportId) {
+    throw new RequestError(400, "INVALID_REQUEST", "reportId is required.");
+  }
+
+  const report = await repository.getReportById(reportId);
+  if (!report) {
+    return json(404, failure("NOT_FOUND", "Report not found."));
+  }
+
+  const meta = (report.metadata ?? {}) as Record<string, unknown>;
+  const handler = String(meta.handler || "");
+  const mapping = HANDLER_RESET_MAP[handler];
+  if (!mapping) {
+    return json(400, failure("UNSUPPORTED", `Cannot reset content for handler type "${handler}". Manual review required.`));
+  }
+
+  const targetId = report.targetId;
+  let resetFields: string[] = [];
+
+  if (mapping.entity === "user") {
+    const user = await repository.getUserById(targetId);
+    if (!user) return json(404, failure("NOT_FOUND", "Target user not found."));
+    const patched = { ...user };
+    if (mapping.fields.includes("bio")) { patched.bio = ""; resetFields.push("bio"); }
+    if (mapping.fields.includes("name")) { patched.name = ""; resetFields.push("name"); }
+    await repository.patchUser(touchRecordMeta(patched, identitySub));
+  } else if (mapping.entity === "artist") {
+    const artist = await repository.getArtistById(targetId);
+    if (!artist) return json(404, failure("NOT_FOUND", "Target artist not found."));
+    const patched = { ...artist };
+    if (mapping.fields.includes("bio")) { patched.bio = ""; resetFields.push("bio"); }
+    if (mapping.fields.includes("name")) { patched.name = ""; resetFields.push("name"); }
+    await repository.patchArtist(touchRecordMeta(patched, identitySub));
+  } else if (mapping.entity === "service") {
+    const service = await repository.getServiceById(targetId);
+    if (!service) return json(404, failure("NOT_FOUND", "Target service not found."));
+    const patched = { ...service };
+    if (mapping.fields.includes("title")) { patched.title = "Untitled service"; resetFields.push("title"); }
+    if (mapping.fields.includes("description")) { patched.description = ""; resetFields.push("description"); }
+    await repository.patchService(touchRecordMeta(patched, identitySub));
+  }
+
+  // Auto-resolve the report
+  const nextReport = touchRecordMeta(
+    { ...report, status: "resolved" as const, note: `Content reset by admin (cleared: ${resetFields.join(", ")}).`, resolvedById: identitySub },
+    identitySub,
+  );
+  await repository.patchReport(nextReport);
+
+  auditLog({
+    action: "admin.report.reset_content",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "report",
+    resourceId: report.id,
+    outcome: "success",
+    metadata: { targetId, entity: mapping.entity, resetFields, handler },
+  });
+
+  return json(200, success({ report: mapReport(nextReport), resetFields }));
+}
+
 async function handleGetPlatformUsers(
   event: APIGatewayProxyEventV2,
   repository: AdminWorkspaceRepository,
@@ -841,6 +919,10 @@ export function createAdminApiHandler(
 
       if (method === "POST" && /^\/v1\/admin\/reports\/[^/]+\/status$/.test(path)) {
         return await handleUpdateReportStatus(event, repository, identity.sub);
+      }
+
+      if (method === "POST" && /^\/v1\/admin\/reports\/[^/]+\/reset-content$/.test(path)) {
+        return await handleResetReportedContent(event, repository, identity.sub);
       }
 
       if (method === "GET" && path === "/v1/admin/platform/users") {

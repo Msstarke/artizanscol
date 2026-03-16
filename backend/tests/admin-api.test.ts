@@ -36,6 +36,12 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
     this.artists.unshift(artist);
   }
 
+  async getServiceById(_serviceId: string): Promise<any> {
+    return null;
+  }
+
+  async patchService(_service: any): Promise<void> {}
+
   async listReports(): Promise<ReportRecord[]> {
     return this.reports;
   }

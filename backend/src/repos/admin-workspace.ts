@@ -2,6 +2,7 @@ import type {
   ArtistRecord,
   CategoryRecord,
   ReportRecord,
+  ServiceRecord,
   SystemConfigRecord,
   UserRecord,
 } from "../domain/entities.js";
@@ -10,6 +11,9 @@ export interface AdminWorkspaceRepository {
   listArtists(): Promise<ArtistRecord[]>;
   getArtistById(artistId: string): Promise<ArtistRecord | null>;
   patchArtist(artist: ArtistRecord): Promise<void>;
+
+  getServiceById(serviceId: string): Promise<ServiceRecord | null>;
+  patchService(service: ServiceRecord): Promise<void>;
 
   listReports(): Promise<ReportRecord[]>;
   getReportById(reportId: string): Promise<ReportRecord | null>;
@@ -38,6 +42,12 @@ export class NoopAdminWorkspaceRepository implements AdminWorkspaceRepository {
   }
 
   async patchArtist(_artist: ArtistRecord): Promise<void> {}
+
+  async getServiceById(_serviceId: string): Promise<ServiceRecord | null> {
+    return null;
+  }
+
+  async patchService(_service: ServiceRecord): Promise<void> {}
 
   async listReports(): Promise<ReportRecord[]> {
     return [];

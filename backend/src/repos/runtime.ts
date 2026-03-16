@@ -593,6 +593,10 @@ class RuntimeRepository
     await this.putItem(this.env.servicesTableName, service);
   }
 
+  async patchService(service: ServiceRecord): Promise<void> {
+    await this.putItem(this.env.servicesTableName, service);
+  }
+
   async deleteService(serviceId: string): Promise<void> {
     await this.deleteById(this.env.servicesTableName, serviceId);
   }

@@ -24,7 +24,7 @@ export function buildAutoModerationReport(opts: {
   return {
     ...meta,
     type,
-    status: "open",
+    status: "reviewing",
     targetId: opts.targetId,
     reportedById: "system_automod",
     note: opts.verdict.reasons.map((r) => r.detail).join(" "),
