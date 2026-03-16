@@ -813,6 +813,7 @@ export function createAdminApiHandler(
 
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
+      console.log(`[admin-api] method=${method} rawPath=${path}`);
 
       if (method === "GET" && path === "/v1/admin/artists/review") {
         return await handleGetArtistsReview(event, repository);
