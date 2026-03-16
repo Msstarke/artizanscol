@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Fixed two bugs introduced with the admin section: admin pages used a non-existent `.home-proof-row` class for the stats row — replaced with the existing `.home-hero-stats` class so metrics render correctly. Prefill example on the booking form set budget to 0 when the artist has no starting price, immediately failing the `budget > 0` validation — now defaults to 500 as a sensible minimum.
 - Fixed unauthenticated visitor UX on artist profiles: the "Save artist" and "Contact artist" buttons were disabled for signed-out users, silently blocking the redirect-to-auth flow already in their click handlers — they are now enabled and redirect to sign-in on click. The booking form submit button was also disabled but labelled "Sign in to send a brief" — now re-enabled with a click handler that redirects to sign-in so the label is actionable instead of misleading.
 - Hardened `robots.txt`: added `Disallow: /admin/` and `Disallow: /unauthorized.html` so crawlers don't index private/internal pages (both already carry `noindex` meta tags, but robots.txt is the authoritative signal).
 

@@ -612,7 +612,7 @@ prefillBooking?.addEventListener("click", () => {
   }
 
   if (bookingBudget) {
-    bookingBudget.value = String(artist.priceFrom || 0);
+    bookingBudget.value = String(artist.priceFrom || 500);
   }
 
   if (bookingMessage) {
