@@ -647,6 +647,10 @@ class RuntimeRepository
     return items.map(normalizeUserRecord);
   }
 
+  async getUserById(userId: string): Promise<UserRecord | null> {
+    return this.getUserByIdInternal(userId);
+  }
+
   async getCategoryById(categoryId: string): Promise<CategoryRecord | null> {
     const record = await this.getById<CategoryRecord>(this.env.categoriesTableName, categoryId);
     return record ? normalizeCategoryRecord(record) : null;

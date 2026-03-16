@@ -52,6 +52,19 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
     return this.users;
   }
 
+  async getUserById(userId: string): Promise<UserRecord | null> {
+    return this.users.find((user) => user.id === userId) || null;
+  }
+
+  async patchUser(user: UserRecord): Promise<void> {
+    const index = this.users.findIndex((item) => item.id === user.id);
+    if (index >= 0) {
+      this.users[index] = user;
+    } else {
+      this.users.push(user);
+    }
+  }
+
   async listCategories(): Promise<CategoryRecord[]> {
     return this.categories;
   }

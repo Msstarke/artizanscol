@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARTIZANS.COLLECTIVE | Admin — Users</title>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
+  </head>
+  <body class="account-page">
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" type="button" data-logout hidden>Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section">
+        <div id="admin-loading">
+          <p class="section-copy">Checking access…</p>
+        </div>
+
+        <div id="admin-denied" hidden>
+          <article class="empty-state empty-state-rich">
+            <p class="site-tag">Admin only</p>
+            <h2>Access restricted</h2>
+            <p>You need admin privileges to view this page.</p>
+            <div class="form-actions">
+              <a class="btn btn-outline" href="/account-settings.html">Go to workspace</a>
+            </div>
+          </article>
+        </div>
+
+        <div id="admin-shell" hidden>
+          <div class="browse-hero">
+            <div>
+              <p class="eyebrow">ADMIN — <a href="/admin/index.html" style="color:inherit;text-decoration:underline;">Overview</a></p>
+              <h1 class="section-title">User moderation</h1>
+              <p class="section-copy">View all registered accounts. Soft-delete users to block platform access, or restore previously deleted accounts.</p>
+            </div>
+          </div>
+
+          <!-- Stats -->
+          <div id="user-stats" class="home-hero-stats" style="margin: 1.5rem 0;" aria-label="User stats"></div>
+
+          <!-- Filter bar -->
+          <div class="filter-bar" style="margin-bottom: 1.5rem;">
+            <label class="filter-label" for="user-filter-status">Status</label>
+            <select class="filter-select" id="user-filter-status">
+              <option value="">All users</option>
+              <option value="active">Active only</option>
+              <option value="deleted">Deleted only</option>
+            </select>
+            <label class="filter-label" for="user-search">Search</label>
+            <input
+              class="form-input"
+              type="search"
+              id="user-search"
+              placeholder="Name or email…"
+              style="max-width: 220px; padding: 0.35rem 0.6rem; font-size: 0.875rem;"
+              autocomplete="off"
+            />
+            <button class="btn btn-ghost btn-small" type="button" id="users-reload-btn">Reload</button>
+          </div>
+
+          <!-- User list -->
+          <div id="users-list" role="list" aria-label="User accounts"></div>
+
+          <!-- Load more -->
+          <div id="users-load-more-wrap" style="margin-top: 1.5rem; text-align: center;" hidden>
+            <button class="btn btn-outline" type="button" id="users-load-more-btn">Load more</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner"></div>
+    </footer>
+
+    <script type="module" src="/js/admin-users.js"></script>
+  </body>
+</html>

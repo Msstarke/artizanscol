@@ -16,6 +16,8 @@ export interface AdminWorkspaceRepository {
   patchReport(report: ReportRecord): Promise<void>;
 
   listUsers(): Promise<UserRecord[]>;
+  getUserById(userId: string): Promise<UserRecord | null>;
+  patchUser(user: UserRecord): Promise<void>;
 
   listCategories(): Promise<CategoryRecord[]>;
   getCategoryById(categoryId: string): Promise<CategoryRecord | null>;
@@ -50,6 +52,12 @@ export class NoopAdminWorkspaceRepository implements AdminWorkspaceRepository {
   async listUsers(): Promise<UserRecord[]> {
     return [];
   }
+
+  async getUserById(_userId: string): Promise<UserRecord | null> {
+    return null;
+  }
+
+  async patchUser(_user: UserRecord): Promise<void> {}
 
   async listCategories(): Promise<CategoryRecord[]> {
     return [];

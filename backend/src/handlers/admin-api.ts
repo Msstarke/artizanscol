@@ -55,6 +55,15 @@ const ADMIN_CATEGORY_PATCH_SCHEMA: JsonSchema = {
     active: { type: "boolean", nullable: true },
   },
 };
+const ADMIN_USER_PATCH_SCHEMA: JsonSchema = {
+  type: "object",
+  required: ["deleted"],
+  additionalProperties: true,
+  properties: {
+    deleted: { type: "boolean" },
+    note: { type: "string", maxLength: 500, nullable: true },
+  },
+};
 const ADMIN_MAINTENANCE_PATCH_SCHEMA: JsonSchema = {
   type: "object",
   required: ["maintenanceMode"],
@@ -198,6 +207,16 @@ function parseArtistId(event: APIGatewayProxyEventV2): string | null {
   }
 
   const match = String(event.rawPath || "").match(/^\/v1\/admin\/artists\/([^/?#]+)\/(verify|reject)$/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function parseUserId(event: APIGatewayProxyEventV2): string | null {
+  const fromParams = String(event.pathParameters?.userId || "").trim();
+  if (fromParams) {
+    return fromParams;
+  }
+
+  const match = String(event.rawPath || "").match(/^\/v1\/admin\/platform\/users\/([^/?#]+)$/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
@@ -559,6 +578,45 @@ async function handleGetPlatformUsers(
   );
 }
 
+async function handlePatchPlatformUser(
+  event: APIGatewayProxyEventV2,
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const userId = parseUserId(event);
+  if (!userId) {
+    throw new RequestError(400, "INVALID_REQUEST", "userId is required.");
+  }
+
+  const user = await repository.getUserById(userId);
+  if (!user) {
+    return json(404, failure("NOT_FOUND", "User not found."));
+  }
+
+  const payload = parseBody<{ deleted?: unknown; note?: unknown }>(event, ADMIN_USER_PATCH_SCHEMA);
+  const deleted = parseBoolean(payload.deleted, "deleted");
+  const note = normalizeOptionalText(payload.note, "note", 500);
+
+  const next = touchRecordMeta({ ...user, deleted }, identitySub);
+  await repository.patchUser(next);
+
+  auditLog({
+    action: deleted ? "admin.user.delete" : "admin.user.restore",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "user",
+    resourceId: next.id,
+    outcome: "success",
+    metadata: {
+      note: note || null,
+      previousDeleted: user.deleted,
+      nextDeleted: next.deleted,
+    },
+  });
+
+  return json(200, success(mapUser(next)));
+}
+
 async function handlePatchPlatformCategory(
   event: APIGatewayProxyEventV2,
   repository: AdminWorkspaceRepository,
@@ -778,6 +836,10 @@ export function createAdminApiHandler(
 
       if (method === "GET" && path === "/v1/admin/platform/users") {
         return await handleGetPlatformUsers(event, repository);
+      }
+
+      if (method === "PATCH" && /^\/v1\/admin\/platform\/users\/[^/]+$/.test(path)) {
+        return await handlePatchPlatformUser(event, repository, identity.sub);
       }
 
       if (method === "PATCH" && /^\/v1\/admin\/platform\/categories\/[^/]+$/.test(path)) {
