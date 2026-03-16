@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARTIZANS.COLLECTIVE | Admin — Moderation</title>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
+  </head>
+  <body class="account-page">
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" type="button" data-logout hidden>Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section">
+        <div id="admin-loading">
+          <p class="section-copy">Checking access…</p>
+        </div>
+
+        <div id="admin-denied" hidden>
+          <article class="empty-state empty-state-rich">
+            <p class="site-tag">Admin only</p>
+            <h2>Access restricted</h2>
+            <p>You need admin privileges to view this page.</p>
+            <div class="form-actions">
+              <a class="btn btn-outline" href="/account-settings.html">Go to workspace</a>
+            </div>
+          </article>
+        </div>
+
+        <div id="admin-shell" hidden>
+          <div class="browse-hero">
+            <div>
+              <p class="eyebrow">ADMIN PANEL</p>
+              <h1 class="section-title">Moderation settings</h1>
+              <p class="section-copy">Manage auto-moderation word lists. Built-in words are always active. Add custom words to extend filtering.</p>
+            </div>
+            <div class="browse-hero-actions">
+              <a class="btn btn-ghost btn-small" href="/admin/index.html">Overview</a>
+              <a class="btn btn-ghost btn-small" href="/admin/artists.html">Artist review</a>
+              <a class="btn btn-ghost btn-small" href="/admin/users.html">Users</a>
+              <a class="btn btn-ghost btn-small" href="/admin/reports.html">Reports</a>
+              <a class="btn btn-outline btn-small" href="/admin/moderation.html">Moderation</a>
+            </div>
+          </div>
+
+          <!-- Built-in blocked words (read-only) -->
+          <div class="settings-grid" style="margin-top: 2rem;">
+            <article class="site-card">
+              <h2 class="settings-title">Blocked words (built-in)</h2>
+              <p class="section-copy" style="margin-bottom: 0.75rem;">These words are always blocked. Users cannot submit content containing them.</p>
+              <div id="builtin-block-words" class="tag-cloud" style="display:flex;flex-wrap:wrap;gap:0.35rem;"></div>
+            </article>
+
+            <article class="site-card">
+              <h2 class="settings-title">Flagged words (built-in)</h2>
+              <p class="section-copy" style="margin-bottom: 0.75rem;">These words are allowed but flag the content for admin review.</p>
+              <div id="builtin-flag-words" class="tag-cloud" style="display:flex;flex-wrap:wrap;gap:0.35rem;"></div>
+            </article>
+          </div>
+
+          <!-- Custom word lists (editable) -->
+          <div class="settings-grid" style="margin-top: 2rem;">
+            <article class="site-card">
+              <h2 class="settings-title">Custom blocked words</h2>
+              <p class="section-copy" style="margin-bottom: 0.75rem;">Add your own words that should be blocked.</p>
+              <div id="custom-block-words" class="tag-cloud" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.75rem;"></div>
+              <form id="add-block-word-form" style="display:flex;gap:0.5rem;align-items:center;">
+                <input class="form-input" type="text" id="add-block-word-input" placeholder="Add word…" autocomplete="off" style="flex:1;padding:0.35rem 0.6rem;font-size:0.875rem;" />
+                <button class="btn btn-outline btn-small" type="submit">Add</button>
+              </form>
+            </article>
+
+            <article class="site-card">
+              <h2 class="settings-title">Custom flagged words</h2>
+              <p class="section-copy" style="margin-bottom: 0.75rem;">Add your own words that should be flagged for review.</p>
+              <div id="custom-flag-words" class="tag-cloud" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.75rem;"></div>
+              <form id="add-flag-word-form" style="display:flex;gap:0.5rem;align-items:center;">
+                <input class="form-input" type="text" id="add-flag-word-input" placeholder="Add word…" autocomplete="off" style="flex:1;padding:0.35rem 0.6rem;font-size:0.875rem;" />
+                <button class="btn btn-outline btn-small" type="submit">Add</button>
+              </form>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner"></div>
+    </footer>
+
+    <script type="module" src="/js/admin-moderation.js"></script>
+  </body>
+</html>

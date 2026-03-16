@@ -28,8 +28,8 @@ import {
   NoopArtistWorkspaceRepository,
   type ArtistWorkspaceRepository,
 } from "../repos/artist-workspace.js";
-import { getArtistWorkspaceRepository, getReportWriter, getRoleAssignmentsRepository } from "../repos/runtime.js";
-import { moderateText } from "../domain/content-moderation.js";
+import { getArtistWorkspaceRepository, getReportWriter, getRoleAssignmentsRepository, getModerationOptions } from "../repos/runtime.js";
+import { moderateText, type ModerationOptions } from "../domain/content-moderation.js";
 import { buildAutoModerationReport } from "../domain/auto-report.js";
 import { type ReportWriter, NoopReportWriter } from "../repos/report-writer.js";
 
@@ -626,10 +626,11 @@ async function handlePatchArtistProfile(
   const patchName = normalizeRequiredText(payload.name ?? artist.name, "name", 80);
   const patchBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 
+  const modOptions = await getModerationOptions();
   const modVerdict = moderateText([
     { name: "name", value: patchName },
     { name: "bio", value: patchBio },
-  ]);
+  ], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
   }
@@ -710,10 +711,11 @@ async function handlePutOnboarding(
 
   const onboardingBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 
+  const modOptions = await getModerationOptions();
   const modVerdict = moderateText([
     { name: "bio", value: onboardingBio },
     { name: "category", value: String(payload.category || "") },
-  ]);
+  ], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
   }
@@ -779,10 +781,11 @@ async function handleCreateService(
   const serviceTitle = normalizeRequiredText(payload.title, "title", 120);
   const serviceDesc = normalizeRequiredText(payload.description, "description", 2000);
 
+  const modOptions = await getModerationOptions();
   const modVerdict = moderateText([
     { name: "title", value: serviceTitle },
     { name: "description", value: serviceDesc },
-  ]);
+  ], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your service contains prohibited content. Please revise and try again.");
   }
@@ -838,6 +841,7 @@ async function handleUpdateService(
   const updatedTitle = payload.title == null ? existing.title : normalizeRequiredText(payload.title, "title", 120);
   const updatedDesc = payload.description == null ? existing.description : normalizeRequiredText(payload.description, "description", 2000);
 
+  const modOptions = await getModerationOptions();
   const modVerdict = moderateText([
     { name: "title", value: updatedTitle },
     { name: "description", value: updatedDesc },

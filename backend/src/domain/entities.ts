@@ -155,9 +155,15 @@ export type SystemErrorLogItem = {
   resolved: boolean;
 };
 
+export type ModerationConfig = {
+  customBlockWords: string[];
+  customFlagWords: string[];
+};
+
 export type SystemConfigRecord = PersistedRecord & {
   maintenanceMode: boolean;
   errorLog: SystemErrorLogItem[];
+  moderationConfig?: ModerationConfig;
 };
 
 export type RoleAssignmentRecord = PersistedRecord & {

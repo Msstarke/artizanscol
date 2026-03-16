@@ -400,6 +400,11 @@ class RuntimeRepository
     return items.map(normalizeArtistRecord).filter(isArtistLive);
   }
 
+  async listAllArtists(): Promise<ArtistRecord[]> {
+    const items = await this.scanAll<ArtistRecord>({ TableName: this.env.artistsTableName });
+    return items.map(normalizeArtistRecord);
+  }
+
   async isHandleTaken(handle: string, excludeArtistId: string): Promise<boolean> {
     const items = await this.scanAll<ArtistRecord>({
       TableName: this.env.artistsTableName,
@@ -818,4 +823,30 @@ export function getRoleAssignmentsRepository(): RoleAssignmentsRepository {
 
 export function getReportWriter(): ReportWriter {
   return getRuntimeRepository();
+}
+
+let cachedModerationOptions: import("../domain/content-moderation.js").ModerationOptions | null = null;
+let moderationConfigLoadedAt = 0;
+const MODERATION_CACHE_TTL_MS = 60_000; // 1 minute
+
+export async function getModerationOptions(): Promise<import("../domain/content-moderation.js").ModerationOptions> {
+  const now = Date.now();
+  if (cachedModerationOptions && now - moderationConfigLoadedAt < MODERATION_CACHE_TTL_MS) {
+    return cachedModerationOptions;
+  }
+
+  try {
+    const repo = getRuntimeRepository();
+    const system = await repo.getSystemConfig();
+    const config = system?.moderationConfig;
+    cachedModerationOptions = {
+      customBlockWords: config?.customBlockWords || [],
+      customFlagWords: config?.customFlagWords || [],
+    };
+    moderationConfigLoadedAt = now;
+  } catch {
+    cachedModerationOptions = cachedModerationOptions || {};
+  }
+
+  return cachedModerationOptions;
 }

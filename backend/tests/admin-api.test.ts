@@ -23,6 +23,10 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
     return this.artists;
   }
 
+  async listAllArtists(): Promise<ArtistRecord[]> {
+    return this.artists;
+  }
+
   async getArtistById(artistId: string): Promise<ArtistRecord | null> {
     return this.artists.find((artist) => artist.id === artistId) || null;
   }

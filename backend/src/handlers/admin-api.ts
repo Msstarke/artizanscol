@@ -3,11 +3,13 @@ import { failure, success } from "../domain/api-response.js";
 import type {
   ArtistRecord,
   CategoryRecord,
+  ModerationConfig,
   ReportRecord,
   ReportStatus,
   ReportType,
   SystemConfigRecord,
 } from "../domain/entities.js";
+import { getBuiltInWordLists } from "../domain/content-moderation.js";
 import { categoryActiveStatus, categorySortName } from "../domain/index-keys.js";
 import { createRecordMeta, touchRecordMeta } from "../domain/record-meta.js";
 import { auditLog } from "../lib/audit.js";
@@ -681,10 +683,16 @@ async function handlePatchPlatformUser(
 
   // Hide or restore the linked artist profile when a user is soft-deleted/restored
   if (user.cognitoSub) {
-    const artists = await repository.listArtists();
-    const linkedArtist = artists.find((a) => a.cognitoSub === user.cognitoSub);
-    if (linkedArtist && deleted && linkedArtist.profileVisible) {
-      await repository.patchArtist(touchRecordMeta({ ...linkedArtist, profileVisible: false }, identitySub));
+    const allArtists = await repository.listAllArtists();
+    const linkedArtist = allArtists.find((a) => a.cognitoSub === user.cognitoSub);
+    if (linkedArtist) {
+      if (deleted && linkedArtist.profileVisible) {
+        // Soft-delete: hide their artist profile
+        await repository.patchArtist(touchRecordMeta({ ...linkedArtist, profileVisible: false }, identitySub));
+      } else if (!deleted && !linkedArtist.profileVisible) {
+        // Restore: re-show their artist profile
+        await repository.patchArtist(touchRecordMeta({ ...linkedArtist, profileVisible: true }, identitySub));
+      }
     }
   }
 
@@ -887,6 +895,113 @@ async function handleGetSystemErrors(
   );
 }
 
+// ─── Moderation config ──────────────────────────────────────────────────
+
+async function handleGetModerationConfig(
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const system = await resolveSystemConfig(repository, identitySub);
+  const builtIn = getBuiltInWordLists();
+  const custom = system.moderationConfig || { customBlockWords: [], customFlagWords: [] };
+
+  return json(200, success({
+    builtIn,
+    custom,
+  }));
+}
+
+async function handlePatchModerationConfig(
+  event: APIGatewayProxyEventV2,
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const payload = parseBody<{ customBlockWords?: unknown; customFlagWords?: unknown }>(event);
+
+  const system = await resolveSystemConfig(repository, identitySub);
+  const current = system.moderationConfig || { customBlockWords: [], customFlagWords: [] };
+
+  const customBlockWords = Array.isArray(payload.customBlockWords)
+    ? payload.customBlockWords.filter((w): w is string => typeof w === "string" && w.trim().length > 0).map((w) => w.trim().toLowerCase())
+    : current.customBlockWords;
+
+  const customFlagWords = Array.isArray(payload.customFlagWords)
+    ? payload.customFlagWords.filter((w): w is string => typeof w === "string" && w.trim().length > 0).map((w) => w.trim().toLowerCase())
+    : current.customFlagWords;
+
+  const moderationConfig: ModerationConfig = {
+    customBlockWords: [...new Set(customBlockWords)],
+    customFlagWords: [...new Set(customFlagWords)],
+  };
+
+  const next = touchRecordMeta({ ...system, moderationConfig }, identitySub);
+  await repository.patchSystemConfig(next);
+
+  auditLog({
+    action: "admin.moderation.config_update",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "system",
+    resourceId: "moderation_config",
+    outcome: "success",
+    metadata: { customBlockWords: moderationConfig.customBlockWords.length, customFlagWords: moderationConfig.customFlagWords.length },
+  });
+
+  const builtIn = getBuiltInWordLists();
+  return json(200, success({ builtIn, custom: moderationConfig }));
+}
+
+// ─── Direct user/artist field reset ─────────────────────────────────────
+
+async function handleResetUserFields(
+  event: APIGatewayProxyEventV2,
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const userId = parseUserId(event);
+  if (!userId) throw new RequestError(400, "INVALID_REQUEST", "userId is required.");
+
+  const user = await repository.getUserById(userId);
+  if (!user) return json(404, failure("NOT_FOUND", "User not found."));
+
+  const payload = parseBody<{ resetBio?: unknown; resetName?: unknown }>(event);
+  const resetFields: string[] = [];
+  const patched = { ...user };
+
+  if (payload.resetBio === true) { patched.bio = ""; resetFields.push("bio"); }
+  if (payload.resetName === true) { patched.name = ""; resetFields.push("name"); }
+
+  if (!resetFields.length) {
+    throw new RequestError(400, "INVALID_REQUEST", "Specify at least one field to reset (resetBio, resetName).");
+  }
+
+  await repository.patchUser(touchRecordMeta(patched, identitySub));
+
+  // Also reset matching artist profile fields
+  if (user.cognitoSub) {
+    const allArtists = await repository.listAllArtists();
+    const linked = allArtists.find((a) => a.cognitoSub === user.cognitoSub);
+    if (linked) {
+      const artistPatched = { ...linked };
+      if (payload.resetBio === true) artistPatched.bio = "";
+      if (payload.resetName === true) artistPatched.name = "";
+      await repository.patchArtist(touchRecordMeta(artistPatched, identitySub));
+    }
+  }
+
+  auditLog({
+    action: "admin.user.reset_fields",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "user",
+    resourceId: userId,
+    outcome: "success",
+    metadata: { resetFields },
+  });
+
+  return json(200, success({ resetFields }));
+}
+
 export function createAdminApiHandler(
   repository: AdminWorkspaceRepository,
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
@@ -947,6 +1062,18 @@ export function createAdminApiHandler(
 
       if (method === "GET" && path === "/v1/admin/system/errors") {
         return await handleGetSystemErrors(event, repository, identity.sub);
+      }
+
+      if (method === "GET" && path === "/v1/admin/moderation/config") {
+        return await handleGetModerationConfig(repository, identity.sub);
+      }
+
+      if (method === "PATCH" && path === "/v1/admin/moderation/config") {
+        return await handlePatchModerationConfig(event, repository, identity.sub);
+      }
+
+      if (method === "POST" && /^\/v1\/admin\/platform\/users\/[^/]+\/reset-fields$/.test(path)) {
+        return await handleResetUserFields(event, repository, identity.sub);
       }
 
       return json(404, failure("NOT_FOUND", "Route not found."));

@@ -36,6 +36,7 @@ import {
   getReportWriter,
   getRoleAssignmentsRepository,
   getUserWorkspaceRepository,
+  getModerationOptions,
 } from "../repos/runtime.js";
 import { moderateText } from "../domain/content-moderation.js";
 import { buildAutoModerationReport } from "../domain/auto-report.js";
@@ -545,10 +546,11 @@ async function handlePatchProfile(
   const location = normalizeOptionalText(payload.location, "location", 80);
   const bio = normalizeOptionalText(payload.bio, "bio", 280);
 
+  const modOptions = await getModerationOptions();
   const modVerdict = moderateText([
     { name: "name", value: name },
     { name: "bio", value: bio },
-  ]);
+  ], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
   }
@@ -780,7 +782,8 @@ async function handleCreateBooking(
   const budget = normalizeBudget(payload.budget);
   const message = normalizeName(payload.message, "message", 3000);
 
-  const modVerdict = moderateText([{ name: "message", value: message }]);
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([{ name: "message", value: message }], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your booking message contains prohibited content. Please revise and try again.");
   }

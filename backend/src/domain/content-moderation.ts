@@ -269,8 +269,20 @@ function checkPlaceholder(text: string, field: string): ModerationReason[] {
 // Public API
 // ---------------------------------------------------------------------------
 
-export function moderateText(fields: ModerationField[]): ModerationVerdict {
+export type ModerationOptions = {
+  customBlockWords?: string[];
+  customFlagWords?: string[];
+};
+
+export function moderateText(fields: ModerationField[], options?: ModerationOptions): ModerationVerdict {
   const reasons: ModerationReason[] = [];
+
+  const allBlockWords = options?.customBlockWords?.length
+    ? [...BLOCK_WORDS, ...options.customBlockWords]
+    : BLOCK_WORDS;
+  const allFlagWords = options?.customFlagWords?.length
+    ? [...FLAG_WORDS, ...options.customFlagWords]
+    : FLAG_WORDS;
 
   for (const { name, value } of fields) {
     if (!value || typeof value !== "string") continue;
@@ -280,8 +292,8 @@ export function moderateText(fields: ModerationField[]): ModerationVerdict {
 
     const normalized = normalizeLeet(text.toLowerCase());
 
-    reasons.push(...checkWordList(text, normalized, BLOCK_WORDS, "block", name));
-    reasons.push(...checkWordList(text, normalized, FLAG_WORDS, "flag", name));
+    reasons.push(...checkWordList(text, normalized, allBlockWords, "block", name));
+    reasons.push(...checkWordList(text, normalized, allFlagWords, "flag", name));
     reasons.push(...checkSpamPatterns(text, name));
     reasons.push(...checkPlaceholder(text, name));
   }
@@ -294,4 +306,9 @@ export function moderateText(fields: ModerationField[]): ModerationVerdict {
     flagged: hasBlock || hasFlag,
     reasons,
   };
+}
+
+/** Expose built-in word lists for admin UI display */
+export function getBuiltInWordLists(): { blockWords: string[]; flagWords: string[] } {
+  return { blockWords: [...BLOCK_WORDS], flagWords: [...FLAG_WORDS] };
 }

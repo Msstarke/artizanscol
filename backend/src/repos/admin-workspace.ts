@@ -9,6 +9,7 @@ import type {
 
 export interface AdminWorkspaceRepository {
   listArtists(): Promise<ArtistRecord[]>;
+  listAllArtists(): Promise<ArtistRecord[]>;
   getArtistById(artistId: string): Promise<ArtistRecord | null>;
   patchArtist(artist: ArtistRecord): Promise<void>;
 
@@ -34,6 +35,10 @@ export interface AdminWorkspaceRepository {
 
 export class NoopAdminWorkspaceRepository implements AdminWorkspaceRepository {
   async listArtists(): Promise<ArtistRecord[]> {
+    return [];
+  }
+
+  async listAllArtists(): Promise<ArtistRecord[]> {
     return [];
   }
 

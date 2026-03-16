@@ -156,7 +156,9 @@ function renderFiltered() {
         </div>
         <div style="text-align:right;">
           <p class="workspace-item-date">Joined ${formatDate(user.createdAt)}</p>
-          <div class="form-actions" style="margin-top:0.5rem;justify-content:flex-end;">
+          <div class="form-actions" style="margin-top:0.5rem;justify-content:flex-end;flex-wrap:wrap;gap:0.3rem;">
+            <button class="btn btn-ghost btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="reset-bio">Reset bio</button>
+            <button class="btn btn-ghost btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="reset-name">Reset name</button>
             ${
               user.deleted
                 ? `<button class="btn btn-outline btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="restore">Restore</button>`
@@ -180,6 +182,35 @@ usersListEl?.addEventListener("click", async (e) => {
   const userId = btn.dataset.userId;
   const action = btn.dataset.action;
   if (!userId || !action) return;
+
+  // Reset bio / name
+  if (action === "reset-bio" || action === "reset-name") {
+    const field = action === "reset-bio" ? "bio" : "name";
+    btn.disabled = true;
+    const origText = btn.textContent;
+    btn.textContent = "Resetting…";
+
+    try {
+      const body = action === "reset-bio" ? { resetBio: true } : { resetName: true };
+      const res = await apiRequest(`/v1/admin/platform/users/${encodeURIComponent(userId)}/reset-fields`, {
+        method: "POST",
+        body,
+      });
+      if (!res?.ok) throw new Error(res?.error?.message || "Failed to reset.");
+      showToast(`User ${field} has been cleared.`, "success");
+
+      if (action === "reset-name") {
+        const idx = allUsers.findIndex((u) => u.id === userId);
+        if (idx >= 0) allUsers[idx] = { ...allUsers[idx], name: "" };
+        renderFiltered();
+      }
+    } catch (err) {
+      showToast(err?.message || "Failed to reset field.", "error");
+    }
+    btn.disabled = false;
+    btn.textContent = origText;
+    return;
+  }
 
   const isDelete = action === "delete";
 

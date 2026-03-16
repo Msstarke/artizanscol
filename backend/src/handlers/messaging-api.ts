@@ -22,7 +22,7 @@ import {
   NoopMessagingWorkspaceRepository,
   type MessagingWorkspaceRepository,
 } from "../repos/messaging-workspace.js";
-import { getMessagingWorkspaceRepository, getRoleAssignmentsRepository, getReportWriter } from "../repos/runtime.js";
+import { getMessagingWorkspaceRepository, getRoleAssignmentsRepository, getReportWriter, getModerationOptions } from "../repos/runtime.js";
 import { moderateText } from "../domain/content-moderation.js";
 import { buildAutoModerationReport } from "../domain/auto-report.js";
 import { type ReportWriter, NoopReportWriter } from "../repos/report-writer.js";
@@ -486,7 +486,8 @@ async function handlePostThreadMessage(
   const payloadRecipientId = normalizeOptionalText(payload.toId, "toId", 80);
   const bookingId = normalizeOptionalText(payload.bookingId, "bookingId", 80) || undefined;
 
-  const modVerdict = moderateText([{ name: "body", value: messageBody }]);
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([{ name: "body", value: messageBody }], modOptions);
   if (!modVerdict.allowed) {
     throw new RequestError(400, "CONTENT_BLOCKED", "Your message contains prohibited content. Please revise and try again.");
   }
