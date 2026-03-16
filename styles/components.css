@@ -337,6 +337,24 @@ textarea {
   font-size: 0.9rem;
 }
 
+.collection-item.is-unread {
+  border-color: rgba(250, 93, 41, 0.3);
+  background: rgba(250, 93, 41, 0.04);
+}
+
+.collection-item.is-unread h4::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-right: 0.45rem;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;

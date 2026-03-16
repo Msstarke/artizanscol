@@ -711,7 +711,7 @@ function renderNotifications(context) {
 
   notifications.forEach((notification) => {
     const item = document.createElement("li");
-    item.className = "collection-item workspace-item";
+    item.className = `collection-item workspace-item${notification.read ? "" : " is-unread"}`;
 
     const title = document.createElement("h4");
     title.textContent = notification.title || "Update";
@@ -2023,20 +2023,30 @@ workspaceMessageForm?.addEventListener("submit", async (event) => {
     return;
   }
 
+  const submitBtn = workspaceMessageForm.querySelector('button[type="submit"]');
+  const originalBtnText = submitBtn?.textContent || "Send message";
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending…";
+  }
+
   try {
     const created = await sendMessage(payload);
     if (!created) {
       showToast("Message could not be sent.", "warning");
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
       return;
     }
 
     if (workspaceMessageBody instanceof HTMLTextAreaElement) {
       workspaceMessageBody.value = "";
     }
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
     await hydratePrivateDB();
     syncSessionFromExisting();
     showToast("Message sent.", "success");
   } catch (error) {
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
     showToast(error?.message || "Message could not be sent.", "danger");
   }
 });
