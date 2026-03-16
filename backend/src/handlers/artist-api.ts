@@ -677,6 +677,7 @@ async function handlePutOnboarding(
   repository: ArtistWorkspaceRepository,
   artist: ArtistRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{
     category?: unknown;
@@ -688,6 +689,25 @@ async function handlePutOnboarding(
     profileVisible?: unknown;
   }>(event, ARTIST_ONBOARDING_SCHEMA);
 
+  const onboardingBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
+
+  const modVerdict = moderateText([
+    { name: "bio", value: onboardingBio },
+    { name: "category", value: String(payload.category || "") },
+  ]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: artist.id,
+      verdict: modVerdict,
+      handler: "artist-api/onboarding",
+      contentSnapshot: `bio=${onboardingBio}`,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   const next = normalizeArtist(touchRecordMeta(
     {
       ...artist,
@@ -696,7 +716,7 @@ async function handlePutOnboarding(
       priceFrom: normalizeMoney(payload.priceFrom, "priceFrom"),
       availability: normalizeAvailability(payload.availability),
       portfolio: normalizePortfolio(payload.portfolio),
-      bio: normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200),
+      bio: onboardingBio,
       profileVisible:
         payload.profileVisible == null
           ? artist.profileVisible
@@ -1130,7 +1150,7 @@ export function createArtistApiHandler(
       }
 
       if (method === "PUT" && path === "/v1/artist/me/onboarding") {
-        return await handlePutOnboarding(event, repository, artist, identity.sub);
+        return await handlePutOnboarding(event, repository, artist, identity.sub, reportWriter);
       }
 
       if (method === "POST" && path === "/v1/artist/me/services") {

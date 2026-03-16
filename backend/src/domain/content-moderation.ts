@@ -33,21 +33,22 @@ export type ModerationField = {
 // Word lists
 // ---------------------------------------------------------------------------
 
-/** Hard-block terms (slurs, hate speech). Matched on word boundaries. */
+/** Hard-block terms (slurs, hate speech, and all profanity). Matched on word boundaries. */
 const BLOCK_WORDS: string[] = [
   "nigger", "nigga", "faggot", "fag", "retard", "kike", "spic",
   "wetback", "chink", "gook", "tranny", "coon", "darkie",
   "beaner", "towelhead", "raghead",
-];
-
-/** Soft-flag terms (general profanity). Allowed through but flagged for review. */
-const FLAG_WORDS: string[] = [
   "fuck", "fucking", "fucker", "motherfucker",
   "shit", "shitty", "bullshit",
-  "ass", "asshole",
+  "asshole",
   "bitch", "dick", "cock", "pussy",
-  "damn", "crap", "piss",
+  "piss",
   "bastard", "whore", "slut",
+];
+
+/** Soft-flag terms (mild language). Allowed through but flagged for review. */
+const FLAG_WORDS: string[] = [
+  "ass", "damn", "crap", "hell",
 ];
 
 // ---------------------------------------------------------------------------

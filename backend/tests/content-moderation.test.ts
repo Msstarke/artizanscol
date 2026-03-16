@@ -22,9 +22,18 @@ describe("moderateText", () => {
     assert.ok(verdict.reasons.some((r) => r.rule === "prohibited_language"));
   });
 
-  it("flags mild profanity but allows submission", () => {
+  it("blocks profanity", () => {
     const verdict = moderateText([
       { name: "message", value: "This is a shit situation" },
+    ]);
+    assert.equal(verdict.allowed, false);
+    assert.equal(verdict.flagged, true);
+    assert.ok(verdict.reasons.some((r) => r.rule === "prohibited_language"));
+  });
+
+  it("flags mild language but allows submission", () => {
+    const verdict = moderateText([
+      { name: "message", value: "What the hell is going on" },
     ]);
     assert.equal(verdict.allowed, true);
     assert.equal(verdict.flagged, true);
