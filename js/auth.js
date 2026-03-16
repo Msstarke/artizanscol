@@ -1560,8 +1560,44 @@ setupFinish?.addEventListener("click", async () => {
   }
 });
 
+const SIGNIN_ATTEMPTS_KEY = "artizans.signin.attempts";
+const SIGNIN_LOCKOUT_KEY = "artizans.signin.lockout_until";
+const MAX_SIGNIN_ATTEMPTS = 5;
+const SIGNIN_LOCKOUT_MS = 5 * 60 * 1000;
+
+function isSigninLocked() {
+  const until = Number(sessionStorage.getItem(SIGNIN_LOCKOUT_KEY) || 0);
+  return Date.now() < until;
+}
+
+function signinLockoutMinutesRemaining() {
+  const until = Number(sessionStorage.getItem(SIGNIN_LOCKOUT_KEY) || 0);
+  return Math.max(1, Math.ceil((until - Date.now()) / 60000));
+}
+
+function recordFailedSignin() {
+  const attempts = (Number(sessionStorage.getItem(SIGNIN_ATTEMPTS_KEY)) || 0) + 1;
+  if (attempts >= MAX_SIGNIN_ATTEMPTS) {
+    sessionStorage.setItem(SIGNIN_LOCKOUT_KEY, String(Date.now() + SIGNIN_LOCKOUT_MS));
+    sessionStorage.removeItem(SIGNIN_ATTEMPTS_KEY);
+  } else {
+    sessionStorage.setItem(SIGNIN_ATTEMPTS_KEY, String(attempts));
+  }
+}
+
+function clearSigninLockout() {
+  sessionStorage.removeItem(SIGNIN_ATTEMPTS_KEY);
+  sessionStorage.removeItem(SIGNIN_LOCKOUT_KEY);
+}
+
 signInForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  if (isSigninLocked()) {
+    const mins = signinLockoutMinutesRemaining();
+    showToast(`Too many failed attempts. Try again in ${mins} minute${mins !== 1 ? "s" : ""}.`, "danger");
+    return;
+  }
 
   const email = (signInEmail?.value || "").trim();
   const password = signInPassword?.value || "";
@@ -1573,6 +1609,7 @@ signInForm?.addEventListener("submit", async (event) => {
 
   try {
     const identity = await signInCognito({ email, password });
+    clearSigninLockout();
     const user = ensureUserForCognito(identity);
     const artist = ensureArtistForCognito(identity);
 
@@ -1595,7 +1632,12 @@ signInForm?.addEventListener("submit", async (event) => {
     syncSessionFromExisting();
     showToast("Signed in.", "success");
   } catch (error) {
-    showToast(error?.message || "Log in failed.", "danger");
+    recordFailedSignin();
+    if (isSigninLocked()) {
+      showToast("Too many failed attempts. Sign-in locked for 5 minutes.", "danger");
+    } else {
+      showToast(error?.message || "Log in failed.", "danger");
+    }
   }
 });
 
