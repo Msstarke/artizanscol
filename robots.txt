@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /account-settings.html
+Disallow: /admin/
+Disallow: /unauthorized.html
 
 Sitemap: https://www.artizanscollective.com/sitemap.xml

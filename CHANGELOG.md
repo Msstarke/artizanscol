@@ -3,6 +3,10 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Fixed unauthenticated visitor UX on artist profiles: the "Save artist" and "Contact artist" buttons were disabled for signed-out users, silently blocking the redirect-to-auth flow already in their click handlers — they are now enabled and redirect to sign-in on click. The booking form submit button was also disabled but labelled "Sign in to send a brief" — now re-enabled with a click handler that redirects to sign-in so the label is actionable instead of misleading.
+- Hardened `robots.txt`: added `Disallow: /admin/` and `Disallow: /unauthorized.html` so crawlers don't index private/internal pages (both already carry `noindex` meta tags, but robots.txt is the authoritative signal).
+
+## 2026-03-16
 - Built the admin section from scratch: the `/admin/` directory was empty despite the backend having a full admin API. Added three pages — `admin/index.html` (system dashboard + maintenance toggle), `admin/artists.html` (artist verification queue + category management), and `admin/reports.html` (content reports + user account list) — each with a corresponding JS module (`admin-index.js`, `admin-artists.js`, `admin-reports.js`). All pages redirect unsigned-in users to the sign-in flow and show an "Access restricted" state on 401/403. Added `admin/**` to the deploy workflow trigger paths.
 
 ## 2026-03-16

@@ -487,14 +487,28 @@ function renderArtistDetails() {
     contactArtistBtn.hidden = false;
     contactArtistBtn.textContent = "Contact artist";
   }
+  // Disable save/contact only if the profile itself is unavailable or the viewer owns it.
+  // Unauthenticated visitors are allowed to click — the handlers redirect to sign-in.
+  const profileUnavailable = !Boolean(artist) || !profileIsPublic() || viewerOwnsArtistProfile();
   [saveArtistBtn, contactArtistBtn].forEach((button) => {
-    if (button) button.disabled = !viewerCanBookArtistProfile();
+    if (button) button.disabled = profileUnavailable;
   });
   setBookingFormEnabled(viewerCanBookArtistProfile());
 
   if (!isCognitoAuthenticated() && bookingForm) {
     const submitBtn = bookingForm.querySelector('button[type="submit"]');
-    if (submitBtn) submitBtn.textContent = "Sign in to send a brief";
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Sign in to send a brief";
+      submitBtn.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          redirectToAuth();
+        },
+        { once: true },
+      );
+    }
   }
 }
 
