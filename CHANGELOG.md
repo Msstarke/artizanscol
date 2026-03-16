@@ -2,6 +2,16 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-17
+- Added admin moderation settings page (`/admin/moderation.html`): view all built-in blocked and flagged word lists, add/remove custom blocked and flagged words from a UI. Custom words are stored in DynamoDB `SystemConfig` and merged with built-in lists at runtime (cached 1-min per Lambda instance). All `moderateText()` call sites across artist, user, and messaging handlers now load and apply custom word lists.
+- Improved auto-moderation: blocks IP addresses (IPv4/IPv6) to prevent doxxing, blocks keyboard mash and gibberish content, blocks repeated word spam, blocks placeholder/junk bios (lol, bruh, idk, n/a, nothing, etc.), upgraded repeated chars and excessive URLs from flag to block, flags single URLs in name/bio fields. New reports start in "reviewing" status instead of "open".
+- Added admin report quick-action buttons: one-click Resolve, Dismiss, and Reopen with template notes — replaces the old dropdown + prompt flow. Added "Reset content" button on auto-mod reports that clears the flagged fields (bio, name, service title/description) on the target entity and auto-resolves the report. New `POST /v1/admin/reports/:id/reset-content` endpoint.
+- Added admin user field reset: "Reset bio" and "Reset name" buttons on every user card in the Users page. Resets both the user record and linked artist profile in one action. New `POST /v1/admin/platform/users/:id/reset-fields` endpoint.
+- Enforced unique artist handles: no two artists can share the same `@handle`. Profile patch rejects duplicate handles with a clear error. New accounts auto-suffix (`-1`, `-2`, etc.) if the handle is already taken. Handles are always slugified and lowercased on save.
+- Fixed restored users not appearing in Explore: restoring a soft-deleted user now re-enables `profileVisible` on their linked artist profile. Previously the cascade only hid profiles on delete but didn't restore them. Also fixed the cascade to use `listAllArtists()` instead of `listArtists()` so hidden profiles are found.
+- Fixed admin reports page showing stats but no report items: `let`/`const` variable declarations were after the `await` auth block that called the loading functions, causing a `ReferenceError` (temporal dead zone) that silently killed the page. Same fix applied to `admin-artists.js`. Moved all declarations before the auth check.
+- Added "Moderation" link to admin sub-nav across all admin pages.
+
 ## 2026-03-16
 - Added auto-moderation system: a pure-TypeScript content filter that checks all user-generated text (messages, bookings, profiles, services) for prohibited language, spam patterns, contact-info harvesting, ALL CAPS abuse, and placeholder content. Hard slurs are blocked at submission with a 400 error; milder flags allow the content through but auto-create a report for admin review. Reports show a "System" badge in the admin panel with moderation reasons and a content snapshot. Backed by 14 unit tests covering word-boundary matching, leet-speak normalization, false-positive avoidance, and all detection rules.
 
