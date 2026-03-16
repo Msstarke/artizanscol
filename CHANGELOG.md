@@ -3,6 +3,8 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Polished messaging and notifications workspace: fixed message textarea maxlength from 600 to 3000 to match the backend limit; added loading state to the send button ("Sending…" + disabled, restores on success or failure); unread notifications are now visually distinct with a warm orange border tint, faint background, and an orange dot before the title.
+- Final copy polish: explore empty-state message reworded from "Clear one or two filters" to "Try adjusting your filters"; homepage empty-state tag changed from "Coming soon" to "Profiles rolling out".
 - Fixed S3 static deploy uploading backend source code to the public bucket: `aws s3 sync` was not excluding `backend/` so TypeScript source, compiled output, and `node_modules` were synced to S3 on every frontend deploy. Added exclusions for `backend/*`, `scripts/*`, `*.md`, `*.sh`, `*.json`, `*.lock`, and `*.ai`. Removed stale WAF launch checklist item (WAF was removed from the stack in an earlier commit).
 - Added client-side sign-in rate limiting: after 5 failed attempts the form is locked for 5 minutes with a "Try again in N minutes" message. Lockout lives in `sessionStorage` so it survives page refresh but clears on tab close. Successful sign-in resets the counter. Cognito also applies server-side throttling independently.
 - Added `:focus-visible` keyboard focus styles to all interactive elements that were missing them: `.btn` (all buttons), `.category-link-card`, `.settings-nav-button`, `.auth-text-link`, and FAQ `<summary>` elements. Form inputs already had focus styling. No `outline:none` declarations existed anywhere in the codebase.

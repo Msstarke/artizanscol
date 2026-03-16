@@ -373,7 +373,7 @@ function renderEmptyState() {
     <article class="empty-state empty-state-rich">
       <p class="site-tag">No matches right now</p>
       <h3>Nothing matches this exact filter set.</h3>
-      <p>Clear one or two filters or jump into a live category to get back to real profiles quickly.</p>
+      <p>Try adjusting your filters or browse all live profiles to find the right match.</p>
       <div class="form-actions">
         <button class="btn btn-outline btn-small" type="button" data-clear-empty-state>Reset filters</button>
         <a class="btn btn-ghost btn-small" href="/explore.html">View all live profiles</a>

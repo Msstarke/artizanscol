@@ -30,7 +30,7 @@ if (upcomingRoot) {
         .join("")
     : `
         <article class="empty-state empty-state-rich">
-          <p class="site-tag">Coming soon</p>
+          <p class="site-tag">Profiles rolling out</p>
           <h3>No live profiles yet.</h3>
           <p>Artist profiles will appear here as creators complete setup and publish. Browse categories or preview the profile flow in the meantime.</p>
           <div class="form-actions">
