@@ -145,14 +145,11 @@ function renderReportItems(items) {
       ${report.note ? `<p class="workspace-item-meta" style="margin-top:0.25rem;">${escapeHtml(report.note)}</p>` : ""}
       ${reasonsHtml}
       ${snapshotHtml}
-      <div class="form-actions" style="margin-top:0.75rem;">
-        <select class="filter-select" data-report-id="${escapeHtml(report.id)}" data-report-status-select style="padding:0.35rem 0.5rem;">
-          <option value="">Change status…</option>
-          <option value="open" ${report.status === "open" ? "disabled" : ""}>Open</option>
-          <option value="reviewing" ${report.status === "reviewing" ? "disabled" : ""}>Reviewing</option>
-          <option value="resolved" ${report.status === "resolved" ? "disabled" : ""}>Resolved</option>
-          <option value="dismissed" ${report.status === "dismissed" ? "disabled" : ""}>Dismissed</option>
-        </select>
+      <div class="form-actions" style="margin-top:0.75rem;flex-wrap:wrap;gap:0.4rem;">
+        ${report.status !== "resolved" ? `<button class="btn btn-outline btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="resolved" data-report-note="Reviewed and resolved — no further action needed.">Resolve</button>` : ""}
+        ${report.status !== "dismissed" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="dismissed" data-report-note="Dismissed — does not violate platform guidelines.">Dismiss</button>` : ""}
+        ${report.status !== "reviewing" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="reviewing" data-report-note="Under review by admin.">Mark reviewing</button>` : ""}
+        ${report.status !== "open" ? `<button class="btn btn-ghost btn-small" data-report-id="${escapeHtml(report.id)}" data-report-action="open" data-report-note="">Reopen</button>` : ""}
       </div>
     `;
 
@@ -160,30 +157,31 @@ function renderReportItems(items) {
   }
 }
 
-reportsListEl?.addEventListener("change", async (e) => {
-  const select = e.target.closest("[data-report-status-select]");
-  if (!select) return;
+reportsListEl?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-report-action]");
+  if (!btn) return;
 
-  const reportId = select.dataset.reportId;
-  const newStatus = select.value;
+  const reportId = btn.dataset.reportId;
+  const newStatus = btn.dataset.reportAction;
+  const templateNote = btn.dataset.reportNote || "";
   if (!reportId || !newStatus) return;
 
-  const note = window.prompt("Note for this status change (optional):") ?? "";
-
-  select.disabled = true;
+  btn.disabled = true;
+  const origText = btn.textContent;
+  btn.textContent = "Saving…";
 
   try {
     const res = await apiRequest(`/v1/admin/reports/${encodeURIComponent(reportId)}/status`, {
       method: "POST",
-      body: { status: newStatus, ...(note ? { note } : {}) },
+      body: { status: newStatus, ...(templateNote ? { note: templateNote } : {}) },
     });
     if (!res?.ok) throw new Error(res?.error?.message || "Failed to update report.");
     showToast(`Report marked as ${newStatus}.`, "success");
     await loadReportsSection();
   } catch (err) {
     showToast(err?.message || "Failed to update report.", "error");
-    select.disabled = false;
-    select.value = "";
+    btn.disabled = false;
+    btn.textContent = origText;
   }
 });
 
