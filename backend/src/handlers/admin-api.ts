@@ -810,7 +810,10 @@ export function createAdminApiHandler(
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
       enforceRequestSecurity(event, { requireBearerForMutations: true });
+      const rc = event.requestContext as any;
+      console.log("[admin-api] authorizer claims:", JSON.stringify(rc?.authorizer?.jwt?.claims || rc?.authorizer?.claims || {}));
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
+      console.log("[admin-api] identity roles:", JSON.stringify(identity.roles));
       requireAdmin(identity);
 
       if (method === "GET" && path === "/v1/admin/artists/review") {
