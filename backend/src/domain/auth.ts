@@ -49,6 +49,7 @@ export function parseDelimitedRoles(value: string): AppRole[] {
   }
 
   const split = String(value)
+    .replace(/^\[|]$/g, "")
     .split(/[\s,]+/g)
     .map((item) => item.trim())
     .filter(Boolean);
