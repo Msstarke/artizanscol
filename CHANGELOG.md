@@ -2,34 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
-## 2026-03-16 (continued)
-- Improved booking flow: submit button now shows "Sending…" and disables the form during the API call so users know the request is in flight. On success the form is replaced with a clear confirmation card ("Brief submitted.") with "View in workspace" and "Browse more artists" actions — replaces the easy-to-miss toast. On failure the form re-enables and restores the button. For signed-out visitors the submit button reads "Sign in to send a brief" so the required action is obvious before they try.
-
 ## 2026-03-16
 - Polished artist profile page to feel more portfolio-led: replaced the 3-col artist-discovery card grid with a proper 2-col image showcase grid (`.portfolio-grid` / `.portfolio-item`) — larger images (300px height), hover zoom, dark gradient title overlay. Removed the "Profile focus / Reviews" split section which just repeated data already visible in the hero tags and booking rail. Tightened verbose section headings throughout. Added `loading="lazy"` to portfolio images.
-
-## 2026-03-14 (continued 6)
-- Rebuilt FAQ page from a 3-question stub into a full trust page with 13 questions across three sections (For clients, For artists, Platform) covering verification, booking flow, pricing, visibility, data, and dispute handling. Added a bottom CTA split card linking to Contact and Explore.
-- Rebuilt Legal page from a 3-bullet stub into a full legal reference with four sections (Terms of service, Privacy policy, Content policy, Contact) covering AI content rules, copyright, data collection and retention, cookies, prohibited content, and reporting.
-- Added `.faq-list` and `.faq-item` styles to pages.css for the new FAQ/Legal card grid layout.
-
-## 2026-03-14 (continued 5)
-- Standardised header across all pages: index, explore, artist-preview, account-settings, and unauthorized.html all had `<span class="role-chip" data-role-chip>Session: signed out</span>` without the `hidden` attribute, causing the chip text to flash briefly before JS hid it. Added `hidden` to all. Fixed account-settings.html which also had an old 3-link nav (Home, Explore, Workspace) — updated to the standard 4-link nav matching all other pages.
-
-## 2026-03-14 (continued 4)
-- Fixed nav flash on contact, blog, FAQ, and legal pages: static HTML had a 7-link nav (Home, Explore, About, FAQ, Blog, Contact, Legal) that was briefly visible before `shared-nav.js` rewrote it to the standard 5 links — now all pages start with the correct 5-link nav so there is zero visible change on load. Also fixed role-chip to have `hidden` attribute and added missing logout button to all four pages. Added `pages.css` to blog, faq, and legal which were missing it.
-- Fixed Workspace link flash on all pages: the "Workspace" link was included as a 5th item inside the static `<nav>` which caused it to briefly appear centred in the nav bar before `shared-nav.js` rewrote the nav to 4 links and moved Sign in/Workspace to the header-actions area. Removed the Workspace nav link from all 8 pages' static HTML — it only belongs in header-actions.
-
-## 2026-03-14 (continued 3)
-- Fixed disabled buttons animating on hover — added `.btn:disabled` rule with opacity 0.45, cursor not-allowed, and no transform/shadow so disabled buttons look and feel inert.
-- Removed redundant `hydrateDB()` fire-and-forget call inside `shared-nav.js` that fired on every page load just to re-check the maintenance banner; the already-loaded DB is sufficient.
-
-## 2026-03-14 (continued 2)
-- Polished artist profile page: removed fake fabricated review entries (replaced with honest rating summary from real data); removed fake availability date windows (replaced with real availability status, starting budget, and response note); fixed portfolio to use imageUrl as fallback image field and only show a description paragraph when one actually exists; page title now dynamically set to the artist's name; empty portfolio message updated to be more informative.
-
-## 2026-03-14 (continued)
-- Rebuilt About page from a near-empty stub into a full trust-building page: hero with mission statement, problem section (AI flooding creative markets), how-it-works steps (verification, transparent pricing, direct booking), who-it's-for split card for clients and artists, and values section. Added pages.css, fixed nav to match site-wide header, fixed script reference.
-- Fixed redundant owner buttons on artist profile page: "Your profile", "Own profile", and "This is your profile" are now hidden when viewing your own profile; replaced with a single "Edit your profile" link to workspace.
+- Improved booking flow: submit button now shows "Sending…" and disables the form during the API call so users know the request is in flight. On success the form is replaced with a clear confirmation card ("Brief submitted.") with "View in workspace" and "Browse more artists" actions — replaces the easy-to-miss toast. On failure the form re-enables and restores the button. For signed-out visitors the submit button reads "Sign in to send a brief" so the required action is obvious before they try.
 
 ## 2026-03-14
 - Simplified homepage from 9 sections to 4 (Hero, Featured Artists, How it works, Bottom CTA split); removed why-human, for-artists, mission, trust strip, and categories sections that made the page feel overwhelming and inconsistent.
@@ -37,6 +12,17 @@ All notable project changes are tracked via Git commits and summarized here.
 - Made account-settings workspace fully responsive: settings-shell-head now flex row (title + actions side-by-side) on desktop; workspace KPI stats grid steps from 5-col → 3-col at 1100px → 2-col at 720px; settings nav buttons get white-space nowrap + ellipsis to prevent wrapping in the horizontal scroll strip on mobile.
 - Fixed 4 confirmed frontend audit bugs: raw UUID-format artist handles are now suppressed and replaced with "Direct enquiries enabled"; bio element is hidden when no valid bio instead of showing placeholder copy; verified count shows "—" not "New" when zero; "How it works" grid stays 3-col down to 720px instead of collapsing to 2-col at 1100px (which left the 3rd step alone on a new row).
 - Fixed 8 further frontend bugs found in deep code audit: safeBio variable scope gap that caused ReferenceError crashing the profile page; booking focus input cleared on every render (wiped user-typed text); dead booking-contact select field removed (was never read by JS); services-list and reviews-list changed from div to ul for valid HTML; duplicate artist location removed from card footer (already shown in subtitle); reviewCount and completedBookings type comparison bugs fixed (string === number was always false for "1", causing "1 reviews" instead of "1 review"); filter active chips now show human-readable labels ("Open"/"Limited", "$500" not "500").
+- Rebuilt About page from a near-empty stub into a full trust-building page: hero with mission statement, problem section (AI flooding creative markets), how-it-works steps (verification, transparent pricing, direct booking), who-it's-for split card for clients and artists, and values section. Added pages.css, fixed nav to match site-wide header, fixed script reference.
+- Fixed redundant owner buttons on artist profile page: "Your profile", "Own profile", and "This is your profile" are now hidden when viewing your own profile; replaced with a single "Edit your profile" link to workspace.
+- Polished artist profile page: removed fake fabricated review entries (replaced with honest rating summary from real data); removed fake availability date windows (replaced with real availability status, starting budget, and response note); fixed portfolio to use imageUrl as fallback image field and only show a description paragraph when one actually exists; page title now dynamically set to the artist's name; empty portfolio message updated to be more informative.
+- Fixed disabled buttons animating on hover — added `.btn:disabled` rule with opacity 0.45, cursor not-allowed, and no transform/shadow so disabled buttons look and feel inert.
+- Removed redundant `hydrateDB()` fire-and-forget call inside `shared-nav.js` that fired on every page load just to re-check the maintenance banner; the already-loaded DB is sufficient.
+- Fixed nav flash on contact, blog, FAQ, and legal pages: static HTML had a 7-link nav (Home, Explore, About, FAQ, Blog, Contact, Legal) that was briefly visible before `shared-nav.js` rewrote it to the standard 5 links — now all pages start with the correct 5-link nav so there is zero visible change on load. Also fixed role-chip to have `hidden` attribute and added missing logout button to all four pages. Added `pages.css` to blog, faq, and legal which were missing it.
+- Fixed Workspace link flash on all pages: the "Workspace" link was included as a 5th item inside the static `<nav>` which caused it to briefly appear centred in the nav bar before `shared-nav.js` rewrote the nav to 4 links and moved Sign in/Workspace to the header-actions area. Removed the Workspace nav link from all 8 pages' static HTML — it only belongs in header-actions.
+- Standardised header across all pages: index, explore, artist-preview, account-settings, and unauthorized.html all had `<span class="role-chip" data-role-chip>Session: signed out</span>` without the `hidden` attribute, causing the chip text to flash briefly before JS hid it. Added `hidden` to all. Fixed account-settings.html which also had an old 3-link nav (Home, Explore, Workspace) — updated to the standard 4-link nav matching all other pages.
+- Rebuilt FAQ page from a 3-question stub into a full trust page with 13 questions across three sections (For clients, For artists, Platform) covering verification, booking flow, pricing, visibility, data, and dispute handling. Added a bottom CTA split card linking to Contact and Explore.
+- Rebuilt Legal page from a 3-bullet stub into a full legal reference with four sections (Terms of service, Privacy policy, Content policy, Contact) covering AI content rules, copyright, data collection and retention, cookies, prohibited content, and reporting.
+- Added `.faq-list` and `.faq-item` styles to pages.css for the new FAQ/Legal card grid layout.
 
 ## 2026-03-13
 - Refined public discovery across the homepage, Explore, and artist preview flow: Explore now shows live discovery insight cards, keeps filters synced to the URL, uses richer no-results and no-live-profile states with direct recovery actions, the homepage fallbacks now explain discovery readiness more clearly, and related profiles on artist pages are ranked by category/medium fit instead of arbitrary order.
