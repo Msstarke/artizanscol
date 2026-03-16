@@ -169,6 +169,7 @@ function slugify(value: string): string {
 function normalizeArtist(artist: ArtistRecord): ArtistRecord {
   return {
     ...artist,
+    handle: slugify(artist.handle) || artist.handle,
     profileVisible: Boolean(artist.profileVisible),
   };
 }
@@ -183,12 +184,22 @@ async function provisionArtist(
   });
 
   const displayName = displayNameFromIdentity(identity);
+  let handle = slugify(displayName) || "artist";
+
+  // Ensure unique handle — append suffix if taken
+  const baseHandle = handle;
+  for (let suffix = 1; suffix <= 99; suffix++) {
+    const taken = await repository.isHandleTaken(handle, meta.id);
+    if (!taken) break;
+    handle = `${baseHandle}-${suffix}`;
+  }
+
   const artist = normalizeArtist({
     ...meta,
     cognitoSub: identity.sub,
     cognitoEmail: identity.email || "",
     name: displayName,
-    handle: slugify(displayName) || "artist",
+    handle,
     category: "",
     mediums: [],
     location: "",
@@ -632,11 +643,19 @@ async function handlePatchArtistProfile(
     await reportWriter.createReport(report).catch(() => {});
   }
 
+  const newHandle = slugify(normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60));
+  if (newHandle && newHandle !== artist.handle) {
+    const taken = await repository.isHandleTaken(newHandle, artist.id);
+    if (taken) {
+      throw new RequestError(400, "HANDLE_TAKEN", `The handle "${newHandle}" is already taken. Please choose a different one.`);
+    }
+  }
+
   const next = normalizeArtist(touchRecordMeta(
     {
       ...artist,
       name: normalizeRequiredText(payload.name ?? artist.name, "name", 80),
-      handle: normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60),
+      handle: newHandle || artist.handle,
       category: payload.category == null
         ? artist.category
         : normalizeOptionalText(payload.category, "category", 80),

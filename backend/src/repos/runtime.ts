@@ -400,6 +400,18 @@ class RuntimeRepository
     return items.map(normalizeArtistRecord).filter(isArtistLive);
   }
 
+  async isHandleTaken(handle: string, excludeArtistId: string): Promise<boolean> {
+    const items = await this.scanAll<ArtistRecord>({
+      TableName: this.env.artistsTableName,
+      FilterExpression: "handle = :handle AND id <> :excludeId",
+      ExpressionAttributeValues: {
+        ":handle": handle.toLowerCase(),
+        ":excludeId": excludeArtistId,
+      },
+    });
+    return items.length > 0;
+  }
+
   async listServicesByArtistId(artistId: string): Promise<ServiceRecord[]> {
     const items = await this.queryAll<ServiceRecord>({
       TableName: this.env.servicesTableName,

@@ -10,6 +10,7 @@ import type {
 export interface ArtistWorkspaceRepository {
   getArtistByCognitoSub(cognitoSub: string): Promise<ArtistRecord | null>;
   patchArtist(artist: ArtistRecord): Promise<void>;
+  isHandleTaken(handle: string, excludeArtistId: string): Promise<boolean>;
 
   listServicesByArtistId(artistId: string): Promise<ServiceRecord[]>;
   getServiceById(serviceId: string): Promise<ServiceRecord | null>;
@@ -37,6 +38,10 @@ export class NoopArtistWorkspaceRepository implements ArtistWorkspaceRepository 
   }
 
   async patchArtist(_artist: ArtistRecord): Promise<void> {}
+
+  async isHandleTaken(_handle: string, _excludeArtistId: string): Promise<boolean> {
+    return false;
+  }
 
   async listServicesByArtistId(_artistId: string): Promise<ServiceRecord[]> {
     return [];

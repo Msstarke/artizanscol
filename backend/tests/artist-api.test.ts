@@ -32,6 +32,10 @@ class InMemoryArtistWorkspaceRepo implements ArtistWorkspaceRepository {
     this.artists.unshift(artist);
   }
 
+  async isHandleTaken(handle: string, excludeArtistId: string): Promise<boolean> {
+    return this.artists.some((a) => a.handle === handle.toLowerCase() && a.id !== excludeArtistId);
+  }
+
   async listServicesByArtistId(artistId: string): Promise<ServiceRecord[]> {
     return this.services.filter((service) => service.artistId === artistId);
   }
