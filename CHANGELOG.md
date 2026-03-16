@@ -3,6 +3,9 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Built the admin section from scratch: the `/admin/` directory was empty despite the backend having a full admin API. Added three pages — `admin/index.html` (system dashboard + maintenance toggle), `admin/artists.html` (artist verification queue + category management), and `admin/reports.html` (content reports + user account list) — each with a corresponding JS module (`admin-index.js`, `admin-artists.js`, `admin-reports.js`). All pages redirect unsigned-in users to the sign-in flow and show an "Access restricted" state on 401/403. Added `admin/**` to the deploy workflow trigger paths.
+
+## 2026-03-16
 - Fixed message sending returning 404 for all users: the backend creates `booking.threadId` as `t_userId_artistId` (underscores) but the frontend was constructing `t-userId-artistId` (hyphens) when building the message API path. Every POST to `/v1/threads/{threadId}/messages` hit a mismatched path so the backend could never resolve the thread. Fixed in `auth.js` (workspace send form), `artist-preview.js` (contact button), and the two fallback constructions in `store.js`.
 - Polished messaging and notifications workspace: fixed message textarea maxlength from 600 to 3000 to match the backend limit; added loading state to the send button ("Sending…" + disabled, restores on success or failure); unread notifications are now visually distinct with a warm orange border tint, faint background, and an orange dot before the title.
 - Final copy polish: explore empty-state message reworded from "Clear one or two filters" to "Try adjusting your filters"; homepage empty-state tag changed from "Coming soon" to "Profiles rolling out".

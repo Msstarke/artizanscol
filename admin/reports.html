@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARTIZANS.COLLECTIVE | Admin — Reports</title>
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260312c" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=20260312c" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/pages.css" />
+  </head>
+  <body class="account-page">
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="/index.html">ARTIZANS.COLLECTIVE</a>
+        <nav class="main-nav" aria-label="Main nav">
+          <a href="/index.html">Home</a>
+          <a href="/explore.html">Explore Artists</a>
+          <a href="/about.html">About</a>
+          <a href="/contact.html">Contact</a>
+        </nav>
+        <div class="header-actions">
+          <span class="role-chip" data-role-chip hidden></span>
+          <a class="btn btn-outline btn-small" href="/account-settings.html" data-role-home>Sign in</a>
+          <button class="btn btn-outline btn-small" type="button" data-logout hidden>Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="container content-section">
+        <div id="admin-loading">
+          <p class="section-copy">Checking access…</p>
+        </div>
+
+        <div id="admin-denied" hidden>
+          <article class="empty-state empty-state-rich">
+            <p class="site-tag">Admin only</p>
+            <h2>Access restricted</h2>
+            <p>You need admin privileges to view this page.</p>
+            <div class="form-actions">
+              <a class="btn btn-outline" href="/account-settings.html">Go to workspace</a>
+            </div>
+          </article>
+        </div>
+
+        <div id="admin-shell" hidden>
+          <div class="browse-hero">
+            <div>
+              <p class="eyebrow">ADMIN — <a href="/admin/index.html" style="color:inherit;text-decoration:underline;">Overview</a></p>
+              <h1 class="section-title">Reports and users</h1>
+              <p class="section-copy">Review flagged content, update report statuses, and browse registered user accounts.</p>
+            </div>
+          </div>
+
+          <!-- Reports section -->
+          <div style="margin-bottom: 3rem;">
+            <div class="browse-hero" style="margin-bottom: 1rem;">
+              <div>
+                <p class="eyebrow">REPORTS</p>
+                <h2 class="section-title" style="font-size: 1.4rem;">Content reports</h2>
+              </div>
+            </div>
+
+            <!-- Report stats -->
+            <div id="report-stats" class="home-proof-row" style="margin-bottom: 1.5rem;" aria-label="Report stats"></div>
+
+            <!-- Filters -->
+            <div class="filter-bar" style="margin-bottom: 1.5rem;">
+              <label class="filter-label" for="report-filter-status">Status</label>
+              <select class="filter-select" id="report-filter-status">
+                <option value="">All statuses</option>
+                <option value="open">Open</option>
+                <option value="reviewing">Reviewing</option>
+                <option value="resolved">Resolved</option>
+                <option value="dismissed">Dismissed</option>
+              </select>
+              <label class="filter-label" for="report-filter-type">Type</label>
+              <select class="filter-select" id="report-filter-type">
+                <option value="">All types</option>
+                <option value="spam">Spam</option>
+                <option value="abuse">Abuse</option>
+                <option value="copyright">Copyright</option>
+                <option value="ai">AI content</option>
+              </select>
+              <button class="btn btn-ghost btn-small" type="button" id="reports-reload-btn">Reload</button>
+            </div>
+
+            <div id="reports-list" role="list" aria-label="Content reports"></div>
+
+            <div id="reports-load-more-wrap" style="margin-top: 1.5rem; text-align: center;" hidden>
+              <button class="btn btn-outline" type="button" id="reports-load-more-btn">Load more</button>
+            </div>
+          </div>
+
+          <!-- Users section -->
+          <div>
+            <div class="browse-hero" style="margin-bottom: 1rem;">
+              <div>
+                <p class="eyebrow">USERS</p>
+                <h2 class="section-title" style="font-size: 1.4rem;">Registered accounts</h2>
+                <p class="section-copy">All users registered on the platform, sorted by most recently active.</p>
+              </div>
+              <div class="browse-hero-actions">
+                <button class="btn btn-ghost btn-small" type="button" id="users-reload-btn">Reload</button>
+              </div>
+            </div>
+
+            <!-- User stats -->
+            <div id="user-stats" class="home-proof-row" style="margin-bottom: 1.5rem;" aria-label="User stats"></div>
+
+            <div id="users-list" role="list" aria-label="User accounts"></div>
+
+            <div id="users-load-more-wrap" style="margin-top: 1.5rem; text-align: center;" hidden>
+              <button class="btn btn-outline" type="button" id="users-load-more-btn">Load more</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner"></div>
+    </footer>
+
+    <script type="module" src="/js/admin-reports.js"></script>
+  </body>
+</html>

@@ -17,6 +17,7 @@ on:
       - "sitemap.xml"
       - "favicon.ico"
       - "favicon.svg"
+      - "admin/**"
       - "artist/**"
       - "user/**"
       - "auth.html"
