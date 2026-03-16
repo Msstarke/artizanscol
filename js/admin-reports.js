@@ -21,31 +21,6 @@ function showShell() {
   shell.hidden = false;
 }
 
-if (!isCognitoAuthenticated()) {
-  const next = encodeURIComponent(window.location.pathname);
-  window.location.href = `/account-settings.html?next=${next}`;
-} else {
-  // Probe admin access
-  let accessGranted = false;
-  try {
-    const probe = await apiRequest("/v1/admin/reports?limit=1");
-    if (!probe?.ok) throw Object.assign(new Error("not ok"), { statusCode: 0 });
-    accessGranted = true;
-  } catch (err) {
-    if (err?.statusCode === 403 || err?.statusCode === 401) {
-      showDenied();
-    } else {
-      accessGranted = true;
-    }
-  }
-
-  if (accessGranted) {
-    showShell();
-    await loadReportsSection();
-    await loadUsersSection();
-  }
-}
-
 // ─── Reports ───────────────────────────────────────────────────────────────
 
 let reportsNextCursor = null;
@@ -311,3 +286,29 @@ function renderUserItems(items) {
 
 usersReloadBtn?.addEventListener("click", () => loadUsersSection());
 usersLoadMoreBtn?.addEventListener("click", () => loadUsersSection(usersNextCursor));
+
+// ─── Auth / access check ────────────────────────────────────────────────────
+
+if (!isCognitoAuthenticated()) {
+  const next = encodeURIComponent(window.location.pathname);
+  window.location.href = `/account-settings.html?next=${next}`;
+} else {
+  let accessGranted = false;
+  try {
+    const probe = await apiRequest("/v1/admin/reports?limit=1");
+    if (!probe?.ok) throw Object.assign(new Error("not ok"), { statusCode: 0 });
+    accessGranted = true;
+  } catch (err) {
+    if (err?.statusCode === 403 || err?.statusCode === 401) {
+      showDenied();
+    } else {
+      accessGranted = true;
+    }
+  }
+
+  if (accessGranted) {
+    showShell();
+    await loadReportsSection();
+    await loadUsersSection();
+  }
+}

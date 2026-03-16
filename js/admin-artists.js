@@ -21,33 +21,6 @@ function showShell() {
   shell.hidden = false;
 }
 
-if (!isCognitoAuthenticated()) {
-  const next = encodeURIComponent(window.location.pathname);
-  window.location.href = `/account-settings.html?next=${next}`;
-} else {
-  // Probe admin access
-  let accessGranted = false;
-  try {
-    const probe = await apiRequest("/v1/admin/artists/review?limit=1");
-    if (!probe?.ok) throw Object.assign(new Error("not ok"), { statusCode: 0 });
-    accessGranted = true;
-  } catch (err) {
-    if (err?.statusCode === 403 || err?.statusCode === 401) {
-      showDenied();
-    } else {
-      accessGranted = true; // network error — show shell anyway
-    }
-  }
-
-  if (!accessGranted) {
-    // already handled above
-  } else {
-    showShell();
-    await loadArtistReviewSection();
-    await loadCategoriesSection();
-  }
-}
-
 // ─── Artist review ─────────────────────────────────────────────────────────
 
 let artistNextCursor = null;
@@ -289,3 +262,29 @@ categoriesListEl?.addEventListener("click", async (e) => {
 });
 
 categoriesReloadBtn?.addEventListener("click", () => loadCategoriesSection());
+
+// ─── Auth / access check ────────────────────────────────────────────────────
+
+if (!isCognitoAuthenticated()) {
+  const next = encodeURIComponent(window.location.pathname);
+  window.location.href = `/account-settings.html?next=${next}`;
+} else {
+  let accessGranted = false;
+  try {
+    const probe = await apiRequest("/v1/admin/artists/review?limit=1");
+    if (!probe?.ok) throw Object.assign(new Error("not ok"), { statusCode: 0 });
+    accessGranted = true;
+  } catch (err) {
+    if (err?.statusCode === 403 || err?.statusCode === 401) {
+      showDenied();
+    } else {
+      accessGranted = true;
+    }
+  }
+
+  if (accessGranted) {
+    showShell();
+    await loadArtistReviewSection();
+    await loadCategoriesSection();
+  }
+}
