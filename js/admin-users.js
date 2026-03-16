@@ -11,6 +11,21 @@ const loading = byId("admin-loading");
 const shell = byId("admin-shell");
 const denied = byId("admin-denied");
 
+// ─── State ─────────────────────────────────────────────────────────────────
+
+let allUsers = [];
+let nextCursor = null;
+
+const usersListEl = byId("users-list");
+const userStatsEl = byId("user-stats");
+const loadMoreWrap = byId("users-load-more-wrap");
+const loadMoreBtn = byId("users-load-more-btn");
+const reloadBtn = byId("users-reload-btn");
+const filterStatusEl = byId("user-filter-status");
+const searchEl = byId("user-search");
+
+// ─── Auth / access check ────────────────────────────────────────────────────
+
 function showDenied() {
   loading.hidden = true;
   denied.hidden = false;
@@ -43,20 +58,6 @@ if (!isCognitoAuthenticated()) {
     await loadUsers();
   }
 }
-
-// ─── State ─────────────────────────────────────────────────────────────────
-
-/** All users loaded so far (client-side filtered) */
-let allUsers = [];
-let nextCursor = null;
-
-const usersListEl = byId("users-list");
-const userStatsEl = byId("user-stats");
-const loadMoreWrap = byId("users-load-more-wrap");
-const loadMoreBtn = byId("users-load-more-btn");
-const reloadBtn = byId("users-reload-btn");
-const filterStatusEl = byId("user-filter-status");
-const searchEl = byId("user-search");
 
 // ─── Load ───────────────────────────────────────────────────────────────────
 
