@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Fixed message sending returning 404 for all users: the backend creates `booking.threadId` as `t_userId_artistId` (underscores) but the frontend was constructing `t-userId-artistId` (hyphens) when building the message API path. Every POST to `/v1/threads/{threadId}/messages` hit a mismatched path so the backend could never resolve the thread. Fixed in `auth.js` (workspace send form), `artist-preview.js` (contact button), and the two fallback constructions in `store.js`.
 - Polished messaging and notifications workspace: fixed message textarea maxlength from 600 to 3000 to match the backend limit; added loading state to the send button ("Sending…" + disabled, restores on success or failure); unread notifications are now visually distinct with a warm orange border tint, faint background, and an orange dot before the title.
 - Final copy polish: explore empty-state message reworded from "Clear one or two filters" to "Try adjusting your filters"; homepage empty-state tag changed from "Coming soon" to "Profiles rolling out".
 - Fixed S3 static deploy uploading backend source code to the public bucket: `aws s3 sync` was not excluding `backend/` so TypeScript source, compiled output, and `node_modules` were synced to S3 on every frontend deploy. Added exclusions for `backend/*`, `scripts/*`, `*.md`, `*.sh`, `*.json`, `*.lock`, and `*.ai`. Removed stale WAF launch checklist item (WAF was removed from the stack in an earlier commit).

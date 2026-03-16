@@ -551,7 +551,7 @@ contactArtistBtn?.addEventListener("click", async () => {
 
   try {
     await sendMessage({
-      threadId: `t-${userId}-${artist.id}`,
+      threadId: `t_${userId}_${artist.id}`,
       bookingId: null,
       fromRole: "user",
       fromId: userId,
