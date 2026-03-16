@@ -22,7 +22,10 @@ import {
   NoopMessagingWorkspaceRepository,
   type MessagingWorkspaceRepository,
 } from "../repos/messaging-workspace.js";
-import { getMessagingWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
+import { getMessagingWorkspaceRepository, getRoleAssignmentsRepository, getReportWriter } from "../repos/runtime.js";
+import { moderateText } from "../domain/content-moderation.js";
+import { buildAutoModerationReport } from "../domain/auto-report.js";
+import { type ReportWriter, NoopReportWriter } from "../repos/report-writer.js";
 
 const DEFAULT_LIMIT = 30;
 const MAX_LIMIT = 100;
@@ -466,6 +469,7 @@ async function handlePostThreadMessage(
   repository: MessagingWorkspaceRepository,
   participant: Participant,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const threadId = parseThreadId(event);
   if (!threadId) {
@@ -481,6 +485,11 @@ async function handlePostThreadMessage(
   const messageBody = normalizeMessageBody(payload.body);
   const payloadRecipientId = normalizeOptionalText(payload.toId, "toId", 80);
   const bookingId = normalizeOptionalText(payload.bookingId, "bookingId", 80) || undefined;
+
+  const modVerdict = moderateText([{ name: "body", value: messageBody }]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your message contains prohibited content. Please revise and try again.");
+  }
 
   const participantBookings = await listParticipantBookings(repository, participant);
   const threadMessages = await repository.listMessagesByThreadId(threadId);
@@ -512,6 +521,17 @@ async function handlePostThreadMessage(
   };
 
   await repository.createMessage(message);
+
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: message.id,
+      verdict: modVerdict,
+      handler: "messaging-api",
+      contentSnapshot: messageBody,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   return json(201, success(mapMessage(message)));
 }
 
@@ -576,6 +596,7 @@ async function handleGetUpdates(
 export function createMessagingApiHandler(
   repository: MessagingWorkspaceRepository,
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
+  reportWriter: ReportWriter = new NoopReportWriter(),
 ) {
   return async function handler(
     event: APIGatewayProxyEventV2,
@@ -602,7 +623,7 @@ export function createMessagingApiHandler(
       }
 
       if (method === "POST" && /^\/v1\/threads\/[^/]+\/messages$/.test(path)) {
-        return await handlePostThreadMessage(event, repository, participant, identity.sub);
+        return await handlePostThreadMessage(event, repository, participant, identity.sub, reportWriter);
       }
 
       if (method === "GET" && path === "/v1/me/updates") {
@@ -635,6 +656,6 @@ export function createMessagingApiHandler(
 let runtimeHandler: ReturnType<typeof createMessagingApiHandler> | null = null;
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  runtimeHandler ||= createMessagingApiHandler(getMessagingWorkspaceRepository(), getRoleAssignmentsRepository());
+  runtimeHandler ||= createMessagingApiHandler(getMessagingWorkspaceRepository(), getRoleAssignmentsRepository(), getReportWriter());
   return await runtimeHandler(event);
 };

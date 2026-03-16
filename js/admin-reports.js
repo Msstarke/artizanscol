@@ -141,10 +141,25 @@ function renderReportItems(items) {
     const statusClass = REPORT_STATUS_CLASSES[report.status] || "status-unknown";
     const statusLabel = REPORT_STATUS_LABELS[report.status] || toTitle(report.status || "unknown");
 
+    const isSystem = report.reportedById === "system_automod";
+    const sourceBadge = isSystem
+      ? `<span class="status-badge status-draft" style="margin-left:0.4rem;font-size:0.7rem;">System</span>`
+      : "";
+
+    const meta = report.metadata || {};
+    const reasonsHtml = isSystem && Array.isArray(meta.moderationReasons)
+      ? `<ul style="margin:0.25rem 0 0 1rem;font-size:0.85rem;opacity:0.8;">${meta.moderationReasons.map(
+          (r) => `<li>${escapeHtml(r.detail)} <em>(${escapeHtml(r.rule)})</em></li>`
+        ).join("")}</ul>`
+      : "";
+    const snapshotHtml = isSystem && meta.contentSnapshot
+      ? `<details style="margin-top:0.35rem;"><summary style="font-size:0.85rem;cursor:pointer;">Content snapshot</summary><pre style="white-space:pre-wrap;font-size:0.8rem;background:var(--surface-raised);padding:0.5rem;border-radius:6px;margin-top:0.25rem;">${escapeHtml(String(meta.contentSnapshot))}</pre></details>`
+      : "";
+
     item.innerHTML = `
       <div class="workspace-item-header">
         <div>
-          <h4>Report: ${escapeHtml(toTitle(report.type || "unknown"))}</h4>
+          <h4>Report: ${escapeHtml(toTitle(report.type || "unknown"))}${sourceBadge}</h4>
           <p class="workspace-item-meta">
             <span class="status-badge ${escapeHtml(statusClass)}">${escapeHtml(statusLabel)}</span>
             <span style="margin-left:0.5rem;opacity:0.6;">Target: ${escapeHtml(report.targetId || "—")}</span>
@@ -153,6 +168,8 @@ function renderReportItems(items) {
         <p class="workspace-item-date">${formatDate(report.updatedAt)}</p>
       </div>
       ${report.note ? `<p class="workspace-item-meta" style="margin-top:0.25rem;">${escapeHtml(report.note)}</p>` : ""}
+      ${reasonsHtml}
+      ${snapshotHtml}
       <div class="form-actions" style="margin-top:0.75rem;">
         <select class="filter-select" data-report-id="${escapeHtml(report.id)}" data-report-status-select style="padding:0.35rem 0.5rem;">
           <option value="">Change status…</option>

@@ -600,6 +600,15 @@ async function handlePatchPlatformUser(
   const next = touchRecordMeta({ ...user, deleted }, identitySub);
   await repository.patchUser(next);
 
+  // Hide or restore the linked artist profile when a user is soft-deleted/restored
+  if (user.cognitoSub) {
+    const artists = await repository.listArtists();
+    const linkedArtist = artists.find((a) => a.cognitoSub === user.cognitoSub);
+    if (linkedArtist && deleted && linkedArtist.profileVisible) {
+      await repository.patchArtist(touchRecordMeta({ ...linkedArtist, profileVisible: false }, identitySub));
+    }
+  }
+
   auditLog({
     action: deleted ? "admin.user.delete" : "admin.user.restore",
     actorId: identitySub,

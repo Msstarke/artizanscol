@@ -118,6 +118,7 @@ export type ReportRecord = PersistedRecord & {
   reportedById: string;
   note: string;
   resolvedById?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type CategoryRecord = PersistedRecord & {

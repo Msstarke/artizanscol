@@ -3,6 +3,8 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-03-16
+- Added auto-moderation system: a pure-TypeScript content filter that checks all user-generated text (messages, bookings, profiles, services) for prohibited language, spam patterns, contact-info harvesting, ALL CAPS abuse, and placeholder content. Hard slurs are blocked at submission with a 400 error; milder flags allow the content through but auto-create a report for admin review. Reports show a "System" badge in the admin panel with moderation reasons and a content snapshot. Backed by 14 unit tests covering word-boundary matching, leet-speak normalization, false-positive avoidance, and all detection rules.
+
 - Fixed CloudFront intercepting API 403 responses and returning the S3 `404.html` page: `CustomErrorResponses` was configured at the distribution level, so all 403s — including API Gateway auth failures — were replaced with the S3 error document. Added `s3:ListBucket` to the CloudFront OAI bucket policy so S3 returns proper 404 for missing objects (instead of 403 "Access Denied"), then removed the `ErrorCode: 403` custom error response. API Gateway 403/401 JSON responses now pass through CloudFront to the browser correctly, unblocking the admin panel and any other endpoint that requires authentication.
 
 - Added user moderation to the admin panel: new `admin/users.html` page with client-side name/email search, active/deleted filter, and soft-delete/restore actions. Backed by a new `PATCH /v1/admin/platform/users/{id}` endpoint that toggles the `deleted` flag with audit logging. Added `getUserById` and `patchUser` to the `AdminWorkspaceRepository` interface and wired the runtime implementation. All 89 backend tests still pass.

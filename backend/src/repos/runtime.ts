@@ -48,6 +48,7 @@ import type { RoleAssignmentsRepository } from "./role-assignments.js";
 import { INDEXES } from "./table-contracts.js";
 import type { MessagingWorkspaceRepository } from "./messaging-workspace.js";
 import type { UserWorkspaceRepository } from "./user-workspace.js";
+import type { ReportWriter } from "./report-writer.js";
 
 const SYSTEM_CONFIG_ID = "system";
 const DEFAULT_USER_PREFERENCES: UserRecord["preferences"] = {
@@ -642,6 +643,10 @@ class RuntimeRepository
     await this.putItem(this.env.reportsTableName, report);
   }
 
+  async createReport(report: ReportRecord): Promise<void> {
+    await this.putItem(this.env.reportsTableName, report);
+  }
+
   async listUsers(): Promise<UserRecord[]> {
     const items = await this.scanAll<UserRecord>({ TableName: this.env.usersTableName });
     return items.map(normalizeUserRecord);
@@ -792,5 +797,9 @@ export function getPaymentsWorkspaceRepository(): PaymentsWorkspaceRepository {
 }
 
 export function getRoleAssignmentsRepository(): RoleAssignmentsRepository {
+  return getRuntimeRepository();
+}
+
+export function getReportWriter(): ReportWriter {
   return getRuntimeRepository();
 }

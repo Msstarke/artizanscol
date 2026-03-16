@@ -33,9 +33,13 @@ import {
 } from "../repos/user-workspace.js";
 import {
   getArtistWorkspaceRepository,
+  getReportWriter,
   getRoleAssignmentsRepository,
   getUserWorkspaceRepository,
 } from "../repos/runtime.js";
+import { moderateText } from "../domain/content-moderation.js";
+import { buildAutoModerationReport } from "../domain/auto-report.js";
+import { type ReportWriter, NoopReportWriter } from "../repos/report-writer.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -533,12 +537,31 @@ async function handlePatchProfile(
   artistRepository: ArtistNameSyncRepository,
   user: UserRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{ name?: unknown; location?: unknown; bio?: unknown }>(event, USER_PROFILE_PATCH_SCHEMA);
 
   const name = normalizeName(payload.name, "name", 80);
   const location = normalizeOptionalText(payload.location, "location", 80);
   const bio = normalizeOptionalText(payload.bio, "bio", 280);
+
+  const modVerdict = moderateText([
+    { name: "name", value: name },
+    { name: "bio", value: bio },
+  ]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: user.id,
+      verdict: modVerdict,
+      handler: "user-api/profile",
+      contentSnapshot: `name=${name}; bio=${bio}`,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   const setup = normalizeUserSetup(user);
 
   const next = normalizeUser(touchRecordMeta(
@@ -739,6 +762,7 @@ async function handleCreateBooking(
   repository: UserWorkspaceRepository,
   user: UserRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{
     serviceId?: unknown;
@@ -755,6 +779,11 @@ async function handleCreateBooking(
   const deadline = normalizeDeadline(payload.deadline);
   const budget = normalizeBudget(payload.budget);
   const message = normalizeName(payload.message, "message", 3000);
+
+  const modVerdict = moderateText([{ name: "message", value: message }]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your booking message contains prohibited content. Please revise and try again.");
+  }
 
   let service = null;
   if (serviceId) {
@@ -800,6 +829,16 @@ async function handleCreateBooking(
   };
 
   await repository.createBooking(booking);
+
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: booking.id,
+      verdict: modVerdict,
+      handler: "user-api/booking",
+      contentSnapshot: message,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
 
   const updatedUser = touchRecordMeta(
     {
@@ -983,6 +1022,7 @@ export function createUserApiHandler(
   repository: UserWorkspaceRepository = new NoopUserWorkspaceRepository(),
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
   artistRepository: ArtistNameSyncRepository = new NoopArtistWorkspaceRepository(),
+  reportWriter: ReportWriter = new NoopReportWriter(),
 ) {
   return async function handler(
     event: APIGatewayProxyEventV2,
@@ -1011,7 +1051,7 @@ export function createUserApiHandler(
       }
 
       if (method === "PATCH" && path === "/v1/me/profile") {
-        return await handlePatchProfile(event, repository, artistRepository, user, identity.sub);
+        return await handlePatchProfile(event, repository, artistRepository, user, identity.sub, reportWriter);
       }
 
       if (method === "PATCH" && path === "/v1/me/preferences") {
@@ -1043,7 +1083,7 @@ export function createUserApiHandler(
       }
 
       if (method === "POST" && path === "/v1/bookings") {
-        return await handleCreateBooking(event, repository, user, identity.sub);
+        return await handleCreateBooking(event, repository, user, identity.sub, reportWriter);
       }
 
       if (method === "POST" && path.startsWith("/v1/bookings/") && path.endsWith("/status")) {
@@ -1093,6 +1133,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     getUserWorkspaceRepository(),
     getRoleAssignmentsRepository(),
     getArtistWorkspaceRepository(),
+    getReportWriter(),
   );
   return await runtimeHandler(event);
 };

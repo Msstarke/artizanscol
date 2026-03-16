@@ -28,7 +28,10 @@ import {
   NoopArtistWorkspaceRepository,
   type ArtistWorkspaceRepository,
 } from "../repos/artist-workspace.js";
-import { getArtistWorkspaceRepository, getRoleAssignmentsRepository } from "../repos/runtime.js";
+import { getArtistWorkspaceRepository, getReportWriter, getRoleAssignmentsRepository } from "../repos/runtime.js";
+import { moderateText } from "../domain/content-moderation.js";
+import { buildAutoModerationReport } from "../domain/auto-report.js";
+import { type ReportWriter, NoopReportWriter } from "../repos/report-writer.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -595,6 +598,7 @@ async function handlePatchArtistProfile(
   repository: ArtistWorkspaceRepository,
   artist: ArtistRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{
     name?: unknown;
@@ -607,6 +611,26 @@ async function handlePatchArtistProfile(
     availability?: unknown;
     profileVisible?: unknown;
   }>(event, ARTIST_PROFILE_PATCH_SCHEMA);
+
+  const patchName = normalizeRequiredText(payload.name ?? artist.name, "name", 80);
+  const patchBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
+
+  const modVerdict = moderateText([
+    { name: "name", value: patchName },
+    { name: "bio", value: patchBio },
+  ]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: artist.id,
+      verdict: modVerdict,
+      handler: "artist-api/profile",
+      contentSnapshot: `name=${patchName}; bio=${patchBio}`,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
 
   const next = normalizeArtist(touchRecordMeta(
     {
@@ -699,6 +723,7 @@ async function handleCreateService(
   repository: ArtistWorkspaceRepository,
   artist: ArtistRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const payload = parseBody<{
     title?: unknown;
@@ -712,16 +737,38 @@ async function handleCreateService(
     createdBy: identitySub,
   });
 
+  const serviceTitle = normalizeRequiredText(payload.title, "title", 120);
+  const serviceDesc = normalizeRequiredText(payload.description, "description", 2000);
+
+  const modVerdict = moderateText([
+    { name: "title", value: serviceTitle },
+    { name: "description", value: serviceDesc },
+  ]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your service contains prohibited content. Please revise and try again.");
+  }
+
   const service: ServiceRecord = {
     ...meta,
     artistId: artist.id,
-    title: normalizeRequiredText(payload.title, "title", 120),
-    description: normalizeRequiredText(payload.description, "description", 2000),
+    title: serviceTitle,
+    description: serviceDesc,
     price: normalizeMoney(payload.price, "price"),
     deliveryDays: normalizeInteger(payload.deliveryDays, "deliveryDays", 1, 365),
   };
 
   await repository.createService(service);
+
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: service.id,
+      verdict: modVerdict,
+      handler: "artist-api/service",
+      contentSnapshot: `title=${serviceTitle}; description=${serviceDesc}`,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   return json(201, success(mapService(service)));
 }
 
@@ -730,6 +777,7 @@ async function handleUpdateService(
   repository: ArtistWorkspaceRepository,
   artist: ArtistRecord,
   identitySub: string,
+  reportWriter: ReportWriter,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const serviceId = parseServiceId(event);
   if (!serviceId) {
@@ -748,15 +796,22 @@ async function handleUpdateService(
     deliveryDays?: unknown;
   }>(event, ARTIST_SERVICE_PATCH_SCHEMA);
 
+  const updatedTitle = payload.title == null ? existing.title : normalizeRequiredText(payload.title, "title", 120);
+  const updatedDesc = payload.description == null ? existing.description : normalizeRequiredText(payload.description, "description", 2000);
+
+  const modVerdict = moderateText([
+    { name: "title", value: updatedTitle },
+    { name: "description", value: updatedDesc },
+  ]);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your service contains prohibited content. Please revise and try again.");
+  }
+
   const next = touchRecordMeta(
     {
       ...existing,
-      title: payload.title == null
-        ? existing.title
-        : normalizeRequiredText(payload.title, "title", 120),
-      description: payload.description == null
-        ? existing.description
-        : normalizeRequiredText(payload.description, "description", 2000),
+      title: updatedTitle,
+      description: updatedDesc,
       price: payload.price == null ? existing.price : normalizeMoney(payload.price, "price"),
       deliveryDays: payload.deliveryDays == null
         ? existing.deliveryDays
@@ -766,6 +821,17 @@ async function handleUpdateService(
   );
 
   await repository.updateService(next);
+
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({
+      targetId: next.id,
+      verdict: modVerdict,
+      handler: "artist-api/service-update",
+      contentSnapshot: `title=${updatedTitle}; description=${updatedDesc}`,
+    });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   return json(200, success(mapService(next)));
 }
 
@@ -1032,6 +1098,7 @@ async function handleMarkArtistNotificationsRead(
 export function createArtistApiHandler(
   repository: ArtistWorkspaceRepository,
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
+  reportWriter: ReportWriter = new NoopReportWriter(),
 ) {
   return async function handler(
     event: APIGatewayProxyEventV2,
@@ -1059,7 +1126,7 @@ export function createArtistApiHandler(
       }
 
       if (method === "PATCH" && path === "/v1/artist/me/profile") {
-        return await handlePatchArtistProfile(event, repository, artist, identity.sub);
+        return await handlePatchArtistProfile(event, repository, artist, identity.sub, reportWriter);
       }
 
       if (method === "PUT" && path === "/v1/artist/me/onboarding") {
@@ -1067,11 +1134,11 @@ export function createArtistApiHandler(
       }
 
       if (method === "POST" && path === "/v1/artist/me/services") {
-        return await handleCreateService(event, repository, artist, identity.sub);
+        return await handleCreateService(event, repository, artist, identity.sub, reportWriter);
       }
 
       if (method === "PATCH" && path.startsWith("/v1/artist/me/services/")) {
-        return await handleUpdateService(event, repository, artist, identity.sub);
+        return await handleUpdateService(event, repository, artist, identity.sub, reportWriter);
       }
 
       if (method === "DELETE" && path.startsWith("/v1/artist/me/services/")) {
@@ -1133,6 +1200,6 @@ export function createArtistApiHandler(
 let runtimeHandler: ReturnType<typeof createArtistApiHandler> | null = null;
 
 export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-  runtimeHandler ||= createArtistApiHandler(getArtistWorkspaceRepository(), getRoleAssignmentsRepository());
+  runtimeHandler ||= createArtistApiHandler(getArtistWorkspaceRepository(), getRoleAssignmentsRepository(), getReportWriter());
   return await runtimeHandler(event);
 };
