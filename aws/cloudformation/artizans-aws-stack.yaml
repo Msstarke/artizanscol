@@ -143,6 +143,12 @@ Resources:
               CanonicalUser: !GetAtt ArtizansOriginAccessIdentity.S3CanonicalUserId
             Action: s3:GetObject
             Resource: !Sub '${ArtizansSiteBucket.Arn}/*'
+          - Sid: AllowCloudFrontListBucket
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt ArtizansOriginAccessIdentity.S3CanonicalUserId
+            Action: s3:ListBucket
+            Resource: !GetAtt ArtizansSiteBucket.Arn
 
   ArtizansManagedCertificate:
     Type: AWS::CertificateManager::Certificate
@@ -381,10 +387,6 @@ Resources:
             Cookies:
               Forward: none
         CustomErrorResponses:
-          - ErrorCode: 403
-            ResponseCode: 404
-            ResponsePagePath: /404.html
-            ErrorCachingMinTTL: 60
           - ErrorCode: 404
             ResponseCode: 404
             ResponsePagePath: /404.html

@@ -809,11 +809,9 @@ export function createAdminApiHandler(
     try {
       const method = String(event.requestContext.http.method || "").toUpperCase();
       const path = String(event.rawPath || "");
-      console.log(`[admin-api] ENTRY method=${method} rawPath=${path}`);
       enforceRequestSecurity(event, { requireBearerForMutations: true });
       const identity = await requireAuthIdentity(event, roleAssignmentsRepository);
       requireAdmin(identity);
-      console.log(`[admin-api] AUTH OK roles=${JSON.stringify(identity.roles)}`);
 
       if (method === "GET" && path === "/v1/admin/artists/review") {
         return await handleGetArtistsReview(event, repository);
