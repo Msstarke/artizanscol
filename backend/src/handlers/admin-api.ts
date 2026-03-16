@@ -218,7 +218,7 @@ function parseUserId(event: APIGatewayProxyEventV2): string | null {
     return fromParams;
   }
 
-  const match = String(event.rawPath || "").match(/^\/v1\/admin\/platform\/users\/([^/?#]+)$/);
+  const match = String(event.rawPath || "").match(/^\/v1\/admin\/platform\/users\/([^/?#/]+)/);
   return match ? decodeURIComponent(match[1]) : null;
 }
 
