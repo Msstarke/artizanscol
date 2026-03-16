@@ -171,6 +171,18 @@ export function getCognitoAccessToken() {
   return session?.accessToken || null;
 }
 
+export function isCognitoAdmin() {
+  try {
+    const token = getCognitoAccessToken();
+    if (!token) return false;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const groups = String(payload["cognito:groups"] || "").replace(/^\[|]$/g, "");
+    return groups.split(/[\s,]+/).includes("admin");
+  } catch (_) {
+    return false;
+  }
+}
+
 export function isCognitoAuthenticated() {
   const session = getStoredSession();
   if (!session?.idToken || !session?.accessToken) {

@@ -1,6 +1,6 @@
 import { getDB, hydrateDB, resetDB } from "./store.js";
 import { getSession, logout } from "./session.js";
-import { signOutCognito } from "./cognito-auth.js";
+import { signOutCognito, isCognitoAdmin } from "./cognito-auth.js";
 import { qsa, showToast } from "./utils.js";
 
 const PRIMARY_NAV_LINKS = [
@@ -156,6 +156,17 @@ function setAuthLinks(session) {
     node.href = "/account-settings.html";
     node.textContent = label;
   });
+
+  // Show admin link for admin users
+  const actions = document.querySelector(".header-actions");
+  if (signedIn && isCognitoAdmin() && actions && !actions.querySelector("[data-admin-link]")) {
+    const adminLink = document.createElement("a");
+    adminLink.className = "btn btn-outline btn-small";
+    adminLink.href = "/admin/index.html";
+    adminLink.textContent = "Admin";
+    adminLink.setAttribute("data-admin-link", "");
+    actions.insertBefore(adminLink, actions.firstChild);
+  }
 }
 
 function setLogoutVisibility(session) {

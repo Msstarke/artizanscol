@@ -294,6 +294,7 @@ function mapReport(report: ReportRecord) {
     reportedById: report.reportedById,
     note: report.note,
     resolvedById: report.resolvedById || null,
+    metadata: report.metadata || null,
     createdAt: report.createdAt,
     updatedAt: report.updatedAt,
   };
