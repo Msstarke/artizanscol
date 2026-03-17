@@ -355,6 +355,9 @@ const CATEGORIES = [
   "Graphic Design", "Animation", "3D Art", "Web Design",
   "Typography", "Print Design", "Concept Art", "Fashion Design",
   "Interior Design", "Architecture", "Video Production", "Copywriting",
+  "Sculpture", "Ceramics", "Painting", "Drawing", "Printmaking",
+  "Textile Art", "Jewellery Design", "Glasswork", "Woodwork", "Metalwork",
+  "AI Art",
 ];
 
 function populateCategorySelect(selectEl, selectedValue = "") {
