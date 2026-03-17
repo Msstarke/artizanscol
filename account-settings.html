@@ -163,9 +163,9 @@
                   <p>Setup only takes a minute and helps shape your account for how you want to use ARTIZANS.</p>
                 </div>
                 <ul class="feature-list-tight">
-                  <li>Add your core account details</li>
-                  <li>Choose update and alert preferences</li>
-                  <li>Optionally publish a creator studio</li>
+                  <li>Add your name and location</li>
+                  <li>Pick what you do and your hourly rate</li>
+                  <li>Choose your alert preferences</li>
                 </ul>
                 <div class="form-actions">
                   <button class="btn btn-primary" id="setup-welcome-next" type="button">Continue</button>
@@ -188,15 +188,36 @@
                       <select id="setup-country"></select>
                     </label>
                     <label>
-                      City / Region
+                      State / Region
                       <select id="setup-city"></select>
-                      <input id="setup-city-other" type="text" maxlength="80" placeholder="Enter your city" hidden />
+                      <input id="setup-city-other" type="text" maxlength="80" placeholder="Enter your region" hidden />
                     </label>
                   </div>
-                  <label>
-                    Bio
-                    <textarea id="setup-bio" maxlength="280" placeholder="Short introduction"></textarea>
-                  </label>
+                  <div class="form-row">
+                    <label>
+                      What you do
+                      <select id="setup-category">
+                        <option value="">Select a category</option>
+                      </select>
+                    </label>
+                    <label>
+                      Hourly rate (AUD)
+                      <select id="setup-rate">
+                        <option value="0">Flexible / on request</option>
+                        <option value="50">$50/hr</option>
+                        <option value="75">$75/hr</option>
+                        <option value="100">$100/hr</option>
+                        <option value="125">$125/hr</option>
+                        <option value="150">$150/hr</option>
+                        <option value="175">$175/hr</option>
+                        <option value="200">$200/hr</option>
+                        <option value="250">$250/hr</option>
+                        <option value="300">$300/hr</option>
+                        <option value="400">$400/hr</option>
+                        <option value="500">$500+/hr</option>
+                      </select>
+                    </label>
+                  </div>
                   <div class="form-actions">
                     <button class="btn btn-outline" id="setup-profile-back" type="button">Back</button>
                     <button class="btn btn-primary" type="submit">Save and continue</button>
@@ -233,81 +254,6 @@
                 </form>
               </section>
 
-              <section class="setup-step" data-setup-step="artist_prompt" hidden>
-                <div class="setup-step-copy">
-                  <h3>Creator studio</h3>
-                  <p>Do you want to publish a creator studio so clients can find you in Explore?</p>
-                </div>
-                <form id="setup-artist-choice-form" class="form-grid">
-                  <div class="choice-grid">
-                    <label class="choice-card">
-                      <input id="setup-artist-choice-no" name="setup-artist-choice" type="radio" value="no" />
-                      <strong>Not now</strong>
-                      <span>Finish your account first and add a creator studio later.</span>
-                    </label>
-                    <label class="choice-card">
-                      <input id="setup-artist-choice-yes" name="setup-artist-choice" type="radio" value="yes" />
-                      <strong>Yes, set it up</strong>
-                      <span>Create your public creator studio during setup.</span>
-                    </label>
-                  </div>
-                  <div class="form-actions">
-                    <button class="btn btn-outline" id="setup-artist-choice-back" type="button">Back</button>
-                    <button class="btn btn-primary" type="submit">Continue</button>
-                  </div>
-                </form>
-              </section>
-
-              <section class="setup-step" data-setup-step="artist_profile" hidden>
-                <div class="setup-step-copy">
-                  <h3>Artist details</h3>
-                  <p>Set up the basics clients need before they can discover and book your profile.</p>
-                </div>
-                <form id="setup-artist-form" class="form-grid">
-                  <label>
-                    What you do
-                    <input
-                      id="setup-artist-category"
-                      type="text"
-                      maxlength="80"
-                      list="setup-artist-category-options"
-                      placeholder="Illustration, branding, photography"
-                    />
-                    <datalist id="setup-artist-category-options"></datalist>
-                  </label>
-                  <label>
-                    Mediums
-                    <input
-                      id="setup-artist-mediums"
-                      type="text"
-                      maxlength="140"
-                      placeholder="Illustration, branding, editorial"
-                    />
-                  </label>
-                  <div class="form-row">
-                    <label>
-                      Starting budget (AUD)
-                      <input id="setup-artist-price" type="number" min="0" step="1" />
-                    </label>
-                    <label>
-                      Availability
-                      <select id="setup-artist-availability">
-                        <option value="open">Open</option>
-                        <option value="limited">Limited</option>
-                      </select>
-                    </label>
-                  </div>
-                  <label class="checkbox-row">
-                    <input id="setup-artist-show-profile" type="checkbox" />
-                    Show profile when setup finishes
-                  </label>
-                  <div class="form-actions">
-                    <button class="btn btn-outline" id="setup-artist-back" type="button">Back</button>
-                    <button class="btn btn-primary" type="submit">Save and continue</button>
-                  </div>
-                </form>
-              </section>
-
               <section class="setup-step" data-setup-step="review" hidden>
                 <div class="setup-step-copy">
                   <h3>Review and finish</h3>
@@ -323,11 +269,6 @@
                     <small>Alerts</small>
                     <strong id="setup-review-preferences-title">-</strong>
                     <p id="setup-review-preferences-copy">-</p>
-                  </article>
-                  <article class="review-card">
-                    <small>Studio</small>
-                    <strong id="setup-review-artist-title">-</strong>
-                    <p id="setup-review-artist-copy">-</p>
                   </article>
                 </div>
                 <div class="form-actions">
@@ -355,7 +296,6 @@
                   <button class="settings-nav-button" data-settings-section-btn="overview" type="button">Overview</button>
                   <button class="settings-nav-button" data-settings-section-btn="profile" type="button">Profile</button>
                   <button class="settings-nav-button" data-settings-section-btn="alerts" type="button">Alerts</button>
-                  <button class="settings-nav-button" data-settings-section-btn="artist" type="button">Studio</button>
                   <button class="settings-nav-button" data-settings-section-btn="saved" type="button">Saved artists</button>
                   <button class="settings-nav-button" data-settings-section-btn="bookings" type="button">Bookings</button>
                   <button class="settings-nav-button" data-settings-section-btn="messages" type="button">Messages</button>
@@ -371,13 +311,11 @@
                       <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
                       <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
                       <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
-                      <article class="kpi"><small>Studio</small><strong id="stat-artist-profile">Off</strong></article>
                       <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
                     </div>
                     <div class="form-actions">
                       <button class="btn btn-outline btn-small" data-settings-shortcut="profile" type="button">Edit profile</button>
                       <button class="btn btn-outline btn-small" data-settings-shortcut="alerts" type="button">Alerts</button>
-                      <button class="btn btn-outline btn-small" data-settings-shortcut="artist" type="button">Studio</button>
                     </div>
                   </section>
 
@@ -395,17 +333,39 @@
                           <select id="account-country"></select>
                         </label>
                         <label>
-                          City / Region
+                          State / Region
                           <select id="account-city"></select>
-                          <input id="account-city-other" type="text" maxlength="80" placeholder="Enter your city" hidden />
+                          <input id="account-city-other" type="text" maxlength="80" placeholder="Enter your region" hidden />
                         </label>
                       </div>
-                      <label>
-                        About
-                        <textarea id="account-bio" maxlength="280" placeholder="Short profile bio"></textarea>
-                      </label>
+                      <div class="form-row">
+                        <label>
+                          What you do
+                          <select id="account-category">
+                            <option value="">Select a category</option>
+                          </select>
+                        </label>
+                        <label>
+                          Hourly rate (AUD)
+                          <select id="account-rate">
+                            <option value="0">Flexible / on request</option>
+                            <option value="50">$50/hr</option>
+                            <option value="75">$75/hr</option>
+                            <option value="100">$100/hr</option>
+                            <option value="125">$125/hr</option>
+                            <option value="150">$150/hr</option>
+                            <option value="175">$175/hr</option>
+                            <option value="200">$200/hr</option>
+                            <option value="250">$250/hr</option>
+                            <option value="300">$300/hr</option>
+                            <option value="400">$400/hr</option>
+                            <option value="500">$500+/hr</option>
+                          </select>
+                        </label>
+                      </div>
                       <div class="form-actions">
                         <button class="btn btn-outline btn-small" type="submit">Save profile</button>
+                        <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview listing</a>
                       </div>
                     </form>
                   </section>
@@ -429,57 +389,6 @@
                       <div class="form-actions">
                         <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
                         <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Enable browser alerts</button>
-                      </div>
-                    </form>
-                  </section>
-
-                  <section class="account-panel settings-section" data-settings-section="artist" hidden>
-                    <p class="site-tag">Creator studio</p>
-                    <h3>Studio settings</h3>
-                    <div class="artist-account-state" id="workspace-artist-state" data-visibility="off">
-                      <strong id="workspace-artist-visibility-label">Artist account is off</strong>
-                      <p class="muted" id="workspace-artist-visibility-copy">
-                        Your profile is hidden from Explore and booking until you choose Show profile.
-                      </p>
-                    </div>
-                    <form id="workspace-artist-form" class="form-grid">
-                      <label>
-                        What you do
-                        <input
-                          id="workspace-artist-category"
-                          type="text"
-                          maxlength="80"
-                          list="workspace-artist-category-options"
-                          placeholder="Illustration, branding, photography"
-                        />
-                        <datalist id="workspace-artist-category-options"></datalist>
-                      </label>
-                      <label>
-                        Mediums
-                        <input
-                          id="workspace-artist-mediums"
-                          type="text"
-                          maxlength="140"
-                          placeholder="Illustration, branding, editorial"
-                        />
-                      </label>
-                      <div class="form-row">
-                        <label>
-                          Starting budget (AUD)
-                          <input id="workspace-artist-price" type="number" min="0" step="1" />
-                        </label>
-                        <label>
-                          Availability
-                          <select id="workspace-artist-availability">
-                            <option value="open">Open</option>
-                            <option value="limited">Limited</option>
-                          </select>
-                        </label>
-                      </div>
-                      <div class="form-actions">
-                        <button class="btn btn-outline btn-small" type="submit">Save studio</button>
-                        <button class="btn btn-ghost btn-small" id="toggle-artist-account" type="button">Show profile</button>
-                        <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview profile</a>
                       </div>
                     </form>
                   </section>

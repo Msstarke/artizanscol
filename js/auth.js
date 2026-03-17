@@ -39,58 +39,58 @@ await hydrateDB();
 // ---------------------------------------------------------------------------
 
 const CITIES_BY_COUNTRY = {
-  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Gold Coast", "Newcastle", "Hobart", "Darwin"],
-  "New Zealand": ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin", "Tauranga"],
-  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", "Austin", "Seattle", "Denver", "Boston", "Miami", "Portland", "Las Vegas", "Nashville", "Atlanta", "Minneapolis"],
-  "United Kingdom": ["London", "Manchester", "Birmingham", "Leeds", "Glasgow", "Edinburgh", "Liverpool", "Bristol", "Sheffield", "Cardiff", "Belfast"],
-  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Winnipeg", "Quebec City", "Halifax"],
-  "Ireland": ["Dublin", "Cork", "Galway", "Limerick", "Waterford"],
-  "South Africa": ["Cape Town", "Johannesburg", "Durban", "Pretoria", "Port Elizabeth"],
-  "India": ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Surat"],
-  "Philippines": ["Manila", "Quezon City", "Cebu City", "Davao", "Makati", "Pasig", "Taguig"],
-  "Singapore": ["Singapore"],
-  "Japan": ["Tokyo", "Osaka", "Yokohama", "Nagoya", "Kyoto", "Fukuoka", "Sapporo", "Kobe"],
-  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon", "Gwangju"],
-  "China": ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Hangzhou", "Xi'an", "Wuhan", "Nanjing", "Chongqing"],
-  "Germany": ["Berlin", "Hamburg", "Munich", "Cologne", "Frankfurt", "Stuttgart", "Düsseldorf", "Leipzig"],
-  "France": ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Bordeaux", "Nantes", "Strasbourg"],
-  "Italy": ["Rome", "Milan", "Naples", "Turin", "Palermo", "Bologna", "Florence", "Venice"],
-  "Spain": ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", "Bilbao"],
-  "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"],
-  "Sweden": ["Stockholm", "Gothenburg", "Malmö", "Uppsala"],
-  "Norway": ["Oslo", "Bergen", "Trondheim", "Stavanger"],
-  "Denmark": ["Copenhagen", "Aarhus", "Odense"],
-  "Finland": ["Helsinki", "Tampere", "Turku", "Espoo"],
-  "Brazil": ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Fortaleza", "Belo Horizonte", "Manaus", "Curitiba"],
-  "Mexico": ["Mexico City", "Guadalajara", "Monterrey", "Puebla", "Tijuana", "León"],
-  "Argentina": ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "La Plata"],
-  "Colombia": ["Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena"],
-  "Chile": ["Santiago", "Valparaíso", "Concepción", "Antofagasta"],
-  "Indonesia": ["Jakarta", "Surabaya", "Bandung", "Bekasi", "Medan", "Bali"],
-  "Thailand": ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Nonthaburi"],
-  "Vietnam": ["Ho Chi Minh City", "Hanoi", "Da Nang", "Hai Phong"],
-  "Malaysia": ["Kuala Lumpur", "George Town", "Johor Bahru", "Ipoh", "Kota Kinabalu"],
-  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
-  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
-  "Israel": ["Tel Aviv", "Jerusalem", "Haifa", "Rishon LeZion"],
-  "Egypt": ["Cairo", "Alexandria", "Giza", "Luxor"],
-  "Nigeria": ["Lagos", "Kano", "Ibadan", "Abuja", "Benin City"],
-  "Kenya": ["Nairobi", "Mombasa", "Kisumu", "Nakuru"],
-  "Poland": ["Warsaw", "Kraków", "Łódź", "Wrocław", "Poznań"],
-  "Portugal": ["Lisbon", "Porto", "Braga", "Coimbra", "Faro"],
-  "Switzerland": ["Zurich", "Geneva", "Basel", "Bern", "Lausanne"],
-  "Austria": ["Vienna", "Graz", "Linz", "Salzburg"],
-  "Belgium": ["Brussels", "Antwerp", "Ghent", "Bruges"],
-  "Czech Republic": ["Prague", "Brno", "Ostrava", "Pilsen"],
-  "Romania": ["Bucharest", "Cluj-Napoca", "Timișoara", "Iași"],
-  "Greece": ["Athens", "Thessaloniki", "Patras", "Heraklion"],
-  "Turkey": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya"],
-  "Russia": ["Moscow", "Saint Petersburg", "Novosibirsk", "Yekaterinburg", "Kazan"],
-  "Ukraine": ["Kyiv", "Kharkiv", "Odesa", "Dnipro", "Lviv"],
-  "Pakistan": ["Karachi", "Lahore", "Faisalabad", "Rawalpindi", "Islamabad"],
-  "Bangladesh": ["Dhaka", "Chittagong", "Sylhet", "Rajshahi"],
-  "Taiwan": ["Taipei", "Taichung", "Kaohsiung", "Tainan"],
-  "Hong Kong": ["Hong Kong", "Kowloon", "Sha Tin", "Tuen Mun"],
+  "Australia": ["New South Wales", "Victoria", "Queensland", "Western Australia", "South Australia", "Tasmania", "ACT", "Northern Territory"],
+  "New Zealand": ["Auckland", "Wellington", "Canterbury", "Waikato", "Otago", "Bay of Plenty", "Hawke's Bay", "Manawatu-Whanganui"],
+  "United States": ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
+  "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
+  "Canada": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan"],
+  "Ireland": ["Connacht", "Leinster", "Munster", "Ulster"],
+  "South Africa": ["Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo", "Mpumalanga", "North West", "Northern Cape", "Western Cape"],
+  "India": ["Andhra Pradesh", "Assam", "Bihar", "Delhi", "Gujarat", "Haryana", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Odisha", "Punjab", "Rajasthan", "Tamil Nadu", "Telangana", "Uttar Pradesh", "West Bengal"],
+  "Philippines": ["Luzon", "Visayas", "Mindanao", "Metro Manila", "Calabarzon", "Central Luzon", "Central Visayas", "Davao Region"],
+  "Singapore": ["Central Region", "East Region", "North Region", "North-East Region", "West Region"],
+  "Japan": ["Hokkaido", "Tohoku", "Kanto", "Chubu", "Kansai", "Chugoku", "Shikoku", "Kyushu", "Okinawa"],
+  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon", "Gwangju", "Gyeonggi", "Gangwon", "Chungbuk", "Chungnam", "Jeonbuk", "Jeonnam", "Gyeongbuk", "Gyeongnam", "Jeju"],
+  "China": ["Beijing", "Shanghai", "Guangdong", "Sichuan", "Zhejiang", "Jiangsu", "Shandong", "Hubei", "Hunan", "Fujian", "Shaanxi", "Chongqing", "Yunnan", "Henan", "Liaoning"],
+  "Germany": ["Baden-Württemberg", "Bavaria", "Berlin", "Brandenburg", "Bremen", "Hamburg", "Hesse", "Lower Saxony", "Mecklenburg-Vorpommern", "North Rhine-Westphalia", "Rhineland-Palatinate", "Saarland", "Saxony", "Saxony-Anhalt", "Schleswig-Holstein", "Thuringia"],
+  "France": ["Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Brittany", "Centre-Val de Loire", "Corsica", "Grand Est", "Hauts-de-France", "Île-de-France", "Normandy", "Nouvelle-Aquitaine", "Occitanie", "Pays de la Loire", "Provence-Alpes-Côte d'Azur"],
+  "Italy": ["Abruzzo", "Basilicata", "Calabria", "Campania", "Emilia-Romagna", "Friuli-Venezia Giulia", "Lazio", "Liguria", "Lombardy", "Marche", "Molise", "Piedmont", "Puglia", "Sardinia", "Sicily", "Tuscany", "Trentino-Alto Adige", "Umbria", "Valle d'Aosta", "Veneto"],
+  "Spain": ["Andalusia", "Aragon", "Asturias", "Balearic Islands", "Basque Country", "Canary Islands", "Cantabria", "Castile and León", "Castile-La Mancha", "Catalonia", "Extremadura", "Galicia", "La Rioja", "Madrid", "Murcia", "Navarre", "Valencia"],
+  "Netherlands": ["Drenthe", "Flevoland", "Friesland", "Gelderland", "Groningen", "Limburg", "North Brabant", "North Holland", "Overijssel", "South Holland", "Utrecht", "Zeeland"],
+  "Sweden": ["Blekinge", "Dalarna", "Gävleborg", "Gotland", "Halland", "Jämtland", "Jönköping", "Kalmar", "Kronoberg", "Norrbotten", "Örebro", "Östergötland", "Skåne", "Södermanland", "Stockholm", "Uppsala", "Värmland", "Västerbotten", "Västernorrland", "Västmanland", "Västra Götaland"],
+  "Norway": ["Agder", "Innlandet", "Møre og Romsdal", "Nordland", "Oslo", "Rogaland", "Troms og Finnmark", "Trøndelag", "Vestfold og Telemark", "Vestland", "Viken"],
+  "Denmark": ["Capital Region", "Central Denmark", "North Denmark", "Region Zealand", "Southern Denmark"],
+  "Finland": ["Lapland", "North Ostrobothnia", "North Savo", "Pirkanmaa", "South Karelia", "Southwest Finland", "Uusimaa"],
+  "Brazil": ["Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará", "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro", "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia", "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins"],
+  "Mexico": ["Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas", "Chihuahua", "Coahuila", "Colima", "Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "Mexico City", "Mexico State", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"],
+  "Argentina": ["Buenos Aires", "Catamarca", "Chaco", "Chubut", "Córdoba", "Corrientes", "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro", "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán"],
+  "Colombia": ["Amazonas", "Antioquia", "Arauca", "Atlántico", "Bolívar", "Boyacá", "Caldas", "Caquetá", "Casanare", "Cauca", "Cesar", "Chocó", "Córdoba", "Cundinamarca", "Guainía", "Guaviare", "Huila", "La Guajira", "Magdalena", "Meta", "Nariño", "Norte de Santander", "Putumayo", "Quindío", "Risaralda", "San Andrés", "Santander", "Sucre", "Tolima", "Valle del Cauca", "Vaupés", "Vichada"],
+  "Chile": ["Arica y Parinacota", "Tarapacá", "Antofagasta", "Atacama", "Coquimbo", "Valparaíso", "Metropolitan", "O'Higgins", "Maule", "Ñuble", "Biobío", "La Araucanía", "Los Ríos", "Los Lagos", "Aysén", "Magallanes"],
+  "Indonesia": ["Aceh", "Bali", "Banten", "Bengkulu", "Central Java", "Central Kalimantan", "Central Sulawesi", "East Java", "East Kalimantan", "East Nusa Tenggara", "Gorontalo", "Jakarta", "Jambi", "Lampung", "Maluku", "North Kalimantan", "North Maluku", "North Sulawesi", "North Sumatra", "Papua", "Riau", "Riau Islands", "South Kalimantan", "South Sulawesi", "South Sumatra", "Southeast Sulawesi", "West Java", "West Kalimantan", "West Nusa Tenggara", "West Papua", "West Sulawesi", "West Sumatra", "Yogyakarta"],
+  "Thailand": ["Bangkok", "Central Thailand", "Eastern Thailand", "Northern Thailand", "Northeastern Thailand", "Southern Thailand", "Western Thailand"],
+  "Vietnam": ["North Vietnam", "Central Vietnam", "South Vietnam", "Hanoi", "Ho Chi Minh City", "Da Nang"],
+  "Malaysia": ["Johor", "Kedah", "Kelantan", "Kuala Lumpur", "Labuan", "Melaka", "Negeri Sembilan", "Pahang", "Penang", "Perak", "Perlis", "Putrajaya", "Sabah", "Sarawak", "Selangor", "Terengganu"],
+  "United Arab Emirates": ["Abu Dhabi", "Ajman", "Dubai", "Fujairah", "Ras Al Khaimah", "Sharjah", "Umm Al Quwain"],
+  "Saudi Arabia": ["Riyadh", "Makkah", "Madinah", "Eastern Province", "Asir", "Tabuk", "Hail", "Northern Borders", "Jazan", "Najran", "Al Bahah", "Al Jawf", "Qassim"],
+  "Israel": ["Central District", "Haifa District", "Jerusalem District", "Northern District", "Southern District", "Tel Aviv District"],
+  "Egypt": ["Alexandria", "Aswan", "Asyut", "Beheira", "Beni Suef", "Cairo", "Dakahlia", "Damietta", "Faiyum", "Gharbia", "Giza", "Ismailia", "Kafr el-Sheikh", "Luxor", "Matruh", "Minya", "Monufia", "New Valley", "North Sinai", "Port Said", "Qalyubia", "Qena", "Red Sea", "Sharqia", "Sohag", "South Sinai", "Suez"],
+  "Nigeria": ["Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT Abuja", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"],
+  "Kenya": ["Central", "Coast", "Eastern", "Nairobi", "North Eastern", "Nyanza", "Rift Valley", "Western"],
+  "Poland": ["Greater Poland", "Kuyavian-Pomeranian", "Lesser Poland", "Łódź", "Lower Silesian", "Lublin", "Lubusz", "Masovian", "Opole", "Podlaskie", "Pomeranian", "Silesian", "Subcarpathian", "Świętokrzyskie", "Warmian-Masurian", "West Pomeranian"],
+  "Portugal": ["Alentejo", "Algarve", "Azores", "Centro", "Lisbon", "Madeira", "Norte"],
+  "Switzerland": ["Aargau", "Appenzell Ausserrhoden", "Appenzell Innerrhoden", "Basel-Landschaft", "Basel-Stadt", "Bern", "Fribourg", "Geneva", "Glarus", "Graubünden", "Jura", "Lucerne", "Neuchâtel", "Nidwalden", "Obwalden", "Schaffhausen", "Schwyz", "Solothurn", "St. Gallen", "Thurgau", "Ticino", "Uri", "Valais", "Vaud", "Zug", "Zurich"],
+  "Austria": ["Burgenland", "Carinthia", "Lower Austria", "Salzburg", "Styria", "Tyrol", "Upper Austria", "Vienna", "Vorarlberg"],
+  "Belgium": ["Brussels", "Flanders", "Wallonia"],
+  "Czech Republic": ["Bohemia", "Moravia", "Silesia"],
+  "Romania": ["Alba", "Arad", "Argeș", "Bacău", "Bihor", "Bistrița-Năsăud", "Botoșani", "Brăila", "Brașov", "Bucharest", "Buzău", "Călărași", "Cluj", "Constanța", "Covasna", "Dâmbovița", "Dolj", "Galați", "Giurgiu", "Gorj", "Harghita", "Hunedoara", "Ialomița", "Iași", "Ilfov", "Maramureș", "Mehedinți", "Mureș", "Neamț", "Olt", "Prahova", "Sălaj", "Satu Mare", "Sibiu", "Suceava", "Teleorman", "Timiș", "Tulcea", "Vâlcea", "Vaslui", "Vrancea"],
+  "Greece": ["Attica", "Central Greece", "Central Macedonia", "Crete", "Eastern Macedonia and Thrace", "Epirus", "Ionian Islands", "North Aegean", "Peloponnese", "South Aegean", "Thessaly", "Western Greece", "Western Macedonia"],
+  "Turkey": ["Adana", "Ankara", "Antalya", "Bursa", "Diyarbakır", "Erzurum", "Gaziantep", "İstanbul", "İzmir", "Kayseri", "Konya", "Mersin", "Samsun", "Trabzon"],
+  "Russia": ["Central Federal District", "Far Eastern Federal District", "North Caucasian Federal District", "Northwestern Federal District", "Siberian Federal District", "Southern Federal District", "Ural Federal District", "Volga Federal District"],
+  "Ukraine": ["Cherkasy", "Chernihiv", "Chernivtsi", "Dnipropetrovsk", "Donetsk", "Ivano-Frankivsk", "Kharkiv", "Kherson", "Khmelnytskyi", "Kirovohrad", "Kyiv", "Luhansk", "Lviv", "Mykolaiv", "Odesa", "Poltava", "Rivne", "Sumy", "Ternopil", "Vinnytsia", "Volyn", "Zakarpattia", "Zaporizhzhia", "Zhytomyr"],
+  "Pakistan": ["Azad Kashmir", "Balochistan", "Gilgit-Baltistan", "Islamabad Capital Territory", "Khyber Pakhtunkhwa", "Punjab", "Sindh"],
+  "Bangladesh": ["Barisal", "Chittagong", "Dhaka", "Khulna", "Mymensingh", "Rajshahi", "Rangpur", "Sylhet"],
+  "Taiwan": ["Changhua", "Chiayi", "Hsinchu", "Hualien", "Kaohsiung", "Keelung", "Miaoli", "Nantou", "New Taipei", "Penghu", "Pingtung", "Taichung", "Tainan", "Taipei", "Taitung", "Taoyuan", "Yilan", "Yunlin"],
+  "Hong Kong": ["Central and Western", "Eastern", "Islands", "Kowloon City", "Kwai Tsing", "Kwun Tong", "North", "Sai Kung", "Sha Tin", "Sham Shui Po", "Southern", "Tai Po", "Tsuen Wan", "Tuen Mun", "Wan Chai", "Wong Tai Sin", "Yau Tsim Mong", "Yuen Long"],
 };
 
 const COUNTRIES = Object.keys(CITIES_BY_COUNTRY);
@@ -230,7 +230,9 @@ const accountName = byId("account-name");
 const accountCountry = byId("account-country");
 const accountCity = byId("account-city");
 const accountCityOther = byId("account-city-other");
-const accountBio = byId("account-bio");
+const accountCategory = byId("account-category");
+const accountRate = byId("account-rate");
+const workspaceArtistPreview = byId("workspace-artist-preview");
 
 const accountPreferencesForm = byId("account-preferences-form");
 const prefBookingUpdates = byId("pref-booking-updates");
@@ -241,7 +243,6 @@ const enableBrowserNotificationsBtn = byId("enable-browser-notifications");
 const statSavedArtists = byId("stat-saved-artists");
 const statUserBookings = byId("stat-user-bookings");
 const statArtistBookings = byId("stat-artist-bookings");
-const statArtistProfile = byId("stat-artist-profile");
 const statUnreadUpdates = byId("stat-unread-updates");
 
 const openResetFromSettingsBtn = byId("open-reset-from-settings");
@@ -253,17 +254,6 @@ const workspaceSavedArtists = byId("workspace-saved-artists");
 const workspaceSavedEmpty = byId("workspace-saved-empty");
 const workspaceBookingsList = byId("workspace-bookings-list");
 const workspaceBookingsEmpty = byId("workspace-bookings-empty");
-const workspaceArtistForm = byId("workspace-artist-form");
-const workspaceArtistCategory = byId("workspace-artist-category");
-const workspaceArtistCategoryOptions = byId("workspace-artist-category-options");
-const workspaceArtistMediums = byId("workspace-artist-mediums");
-const workspaceArtistPrice = byId("workspace-artist-price");
-const workspaceArtistAvailability = byId("workspace-artist-availability");
-const workspaceArtistState = byId("workspace-artist-state");
-const workspaceArtistVisibilityLabel = byId("workspace-artist-visibility-label");
-const workspaceArtistVisibilityCopy = byId("workspace-artist-visibility-copy");
-const toggleArtistAccountBtn = byId("toggle-artist-account");
-const workspaceArtistPreview = byId("workspace-artist-preview");
 const workspaceMessageForm = byId("workspace-message-form");
 const workspaceMessageBooking = byId("workspace-message-booking");
 const workspaceMessageBody = byId("workspace-message-body");
@@ -283,7 +273,8 @@ const setupName = byId("setup-name");
 const setupCountry = byId("setup-country");
 const setupCity = byId("setup-city");
 const setupCityOther = byId("setup-city-other");
-const setupBio = byId("setup-bio");
+const setupCategory = byId("setup-category");
+const setupRate = byId("setup-rate");
 const setupProfileBack = byId("setup-profile-back");
 const setupPreferencesForm = byId("setup-preferences-form");
 const setupPrefBookingUpdates = byId("setup-pref-booking-updates");
@@ -291,24 +282,10 @@ const setupPrefMessageAlerts = byId("setup-pref-message-alerts");
 const setupPrefMarketingEmails = byId("setup-pref-marketing-emails");
 const setupPrefBrowserNotifications = byId("setup-pref-browser-notifications");
 const setupPreferencesBack = byId("setup-preferences-back");
-const setupArtistChoiceForm = byId("setup-artist-choice-form");
-const setupArtistChoiceNo = byId("setup-artist-choice-no");
-const setupArtistChoiceYes = byId("setup-artist-choice-yes");
-const setupArtistChoiceBack = byId("setup-artist-choice-back");
-const setupArtistForm = byId("setup-artist-form");
-const setupArtistCategory = byId("setup-artist-category");
-const setupArtistCategoryOptions = byId("setup-artist-category-options");
-const setupArtistMediums = byId("setup-artist-mediums");
-const setupArtistPrice = byId("setup-artist-price");
-const setupArtistAvailability = byId("setup-artist-availability");
-const setupArtistShowProfile = byId("setup-artist-show-profile");
-const setupArtistBack = byId("setup-artist-back");
 const setupReviewProfileTitle = byId("setup-review-profile-title");
 const setupReviewProfileCopy = byId("setup-review-profile-copy");
 const setupReviewPreferencesTitle = byId("setup-review-preferences-title");
 const setupReviewPreferencesCopy = byId("setup-review-preferences-copy");
-const setupReviewArtistTitle = byId("setup-review-artist-title");
-const setupReviewArtistCopy = byId("setup-review-artist-copy");
 const setupReviewBack = byId("setup-review-back");
 const setupFinish = byId("setup-finish");
 const settingsSectionButtons = Array.from(document.querySelectorAll("[data-settings-section-btn]"));
@@ -372,14 +349,32 @@ function getAccountSetup(session) {
   };
 }
 
-function getSetupSequence(setup) {
-  return setup?.artistOptIn
-    ? ["welcome", "profile", "preferences", "artist_prompt", "artist_profile", "review"]
-    : ["welcome", "profile", "preferences", "artist_prompt", "review"];
+const CATEGORIES = [
+  "Illustration", "Branding", "Photography", "Character Design",
+  "Motion Graphics", "UI Design", "Album Art", "Editorial",
+  "Graphic Design", "Animation", "3D Art", "Web Design",
+  "Typography", "Print Design", "Concept Art", "Fashion Design",
+  "Interior Design", "Architecture", "Video Production", "Copywriting",
+];
+
+function populateCategorySelect(selectEl, selectedValue = "") {
+  if (!selectEl) return;
+  selectEl.innerHTML = '<option value="">Select a category</option>';
+  for (const cat of CATEGORIES) {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    if (cat === selectedValue) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+
+function getSetupSequence() {
+  return ["welcome", "profile", "preferences", "review"];
 }
 
 function getCurrentSetupStep(setup) {
-  const sequence = getSetupSequence(setup);
+  const sequence = getSetupSequence();
   return sequence.includes(setup?.currentStep) ? setup.currentStep : sequence[0];
 }
 
@@ -406,7 +401,7 @@ function setElementDisabled(element, disabled) {
 function setSettingsInteractive(enabled) {
   const disabled = !enabled;
 
-  [accountName, accountCountry, accountCity, accountCityOther, accountBio].forEach((element) => setElementDisabled(element, disabled));
+  [accountName, accountCountry, accountCity, accountCityOther, accountCategory, accountRate].forEach((element) => setElementDisabled(element, disabled));
   [prefBookingUpdates, prefMessageAlerts, prefMarketingEmails].forEach((element) =>
     setElementDisabled(element, disabled),
   );
@@ -714,75 +709,6 @@ function renderBookings(context) {
   });
 }
 
-function renderArtistAccount(context) {
-  const artist = context.artist;
-
-  if (!artist) {
-    renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, context.db);
-    if (workspaceArtistMediums instanceof HTMLInputElement) {
-      workspaceArtistMediums.value = "";
-    }
-    if (workspaceArtistPrice instanceof HTMLInputElement) {
-      workspaceArtistPrice.value = "";
-    }
-    if (workspaceArtistAvailability instanceof HTMLSelectElement) {
-      workspaceArtistAvailability.value = "open";
-    }
-    if (workspaceArtistVisibilityLabel) {
-      workspaceArtistVisibilityLabel.textContent = "Studio unavailable";
-    }
-    if (workspaceArtistVisibilityCopy) {
-      workspaceArtistVisibilityCopy.textContent = "Re-sign in to connect your creator studio.";
-    }
-    if (workspaceArtistState) {
-      workspaceArtistState.dataset.visibility = "off";
-    }
-    if (workspaceArtistPreview instanceof HTMLAnchorElement) {
-      workspaceArtistPreview.href = "/artist-preview.html";
-    }
-    if (toggleArtistAccountBtn) {
-      toggleArtistAccountBtn.textContent = "Show profile";
-    }
-    return;
-  }
-
-  renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, context.db, artist.category || "");
-  const publishSummary = getArtistPublishSummary(artist);
-
-  if (workspaceArtistMediums instanceof HTMLInputElement) {
-    workspaceArtistMediums.value = Array.isArray(artist.mediums) ? artist.mediums.join(", ") : "";
-  }
-  if (workspaceArtistPrice instanceof HTMLInputElement) {
-    workspaceArtistPrice.value = artist.priceFrom ? String(artist.priceFrom) : "";
-  }
-  if (workspaceArtistAvailability instanceof HTMLSelectElement) {
-    workspaceArtistAvailability.value = artist.availability || "open";
-  }
-  if (workspaceArtistVisibilityLabel) {
-    workspaceArtistVisibilityLabel.textContent = publishSummary.publishState === "live"
-      ? "Studio is live"
-      : publishSummary.publishState === "ready"
-        ? "Studio is ready"
-        : "Studio draft";
-  }
-  if (workspaceArtistVisibilityCopy) {
-    workspaceArtistVisibilityCopy.textContent = publishSummary.publishState === "live"
-      ? "Clients can find your profile in Explore and send briefs from your public page."
-      : publishSummary.publishState === "ready"
-        ? "Your saved profile is ready to publish. Choose Show profile to make it visible in Explore."
-        : `Complete ${publishSummary.publishMissingFields.join(", ")} before publishing your profile.`;
-  }
-  if (workspaceArtistState) {
-    workspaceArtistState.dataset.visibility = publishSummary.publishState;
-  }
-  if (workspaceArtistPreview instanceof HTMLAnchorElement) {
-    workspaceArtistPreview.href = `/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
-  }
-  if (toggleArtistAccountBtn) {
-    toggleArtistAccountBtn.textContent = artistVisibilityButtonLabel(artist);
-  }
-}
-
 function renderMessageOptions(context, relatedBookings) {
   clearNode(workspaceMessageBooking);
   if (!workspaceMessageBooking) {
@@ -907,9 +833,8 @@ function renderAccountPanels(session) {
     if (accountCountry) accountCountry.value = "";
     populateCitySelect(accountCity, accountCityOther, "");
     if (accountCityOther) { accountCityOther.value = ""; accountCityOther.hidden = true; }
-    if (accountBio instanceof HTMLTextAreaElement) {
-      accountBio.value = "";
-    }
+    populateCategorySelect(accountCategory);
+    if (accountRate instanceof HTMLSelectElement) accountRate.value = "0";
     if (prefBookingUpdates instanceof HTMLInputElement) {
       prefBookingUpdates.checked = DEFAULT_ACCOUNT_PREFERENCES.bookingUpdates;
     }
@@ -922,7 +847,6 @@ function renderAccountPanels(session) {
     writeText(statSavedArtists, 0);
     writeText(statUserBookings, 0);
     writeText(statArtistBookings, 0);
-    writeText(statArtistProfile, "Off");
     writeText(statUnreadUpdates, 0);
     clearNode(workspaceSavedArtists);
     clearNode(workspaceBookingsList);
@@ -933,25 +857,6 @@ function renderAccountPanels(session) {
     setCollectionEmptyState(workspaceBookingsList, workspaceBookingsEmpty, true, "No bookings yet.");
     setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, true, "No messages yet.");
     setCollectionEmptyState(workspaceNotificationsList, workspaceNotificationsEmpty, true, "No notifications yet.");
-    renderCategoryOptions(workspaceArtistCategory, workspaceArtistCategoryOptions, getDB());
-    if (workspaceArtistMediums instanceof HTMLInputElement) {
-      workspaceArtistMediums.value = "";
-    }
-    if (workspaceArtistPrice instanceof HTMLInputElement) {
-      workspaceArtistPrice.value = "";
-    }
-    if (workspaceArtistAvailability instanceof HTMLSelectElement) {
-      workspaceArtistAvailability.value = "open";
-    }
-    if (workspaceArtistVisibilityLabel) {
-      workspaceArtistVisibilityLabel.textContent = "Studio unavailable";
-    }
-    if (workspaceArtistVisibilityCopy) {
-      workspaceArtistVisibilityCopy.textContent = "Sign in to manage your creator studio.";
-    }
-    if (workspaceArtistState) {
-      workspaceArtistState.dataset.visibility = "off";
-    }
     if (workspaceArtistPreview instanceof HTMLAnchorElement) {
       workspaceArtistPreview.href = "/artist-preview.html";
     }
@@ -972,8 +877,15 @@ function renderAccountPanels(session) {
 
   setLocationFields(accountCountry, accountCity, accountCityOther, user?.location || "");
 
-  if (accountBio instanceof HTMLTextAreaElement) {
-    accountBio.value = user?.bio || "";
+  populateCategorySelect(accountCategory, artist?.category || "");
+  if (accountRate instanceof HTMLSelectElement) {
+    const priceFrom = String(artist?.priceFrom || "0");
+    accountRate.value = [...accountRate.options].find((o) => o.value === priceFrom) ? priceFrom : "0";
+  }
+  if (workspaceArtistPreview instanceof HTMLAnchorElement) {
+    workspaceArtistPreview.href = artist?.id
+      ? `/artist-preview.html?id=${encodeURIComponent(artist.id)}`
+      : "/artist-preview.html";
   }
 
   if (prefBookingUpdates instanceof HTMLInputElement) {
@@ -996,8 +908,6 @@ function renderAccountPanels(session) {
   writeText(statUserBookings, userBookings.length);
   writeText(statArtistBookings, artistBookings.length);
 
-  writeText(statArtistProfile, artistProfileStatus(artist));
-
   const unreadCount = db.notifications.filter(
     (notification) =>
       !notification.read &&
@@ -1008,7 +918,6 @@ function renderAccountPanels(session) {
 
   renderSavedArtists(context);
   renderBookings(context);
-  renderArtistAccount(context);
   const messageBookings = Array.from(
     new Map([...userBookings, ...artistBookings].map((booking) => [booking.id, booking])).values(),
   );
@@ -1022,8 +931,6 @@ function setupStepLabel(step) {
     welcome: "Welcome",
     profile: "Your details",
     preferences: "Updates and alerts",
-    artist_prompt: "Creator studio",
-    artist_profile: "Studio details",
     review: "Review and finish",
     done: "Account ready",
   };
@@ -1049,7 +956,7 @@ function renderSetup(context) {
   const session = context.session;
   const setup = getAccountSetup(session);
   const currentStep = getCurrentSetupStep(setup);
-  const sequence = getSetupSequence(setup);
+  const sequence = getSetupSequence();
   const currentIndex = Math.max(0, sequence.indexOf(currentStep));
   const progress = ((currentIndex + 1) / sequence.length) * 100;
   const preferences = getAccountPreferences(session);
@@ -1075,8 +982,10 @@ function renderSetup(context) {
     setupName.value = user?.name || fallbackName;
   }
   setLocationFields(setupCountry, setupCity, setupCityOther, user?.location || "");
-  if (setupBio instanceof HTMLTextAreaElement) {
-    setupBio.value = user?.bio || "";
+  populateCategorySelect(setupCategory, artist?.category || "");
+  if (setupRate instanceof HTMLSelectElement) {
+    const priceFrom = String(artist?.priceFrom || "0");
+    setupRate.value = [...setupRate.options].find((o) => o.value === priceFrom) ? priceFrom : "0";
   }
 
   if (setupPrefBookingUpdates instanceof HTMLInputElement) {
@@ -1092,37 +1001,12 @@ function renderSetup(context) {
     setupPrefBrowserNotifications.checked = Boolean(preferences.browserNotifications);
   }
 
-  if (setupArtistChoiceYes instanceof HTMLInputElement && setupArtistChoiceNo instanceof HTMLInputElement) {
-    setupArtistChoiceYes.checked = Boolean(setup.artistOptIn);
-    setupArtistChoiceNo.checked = !Boolean(setup.artistOptIn);
-  }
-
-  renderCategoryOptions(setupArtistCategory, setupArtistCategoryOptions, context.db, artist?.category || "");
-  if (setupArtistMediums instanceof HTMLInputElement) {
-    setupArtistMediums.value = Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : "";
-  }
-  if (setupArtistPrice instanceof HTMLInputElement) {
-    setupArtistPrice.value = artist?.priceFrom ? String(artist.priceFrom) : "";
-  }
-  if (setupArtistAvailability instanceof HTMLSelectElement) {
-    setupArtistAvailability.value = artist?.availability || "open";
-  }
-  if (setupArtistShowProfile instanceof HTMLInputElement) {
-    const hasSavedArtistSetup = Boolean(
-      artist?.category
-        || artist?.location
-        || artist?.bio
-        || Number(artist?.priceFrom || 0) > 0
-        || artist?.mediums?.length,
-    );
-    setupArtistShowProfile.checked = hasSavedArtistSetup ? Boolean(artist?.profileVisible) : true;
-  }
-
   if (setupReviewProfileTitle) {
     setupReviewProfileTitle.textContent = user?.name || fallbackName;
   }
   if (setupReviewProfileCopy) {
-    setupReviewProfileCopy.textContent = [user?.location || null, user?.bio || null].filter(Boolean).join(" · ") || "Basic account details ready.";
+    const parts = [user?.location || null, artist?.category || null];
+    setupReviewProfileCopy.textContent = parts.filter(Boolean).join(" · ") || "Basic details saved.";
   }
   if (setupReviewPreferencesTitle) {
     const enabledCount = [
@@ -1141,26 +1025,6 @@ function renderSetup(context) {
       preferences.browserNotifications ? "Browser alerts" : null,
     ].filter(Boolean);
     setupReviewPreferencesCopy.textContent = labels.join(", ") || "No optional alerts enabled.";
-  }
-  if (setupReviewArtistTitle) {
-    const publishSummary = getArtistPublishSummary(artist);
-    setupReviewArtistTitle.textContent = setup.artistOptIn
-      ? publishSummary.publishState === "live"
-        ? "Live profile"
-        : publishSummary.publishState === "ready"
-          ? "Ready to publish"
-          : "Draft profile"
-      : "Not enabled";
-  }
-  if (setupReviewArtistCopy) {
-    const publishSummary = getArtistPublishSummary(artist);
-    setupReviewArtistCopy.textContent = setup.artistOptIn
-      ? publishSummary.publishState === "draft"
-        ? `Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
-        : [artist?.category || null, Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : null]
-            .filter(Boolean)
-            .join(" · ") || "Studio basics saved."
-      : "You can add a creator studio later from settings.";
   }
 }
 
@@ -1511,7 +1375,8 @@ setupProfileForm?.addEventListener("submit", async (event) => {
 
   const name = String(setupName?.value || "").trim();
   const location = getLocationFromFields(setupCountry, setupCity, setupCityOther);
-  const bio = String(setupBio?.value || "").trim();
+  const category = setupCategory?.value || "";
+  const priceFrom = Number(setupRate?.value || 0);
 
   if (!name) {
     showToast("Name is required.", "warning");
@@ -1522,9 +1387,16 @@ setupProfileForm?.addEventListener("submit", async (event) => {
     await updateUserProfile(context.user.id, {
       name,
       location,
-      bio,
       profileCompleted: true,
     });
+    const artist = ensureArtistForCognito({ sub: context.session.cognitoSub, email: context.session.cognitoEmail, username: context.session.cognitoUsername });
+    if (artist?.id) {
+      await updateArtistProfile(artist.id, {
+        category,
+        priceFrom,
+        profileVisible: Boolean(category),
+      });
+    }
     await hydratePrivateDB();
     syncSessionFromExisting();
   } catch (error) {
@@ -1576,7 +1448,7 @@ setupPreferencesForm?.addEventListener("submit", async (event) => {
   }
 });
 
-setupArtistChoiceBack?.addEventListener("click", async () => {
+setupReviewBack?.addEventListener("click", async () => {
   const context = getSignedInWizardContext();
   if (!context?.user?.id) {
     return;
@@ -1586,117 +1458,6 @@ setupArtistChoiceBack?.addEventListener("click", async () => {
     await updateUserSetup(context.user.id, {
       status: "in_progress",
       currentStep: "preferences",
-    });
-    syncSessionFromExisting();
-  } catch (error) {
-    showToast(error?.message || "Could not return to the previous step.", "danger");
-  }
-});
-
-setupArtistChoiceForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const context = getSignedInWizardContext();
-  if (!context?.user?.id) {
-    showToast("Sign in to continue setup.", "warning");
-    return;
-  }
-
-  const artistOptIn = Boolean(setupArtistChoiceYes?.checked);
-  if (!artistOptIn && !setupArtistChoiceNo?.checked) {
-    showToast("Choose whether to set up a creator studio now.", "warning");
-    return;
-  }
-
-  try {
-    await updateUserSetup(context.user.id, {
-      status: "in_progress",
-      currentStep: artistOptIn ? "artist_profile" : "review",
-      artistOptIn,
-    });
-    syncSessionFromExisting();
-  } catch (error) {
-    showToast(error?.message || "Could not save that choice.", "danger");
-  }
-});
-
-setupArtistBack?.addEventListener("click", async () => {
-  const context = getSignedInWizardContext();
-  if (!context?.user?.id) {
-    return;
-  }
-
-  try {
-    await updateUserSetup(context.user.id, {
-      status: "in_progress",
-      currentStep: "artist_prompt",
-      artistOptIn: true,
-    });
-    syncSessionFromExisting();
-  } catch (error) {
-    showToast(error?.message || "Could not return to the previous step.", "danger");
-  }
-});
-
-setupArtistForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const context = getSignedInWizardContext();
-  if (!context?.artist?.id || !context?.user?.id) {
-    showToast("Sign in to continue setup.", "warning");
-    return;
-  }
-
-  const category = String(setupArtistCategory?.value || "").trim();
-  const mediums = parseMediumsInput(setupArtistMediums?.value || "");
-  const priceFrom = Math.max(0, Number(setupArtistPrice?.value || 0));
-  const availability = String(setupArtistAvailability?.value || "open").trim() || "open";
-
-  if (!category) {
-    showToast("What you do is required.", "warning");
-    return;
-  }
-  if (!mediums.length) {
-    showToast("Add at least one medium.", "warning");
-    return;
-  }
-  if (!priceFrom) {
-    showToast("Starting budget must be greater than 0.", "warning");
-    return;
-  }
-
-  try {
-    await updateArtistProfile(context.artist.id, {
-      category,
-      mediums,
-      priceFrom,
-      availability,
-      profileVisible: Boolean(setupArtistShowProfile?.checked),
-    });
-    await updateUserSetup(context.user.id, {
-      status: "in_progress",
-      currentStep: "review",
-      artistOptIn: true,
-    });
-    await hydratePrivateDB();
-    syncSessionFromExisting();
-  } catch (error) {
-    showToast(error?.message || "Could not save artist details.", "danger");
-  }
-});
-
-setupReviewBack?.addEventListener("click", async () => {
-  const context = getSignedInWizardContext();
-  if (!context?.user?.id) {
-    return;
-  }
-
-  const setup = getAccountSetup(getSession());
-  try {
-    await updateUserSetup(context.user.id, {
-      status: "in_progress",
-      currentStep: setup.artistOptIn ? "artist_profile" : "artist_prompt",
-      artistOptIn: Boolean(setup.artistOptIn),
     });
     syncSessionFromExisting();
   } catch (error) {
@@ -1915,7 +1676,8 @@ accountProfileForm?.addEventListener("submit", async (event) => {
 
   const name = (accountName?.value || "").trim();
   const location = getLocationFromFields(accountCountry, accountCity, accountCityOther);
-  const bio = (accountBio?.value || "").trim();
+  const category = accountCategory?.value || "";
+  const priceFrom = Number(accountRate?.value || 0);
 
   if (!name) {
     showToast("Display name is required.", "warning");
@@ -1927,8 +1689,15 @@ accountProfileForm?.addEventListener("submit", async (event) => {
       await updateUserProfile(context.user.id, {
         name,
         location,
-        bio,
         profileCompleted: true,
+      });
+    }
+    const artist = ensureArtistForCognito({ sub: context.session.cognitoSub, email: context.session.cognitoEmail, username: context.session.cognitoUsername });
+    if (artist?.id) {
+      await updateArtistProfile(artist.id, {
+        category,
+        priceFrom,
+        profileVisible: Boolean(category),
       });
     }
 
@@ -2075,64 +1844,6 @@ workspaceRefreshBtn?.addEventListener("click", async () => {
   await hydratePrivateDB();
   syncSessionFromExisting();
   showToast("Workspace refreshed.", "success");
-});
-
-workspaceArtistForm?.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const context = signedInContext(ensureLinkedProfiles(getSession()));
-  if (!context?.artist?.id) {
-    showToast("Sign in to manage your creator studio.", "warning");
-    return;
-  }
-
-  const category = String(workspaceArtistCategory?.value || "").trim();
-  const mediums = parseMediumsInput(workspaceArtistMediums?.value || "");
-  const priceFrom = Math.max(0, Number(workspaceArtistPrice?.value || 0));
-  const availability = String(workspaceArtistAvailability?.value || "open").trim() || "open";
-
-  try {
-    const remote = await updateArtistProfile(context.artist.id, {
-      category,
-      mediums,
-      priceFrom,
-      availability,
-    });
-
-    await hydratePrivateDB();
-    syncSessionFromExisting();
-    const publishSummary = getArtistPublishSummary(remote || context.artist);
-    showToast(
-      publishSummary.publishState === "draft"
-        ? `Draft saved. Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
-        : publishSummary.publishState === "ready"
-          ? "Studio saved and ready to publish."
-          : "Studio updated.",
-      "success",
-    );
-  } catch (error) {
-    showToast(error?.message || "Studio update failed.", "danger");
-  }
-});
-
-toggleArtistAccountBtn?.addEventListener("click", async () => {
-  const context = signedInContext(ensureLinkedProfiles(getSession()));
-  if (!context?.artist?.id) {
-    showToast("Sign in to manage your creator studio.", "warning");
-    return;
-  }
-
-  try {
-    const nextVisible = !Boolean(context.artist.profileVisible);
-    await updateArtistProfile(context.artist.id, {
-      profileVisible: nextVisible,
-    });
-    await hydratePrivateDB();
-    syncSessionFromExisting();
-    showToast(nextVisible ? "Studio is now live." : "Studio has been turned off.", "success");
-  } catch (error) {
-    showToast(error?.message || "Could not update artist visibility.", "danger");
-  }
 });
 
 workspaceMessageForm?.addEventListener("submit", async (event) => {
