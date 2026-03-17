@@ -35,63 +35,65 @@ initSharedPage();
 await hydrateDB();
 
 // ---------------------------------------------------------------------------
-// Location: country list + helpers
+// Location: country + city dropdowns
 // ---------------------------------------------------------------------------
 
-const COUNTRIES = [
-  "Australia",
-  "New Zealand",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Ireland",
-  "South Africa",
-  "India",
-  "Philippines",
-  "Singapore",
-  "Japan",
-  "South Korea",
-  "China",
-  "Germany",
-  "France",
-  "Italy",
-  "Spain",
-  "Netherlands",
-  "Sweden",
-  "Norway",
-  "Denmark",
-  "Finland",
-  "Brazil",
-  "Mexico",
-  "Argentina",
-  "Colombia",
-  "Chile",
-  "Indonesia",
-  "Thailand",
-  "Vietnam",
-  "Malaysia",
-  "United Arab Emirates",
-  "Saudi Arabia",
-  "Israel",
-  "Egypt",
-  "Nigeria",
-  "Kenya",
-  "Poland",
-  "Portugal",
-  "Switzerland",
-  "Austria",
-  "Belgium",
-  "Czech Republic",
-  "Romania",
-  "Greece",
-  "Turkey",
-  "Russia",
-  "Ukraine",
-  "Pakistan",
-  "Bangladesh",
-  "Taiwan",
-  "Hong Kong",
-];
+const CITIES_BY_COUNTRY = {
+  "Australia": ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Canberra", "Gold Coast", "Newcastle", "Hobart", "Darwin"],
+  "New Zealand": ["Auckland", "Wellington", "Christchurch", "Hamilton", "Dunedin", "Tauranga"],
+  "United States": ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia", "San Antonio", "San Diego", "Dallas", "San Jose", "Austin", "Seattle", "Denver", "Boston", "Miami", "Portland", "Las Vegas", "Nashville", "Atlanta", "Minneapolis"],
+  "United Kingdom": ["London", "Manchester", "Birmingham", "Leeds", "Glasgow", "Edinburgh", "Liverpool", "Bristol", "Sheffield", "Cardiff", "Belfast"],
+  "Canada": ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Winnipeg", "Quebec City", "Halifax"],
+  "Ireland": ["Dublin", "Cork", "Galway", "Limerick", "Waterford"],
+  "South Africa": ["Cape Town", "Johannesburg", "Durban", "Pretoria", "Port Elizabeth"],
+  "India": ["Mumbai", "Delhi", "Bangalore", "Chennai", "Hyderabad", "Kolkata", "Pune", "Ahmedabad", "Jaipur", "Surat"],
+  "Philippines": ["Manila", "Quezon City", "Cebu City", "Davao", "Makati", "Pasig", "Taguig"],
+  "Singapore": ["Singapore"],
+  "Japan": ["Tokyo", "Osaka", "Yokohama", "Nagoya", "Kyoto", "Fukuoka", "Sapporo", "Kobe"],
+  "South Korea": ["Seoul", "Busan", "Incheon", "Daegu", "Daejeon", "Gwangju"],
+  "China": ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Hangzhou", "Xi'an", "Wuhan", "Nanjing", "Chongqing"],
+  "Germany": ["Berlin", "Hamburg", "Munich", "Cologne", "Frankfurt", "Stuttgart", "Düsseldorf", "Leipzig"],
+  "France": ["Paris", "Lyon", "Marseille", "Toulouse", "Nice", "Bordeaux", "Nantes", "Strasbourg"],
+  "Italy": ["Rome", "Milan", "Naples", "Turin", "Palermo", "Bologna", "Florence", "Venice"],
+  "Spain": ["Madrid", "Barcelona", "Valencia", "Seville", "Zaragoza", "Málaga", "Bilbao"],
+  "Netherlands": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven"],
+  "Sweden": ["Stockholm", "Gothenburg", "Malmö", "Uppsala"],
+  "Norway": ["Oslo", "Bergen", "Trondheim", "Stavanger"],
+  "Denmark": ["Copenhagen", "Aarhus", "Odense"],
+  "Finland": ["Helsinki", "Tampere", "Turku", "Espoo"],
+  "Brazil": ["São Paulo", "Rio de Janeiro", "Brasília", "Salvador", "Fortaleza", "Belo Horizonte", "Manaus", "Curitiba"],
+  "Mexico": ["Mexico City", "Guadalajara", "Monterrey", "Puebla", "Tijuana", "León"],
+  "Argentina": ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "La Plata"],
+  "Colombia": ["Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena"],
+  "Chile": ["Santiago", "Valparaíso", "Concepción", "Antofagasta"],
+  "Indonesia": ["Jakarta", "Surabaya", "Bandung", "Bekasi", "Medan", "Bali"],
+  "Thailand": ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Nonthaburi"],
+  "Vietnam": ["Ho Chi Minh City", "Hanoi", "Da Nang", "Hai Phong"],
+  "Malaysia": ["Kuala Lumpur", "George Town", "Johor Bahru", "Ipoh", "Kota Kinabalu"],
+  "United Arab Emirates": ["Dubai", "Abu Dhabi", "Sharjah", "Ajman"],
+  "Saudi Arabia": ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam"],
+  "Israel": ["Tel Aviv", "Jerusalem", "Haifa", "Rishon LeZion"],
+  "Egypt": ["Cairo", "Alexandria", "Giza", "Luxor"],
+  "Nigeria": ["Lagos", "Kano", "Ibadan", "Abuja", "Benin City"],
+  "Kenya": ["Nairobi", "Mombasa", "Kisumu", "Nakuru"],
+  "Poland": ["Warsaw", "Kraków", "Łódź", "Wrocław", "Poznań"],
+  "Portugal": ["Lisbon", "Porto", "Braga", "Coimbra", "Faro"],
+  "Switzerland": ["Zurich", "Geneva", "Basel", "Bern", "Lausanne"],
+  "Austria": ["Vienna", "Graz", "Linz", "Salzburg"],
+  "Belgium": ["Brussels", "Antwerp", "Ghent", "Bruges"],
+  "Czech Republic": ["Prague", "Brno", "Ostrava", "Pilsen"],
+  "Romania": ["Bucharest", "Cluj-Napoca", "Timișoara", "Iași"],
+  "Greece": ["Athens", "Thessaloniki", "Patras", "Heraklion"],
+  "Turkey": ["Istanbul", "Ankara", "Izmir", "Bursa", "Antalya"],
+  "Russia": ["Moscow", "Saint Petersburg", "Novosibirsk", "Yekaterinburg", "Kazan"],
+  "Ukraine": ["Kyiv", "Kharkiv", "Odesa", "Dnipro", "Lviv"],
+  "Pakistan": ["Karachi", "Lahore", "Faisalabad", "Rawalpindi", "Islamabad"],
+  "Bangladesh": ["Dhaka", "Chittagong", "Sylhet", "Rajshahi"],
+  "Taiwan": ["Taipei", "Taichung", "Kaohsiung", "Tainan"],
+  "Hong Kong": ["Hong Kong", "Kowloon", "Sha Tin", "Tuen Mun"],
+};
+
+const COUNTRIES = Object.keys(CITIES_BY_COUNTRY);
 
 function populateCountrySelect(selectEl) {
   if (!selectEl) return;
@@ -112,38 +114,80 @@ function populateCountrySelect(selectEl) {
   selectEl.appendChild(other);
 }
 
+function populateCitySelect(citySelectEl, cityOtherEl, country) {
+  if (!citySelectEl) return;
+  citySelectEl.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = country ? "Select city" : "Select country first";
+  citySelectEl.appendChild(blank);
+  const cities = CITIES_BY_COUNTRY[country] || [];
+  for (const c of cities) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    citySelectEl.appendChild(opt);
+  }
+  const other = document.createElement("option");
+  other.value = "__other__";
+  other.textContent = "Other city…";
+  citySelectEl.appendChild(other);
+  if (cityOtherEl) cityOtherEl.hidden = true;
+}
+
+function onCitySelectChange(citySelectEl, cityOtherEl) {
+  if (!citySelectEl || !cityOtherEl) return;
+  const isOther = citySelectEl.value === "__other__";
+  cityOtherEl.hidden = !isOther;
+  if (isOther) {
+    cityOtherEl.value = "";
+    cityOtherEl.focus();
+  }
+}
+
 function parseLocation(location) {
   const raw = String(location || "").trim();
   if (!raw) return { city: "", country: "" };
   const lastComma = raw.lastIndexOf(",");
   if (lastComma === -1) return { city: raw, country: "" };
-  const city = raw.slice(0, lastComma).trim();
-  const country = raw.slice(lastComma + 1).trim();
-  return { city, country };
+  return { city: raw.slice(0, lastComma).trim(), country: raw.slice(lastComma + 1).trim() };
 }
 
-function setLocationFields(countryEl, cityEl, location) {
+function setLocationFields(countryEl, citySelectEl, cityOtherEl, location) {
   const { city, country } = parseLocation(location);
-  if (cityEl) cityEl.value = city;
-  if (countryEl) {
-    const match = [...countryEl.options].find((o) => o.value === country);
-    if (match) {
-      countryEl.value = country;
-    } else if (country) {
-      countryEl.value = "__other__";
-      if (cityEl) cityEl.value = city ? `${city} (${country})` : country;
-    } else {
-      countryEl.value = "";
+  const knownCountry = COUNTRIES.includes(country) ? country : "";
+  if (countryEl) countryEl.value = knownCountry || (country ? "__other__" : "");
+  populateCitySelect(citySelectEl, cityOtherEl, knownCountry);
+  if (citySelectEl) {
+    const knownCity = (CITIES_BY_COUNTRY[knownCountry] || []).includes(city) ? city : (city ? "__other__" : "");
+    citySelectEl.value = knownCity;
+    if (knownCity === "__other__" && cityOtherEl) {
+      cityOtherEl.hidden = false;
+      cityOtherEl.value = city;
     }
   }
 }
 
-function getLocationFromFields(countryEl, cityEl) {
-  const country = countryEl?.value === "__other__" ? "" : (countryEl?.value || "").trim();
-  const city = (cityEl?.value || "").trim();
+function getCityFromFields(citySelectEl, cityOtherEl) {
+  if (!citySelectEl) return "";
+  if (citySelectEl.value === "__other__") return (cityOtherEl?.value || "").trim();
+  return citySelectEl.value === "" ? "" : citySelectEl.value;
+}
+
+function getLocationFromFields(countryEl, citySelectEl, cityOtherEl) {
+  const country = (!countryEl || countryEl.value === "__other__" || countryEl.value === "") ? "" : countryEl.value;
+  const city = getCityFromFields(citySelectEl, cityOtherEl);
   if (city && country) return `${city}, ${country}`;
   if (country) return country;
   return city;
+}
+
+function wireLocationSelects(countryEl, citySelectEl, cityOtherEl) {
+  if (!countryEl || !citySelectEl) return;
+  countryEl.addEventListener("change", () => {
+    populateCitySelect(citySelectEl, cityOtherEl, countryEl.value === "__other__" ? "" : countryEl.value);
+  });
+  citySelectEl.addEventListener("change", () => onCitySelectChange(citySelectEl, cityOtherEl));
 }
 
 const authStatus = byId("auth-status");
@@ -185,6 +229,7 @@ const accountProfileForm = byId("account-profile-form");
 const accountName = byId("account-name");
 const accountCountry = byId("account-country");
 const accountCity = byId("account-city");
+const accountCityOther = byId("account-city-other");
 const accountBio = byId("account-bio");
 
 const accountPreferencesForm = byId("account-preferences-form");
@@ -237,6 +282,7 @@ const setupProfileForm = byId("setup-profile-form");
 const setupName = byId("setup-name");
 const setupCountry = byId("setup-country");
 const setupCity = byId("setup-city");
+const setupCityOther = byId("setup-city-other");
 const setupBio = byId("setup-bio");
 const setupProfileBack = byId("setup-profile-back");
 const setupPreferencesForm = byId("setup-preferences-form");
@@ -273,7 +319,12 @@ const setupSteps = Array.from(document.querySelectorAll("[data-setup-step]"));
 const views = Array.from(document.querySelectorAll("[data-auth-view]"));
 
 populateCountrySelect(setupCountry);
+populateCitySelect(setupCity, setupCityOther, "");
+wireLocationSelects(setupCountry, setupCity, setupCityOther);
+
 populateCountrySelect(accountCountry);
+populateCitySelect(accountCity, accountCityOther, "");
+wireLocationSelects(accountCountry, accountCity, accountCityOther);
 
 let currentView = "login";
 let activeSettingsSection = "overview";
@@ -355,7 +406,7 @@ function setElementDisabled(element, disabled) {
 function setSettingsInteractive(enabled) {
   const disabled = !enabled;
 
-  [accountName, accountCountry, accountCity, accountBio].forEach((element) => setElementDisabled(element, disabled));
+  [accountName, accountCountry, accountCity, accountCityOther, accountBio].forEach((element) => setElementDisabled(element, disabled));
   [prefBookingUpdates, prefMessageAlerts, prefMarketingEmails].forEach((element) =>
     setElementDisabled(element, disabled),
   );
@@ -854,7 +905,8 @@ function renderAccountPanels(session) {
       accountName.value = "";
     }
     if (accountCountry) accountCountry.value = "";
-    if (accountCity instanceof HTMLInputElement) accountCity.value = "";
+    populateCitySelect(accountCity, accountCityOther, "");
+    if (accountCityOther) { accountCityOther.value = ""; accountCityOther.hidden = true; }
     if (accountBio instanceof HTMLTextAreaElement) {
       accountBio.value = "";
     }
@@ -918,7 +970,7 @@ function renderAccountPanels(session) {
     accountName.value = user?.name || fallbackName;
   }
 
-  setLocationFields(accountCountry, accountCity, user?.location || "");
+  setLocationFields(accountCountry, accountCity, accountCityOther, user?.location || "");
 
   if (accountBio instanceof HTMLTextAreaElement) {
     accountBio.value = user?.bio || "";
@@ -1022,7 +1074,7 @@ function renderSetup(context) {
   if (setupName instanceof HTMLInputElement) {
     setupName.value = user?.name || fallbackName;
   }
-  setLocationFields(setupCountry, setupCity, user?.location || "");
+  setLocationFields(setupCountry, setupCity, setupCityOther, user?.location || "");
   if (setupBio instanceof HTMLTextAreaElement) {
     setupBio.value = user?.bio || "";
   }
@@ -1458,7 +1510,7 @@ setupProfileForm?.addEventListener("submit", async (event) => {
   }
 
   const name = String(setupName?.value || "").trim();
-  const location = getLocationFromFields(setupCountry, setupCity);
+  const location = getLocationFromFields(setupCountry, setupCity, setupCityOther);
   const bio = String(setupBio?.value || "").trim();
 
   if (!name) {
@@ -1862,7 +1914,7 @@ accountProfileForm?.addEventListener("submit", async (event) => {
   }
 
   const name = (accountName?.value || "").trim();
-  const location = getLocationFromFields(accountCountry, accountCity);
+  const location = getLocationFromFields(accountCountry, accountCity, accountCityOther);
   const bio = (accountBio?.value || "").trim();
 
   if (!name) {
