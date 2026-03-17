@@ -185,7 +185,7 @@ function redirectToAuth(nextPath = window.location.pathname + window.location.se
 
 function renderUnavailableProfile(title, message) {
   if (artistStatusLabel) {
-    artistStatusLabel.textContent = "Artist profile";
+    artistStatusLabel.textContent = "Creator studio";
   }
 
   if (artistName) {
@@ -205,7 +205,7 @@ function renderUnavailableProfile(title, message) {
 
   if (artistMeta) {
     const text = document.createElement("span");
-    text.textContent = "Open account settings to publish or update an artist profile.";
+    text.textContent = "Open account settings to publish or update your creator studio.";
     artistMeta.replaceChildren(text);
   }
 
@@ -237,7 +237,7 @@ function renderArtistDetails() {
   if (!artist) {
     renderUnavailableProfile(
       "No artist selected",
-      "No artist profile is currently available. Turn on an artist account from account settings to publish one.",
+      "No creator studio is currently available. Turn on a studio from account settings to publish one.",
     );
     return;
   }
@@ -249,7 +249,7 @@ function renderArtistDetails() {
         ? publishSummary.publishState === "ready"
           ? "Profile ready to publish"
           : "Profile draft"
-        : "Artist profile unavailable",
+        : "Creator studio unavailable",
       viewerOwnsArtistProfile()
         ? publishSummary.publishState === "ready"
           ? "This profile is saved and ready. Use Show profile in account settings to make it visible in Explore and booking."
@@ -263,7 +263,7 @@ function renderArtistDetails() {
     if (!profileIsPublic()) {
       artistStatusLabel.textContent = "Artist account off";
     } else {
-      artistStatusLabel.textContent = artist.verified ? "Verified artist profile" : "Artist profile";
+      artistStatusLabel.textContent = artist.verified ? "Verified creator studio" : "Creator studio";
     }
   }
 
@@ -514,12 +514,12 @@ function renderArtistDetails() {
 
 saveArtistBtn?.addEventListener("click", async () => {
   if (!artist || !profileIsPublic()) {
-    showToast("This artist profile is not available to save right now.", "warning");
+    showToast("This creator studio is not available to save right now.", "warning");
     return;
   }
 
   if (viewerOwnsArtistProfile()) {
-    showToast("You cannot save your own artist profile.", "warning");
+    showToast("You cannot save your own studio.", "warning");
     return;
   }
 
@@ -583,12 +583,12 @@ contactArtistBtn?.addEventListener("click", async () => {
 
 openBookingBtn?.addEventListener("click", () => {
   if (!artist || !profileIsPublic()) {
-    showToast("This artist profile is not currently open for booking.", "warning");
+    showToast("This creator is not currently open for booking.", "warning");
     return;
   }
 
   if (viewerOwnsArtistProfile()) {
-    showToast("You cannot book your own artist profile.", "warning");
+    showToast("You cannot book your own studio.", "warning");
     return;
   }
 
@@ -630,12 +630,12 @@ bookingForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!artist || !profileIsPublic()) {
-    showToast("This artist profile is not currently available for booking.", "warning");
+    showToast("This creator is not currently available for booking.", "warning");
     return;
   }
 
   if (viewerOwnsArtistProfile()) {
-    showToast("You cannot book your own artist profile.", "warning");
+    showToast("You cannot book your own studio.", "warning");
     return;
   }
 

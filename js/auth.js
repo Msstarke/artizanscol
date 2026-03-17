@@ -34,6 +34,118 @@ import { byId, showToast } from "./utils.js";
 initSharedPage();
 await hydrateDB();
 
+// ---------------------------------------------------------------------------
+// Location: country list + helpers
+// ---------------------------------------------------------------------------
+
+const COUNTRIES = [
+  "Australia",
+  "New Zealand",
+  "United States",
+  "United Kingdom",
+  "Canada",
+  "Ireland",
+  "South Africa",
+  "India",
+  "Philippines",
+  "Singapore",
+  "Japan",
+  "South Korea",
+  "China",
+  "Germany",
+  "France",
+  "Italy",
+  "Spain",
+  "Netherlands",
+  "Sweden",
+  "Norway",
+  "Denmark",
+  "Finland",
+  "Brazil",
+  "Mexico",
+  "Argentina",
+  "Colombia",
+  "Chile",
+  "Indonesia",
+  "Thailand",
+  "Vietnam",
+  "Malaysia",
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Israel",
+  "Egypt",
+  "Nigeria",
+  "Kenya",
+  "Poland",
+  "Portugal",
+  "Switzerland",
+  "Austria",
+  "Belgium",
+  "Czech Republic",
+  "Romania",
+  "Greece",
+  "Turkey",
+  "Russia",
+  "Ukraine",
+  "Pakistan",
+  "Bangladesh",
+  "Taiwan",
+  "Hong Kong",
+];
+
+function populateCountrySelect(selectEl) {
+  if (!selectEl) return;
+  selectEl.innerHTML = "";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "Select country";
+  selectEl.appendChild(blank);
+  for (const c of COUNTRIES) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    selectEl.appendChild(opt);
+  }
+  const other = document.createElement("option");
+  other.value = "__other__";
+  other.textContent = "Other…";
+  selectEl.appendChild(other);
+}
+
+function parseLocation(location) {
+  const raw = String(location || "").trim();
+  if (!raw) return { city: "", country: "" };
+  const lastComma = raw.lastIndexOf(",");
+  if (lastComma === -1) return { city: raw, country: "" };
+  const city = raw.slice(0, lastComma).trim();
+  const country = raw.slice(lastComma + 1).trim();
+  return { city, country };
+}
+
+function setLocationFields(countryEl, cityEl, location) {
+  const { city, country } = parseLocation(location);
+  if (cityEl) cityEl.value = city;
+  if (countryEl) {
+    const match = [...countryEl.options].find((o) => o.value === country);
+    if (match) {
+      countryEl.value = country;
+    } else if (country) {
+      countryEl.value = "__other__";
+      if (cityEl) cityEl.value = city ? `${city} (${country})` : country;
+    } else {
+      countryEl.value = "";
+    }
+  }
+}
+
+function getLocationFromFields(countryEl, cityEl) {
+  const country = countryEl?.value === "__other__" ? "" : (countryEl?.value || "").trim();
+  const city = (cityEl?.value || "").trim();
+  if (city && country) return `${city}, ${country}`;
+  if (country) return country;
+  return city;
+}
+
 const authStatus = byId("auth-status");
 const signedInEmail = byId("signed-in-email");
 const lastLoginAt = byId("last-login-at");
@@ -71,7 +183,8 @@ const authSignoutBtn = byId("auth-signout");
 const fullSignoutBtn = byId("full-signout-btn");
 const accountProfileForm = byId("account-profile-form");
 const accountName = byId("account-name");
-const accountLocation = byId("account-location");
+const accountCountry = byId("account-country");
+const accountCity = byId("account-city");
 const accountBio = byId("account-bio");
 
 const accountPreferencesForm = byId("account-preferences-form");
@@ -122,7 +235,8 @@ const setupProgressBar = byId("setup-progress-bar");
 const setupWelcomeNext = byId("setup-welcome-next");
 const setupProfileForm = byId("setup-profile-form");
 const setupName = byId("setup-name");
-const setupLocation = byId("setup-location");
+const setupCountry = byId("setup-country");
+const setupCity = byId("setup-city");
 const setupBio = byId("setup-bio");
 const setupProfileBack = byId("setup-profile-back");
 const setupPreferencesForm = byId("setup-preferences-form");
@@ -157,6 +271,9 @@ const settingsSections = Array.from(document.querySelectorAll("[data-settings-se
 const setupSteps = Array.from(document.querySelectorAll("[data-setup-step]"));
 
 const views = Array.from(document.querySelectorAll("[data-auth-view]"));
+
+populateCountrySelect(setupCountry);
+populateCountrySelect(accountCountry);
 
 let currentView = "login";
 let activeSettingsSection = "overview";
@@ -238,7 +355,7 @@ function setElementDisabled(element, disabled) {
 function setSettingsInteractive(enabled) {
   const disabled = !enabled;
 
-  [accountName, accountLocation, accountBio].forEach((element) => setElementDisabled(element, disabled));
+  [accountName, accountCountry, accountCity, accountBio].forEach((element) => setElementDisabled(element, disabled));
   [prefBookingUpdates, prefMessageAlerts, prefMarketingEmails].forEach((element) =>
     setElementDisabled(element, disabled),
   );
@@ -489,8 +606,7 @@ function renderBookings(context) {
   bookings.forEach((booking) => {
     const artist = context.db.artists.find((item) => item.id === booking.artistId);
     const user = context.db.users.find((item) => item.id === booking.userId);
-    const service = context.db.services.find((item) => item.id === booking.serviceId);
-    const bookingLabel = service?.title || booking.serviceLabel || artist?.category || "Profile request";
+    const bookingLabel = booking.serviceLabel || artist?.category || "Profile request";
 
     const item = document.createElement("li");
     item.className = "collection-item workspace-item";
@@ -562,10 +678,10 @@ function renderArtistAccount(context) {
       workspaceArtistAvailability.value = "open";
     }
     if (workspaceArtistVisibilityLabel) {
-      workspaceArtistVisibilityLabel.textContent = "Artist account unavailable";
+      workspaceArtistVisibilityLabel.textContent = "Studio unavailable";
     }
     if (workspaceArtistVisibilityCopy) {
-      workspaceArtistVisibilityCopy.textContent = "Re-sign in to connect your artist profile.";
+      workspaceArtistVisibilityCopy.textContent = "Re-sign in to connect your creator studio.";
     }
     if (workspaceArtistState) {
       workspaceArtistState.dataset.visibility = "off";
@@ -593,10 +709,10 @@ function renderArtistAccount(context) {
   }
   if (workspaceArtistVisibilityLabel) {
     workspaceArtistVisibilityLabel.textContent = publishSummary.publishState === "live"
-      ? "Artist account is live"
+      ? "Studio is live"
       : publishSummary.publishState === "ready"
-        ? "Artist profile is ready"
-        : "Artist profile is draft";
+        ? "Studio is ready"
+        : "Studio draft";
   }
   if (workspaceArtistVisibilityCopy) {
     workspaceArtistVisibilityCopy.textContent = publishSummary.publishState === "live"
@@ -638,10 +754,9 @@ function renderMessageOptions(context, relatedBookings) {
   workspaceMessageBooking.appendChild(placeholder);
 
   relatedBookings.forEach((booking) => {
-    const service = context.db.services.find((item) => item.id === booking.serviceId);
     const option = document.createElement("option");
     option.value = booking.id;
-    option.textContent = `${booking.id} · ${service?.title || booking.serviceLabel || "Profile request"} · ${normalizeStatusLabel(booking.status)}`;
+    option.textContent = `${booking.id} · ${booking.serviceLabel || "Profile request"} · ${normalizeStatusLabel(booking.status)}`;
     workspaceMessageBooking.appendChild(option);
   });
 }
@@ -738,9 +853,8 @@ function renderAccountPanels(session) {
     if (accountName instanceof HTMLInputElement) {
       accountName.value = "";
     }
-    if (accountLocation instanceof HTMLInputElement) {
-      accountLocation.value = "";
-    }
+    if (accountCountry) accountCountry.value = "";
+    if (accountCity instanceof HTMLInputElement) accountCity.value = "";
     if (accountBio instanceof HTMLTextAreaElement) {
       accountBio.value = "";
     }
@@ -778,10 +892,10 @@ function renderAccountPanels(session) {
       workspaceArtistAvailability.value = "open";
     }
     if (workspaceArtistVisibilityLabel) {
-      workspaceArtistVisibilityLabel.textContent = "Artist account unavailable";
+      workspaceArtistVisibilityLabel.textContent = "Studio unavailable";
     }
     if (workspaceArtistVisibilityCopy) {
-      workspaceArtistVisibilityCopy.textContent = "Sign in to manage a public artist profile.";
+      workspaceArtistVisibilityCopy.textContent = "Sign in to manage your creator studio.";
     }
     if (workspaceArtistState) {
       workspaceArtistState.dataset.visibility = "off";
@@ -804,9 +918,7 @@ function renderAccountPanels(session) {
     accountName.value = user?.name || fallbackName;
   }
 
-  if (accountLocation instanceof HTMLInputElement) {
-    accountLocation.value = user?.location || "";
-  }
+  setLocationFields(accountCountry, accountCity, user?.location || "");
 
   if (accountBio instanceof HTMLTextAreaElement) {
     accountBio.value = user?.bio || "";
@@ -858,8 +970,8 @@ function setupStepLabel(step) {
     welcome: "Welcome",
     profile: "Your details",
     preferences: "Updates and alerts",
-    artist_prompt: "Artist profile",
-    artist_profile: "Artist details",
+    artist_prompt: "Creator studio",
+    artist_profile: "Studio details",
     review: "Review and finish",
     done: "Account ready",
   };
@@ -910,9 +1022,7 @@ function renderSetup(context) {
   if (setupName instanceof HTMLInputElement) {
     setupName.value = user?.name || fallbackName;
   }
-  if (setupLocation instanceof HTMLInputElement) {
-    setupLocation.value = user?.location || "";
-  }
+  setLocationFields(setupCountry, setupCity, user?.location || "");
   if (setupBio instanceof HTMLTextAreaElement) {
     setupBio.value = user?.bio || "";
   }
@@ -997,8 +1107,8 @@ function renderSetup(context) {
         ? `Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
         : [artist?.category || null, Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : null]
             .filter(Boolean)
-            .join(" · ") || "Artist profile basics saved."
-      : "You can add an artist profile later from settings.";
+            .join(" · ") || "Studio basics saved."
+      : "You can add a creator studio later from settings.";
   }
 }
 
@@ -1348,7 +1458,7 @@ setupProfileForm?.addEventListener("submit", async (event) => {
   }
 
   const name = String(setupName?.value || "").trim();
-  const location = String(setupLocation?.value || "").trim();
+  const location = getLocationFromFields(setupCountry, setupCity);
   const bio = String(setupBio?.value || "").trim();
 
   if (!name) {
@@ -1442,7 +1552,7 @@ setupArtistChoiceForm?.addEventListener("submit", async (event) => {
 
   const artistOptIn = Boolean(setupArtistChoiceYes?.checked);
   if (!artistOptIn && !setupArtistChoiceNo?.checked) {
-    showToast("Choose whether to set up an artist profile now.", "warning");
+    showToast("Choose whether to set up a creator studio now.", "warning");
     return;
   }
 
@@ -1752,7 +1862,7 @@ accountProfileForm?.addEventListener("submit", async (event) => {
   }
 
   const name = (accountName?.value || "").trim();
-  const location = (accountLocation?.value || "").trim();
+  const location = getLocationFromFields(accountCountry, accountCity);
   const bio = (accountBio?.value || "").trim();
 
   if (!name) {
@@ -1920,7 +2030,7 @@ workspaceArtistForm?.addEventListener("submit", async (event) => {
 
   const context = signedInContext(ensureLinkedProfiles(getSession()));
   if (!context?.artist?.id) {
-    showToast("Sign in to manage your artist profile.", "warning");
+    showToast("Sign in to manage your creator studio.", "warning");
     return;
   }
 
@@ -1944,19 +2054,19 @@ workspaceArtistForm?.addEventListener("submit", async (event) => {
       publishSummary.publishState === "draft"
         ? `Draft saved. Complete ${publishSummary.publishMissingFields.join(", ")} before publishing.`
         : publishSummary.publishState === "ready"
-          ? "Artist profile saved and ready to publish."
-          : "Artist profile updated.",
+          ? "Studio saved and ready to publish."
+          : "Studio updated.",
       "success",
     );
   } catch (error) {
-    showToast(error?.message || "Artist profile update failed.", "danger");
+    showToast(error?.message || "Studio update failed.", "danger");
   }
 });
 
 toggleArtistAccountBtn?.addEventListener("click", async () => {
   const context = signedInContext(ensureLinkedProfiles(getSession()));
   if (!context?.artist?.id) {
-    showToast("Sign in to manage your artist profile.", "warning");
+    showToast("Sign in to manage your creator studio.", "warning");
     return;
   }
 
@@ -1967,7 +2077,7 @@ toggleArtistAccountBtn?.addEventListener("click", async () => {
     });
     await hydratePrivateDB();
     syncSessionFromExisting();
-    showToast(nextVisible ? "Artist account is now live." : "Artist account has been turned off.", "success");
+    showToast(nextVisible ? "Studio is now live." : "Studio has been turned off.", "success");
   } catch (error) {
     showToast(error?.message || "Could not update artist visibility.", "danger");
   }

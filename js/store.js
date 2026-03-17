@@ -298,7 +298,6 @@ function createEmptyDB() {
     schemaVersion: DB_SCHEMA_VERSION,
     users: [],
     artists: [],
-    services: [],
     bookings: [],
     messages: [],
     notifications: [],
@@ -325,7 +324,6 @@ function isValidDB(db) {
   const listFields = [
     "users",
     "artists",
-    "services",
     "bookings",
     "messages",
     "notifications",
@@ -398,12 +396,6 @@ function migrateArtistReferences(db, fromArtistId, toArtistId) {
   if (!fromArtistId || !toArtistId || fromArtistId === toArtistId) {
     return;
   }
-
-  asArray(db.services).forEach((service) => {
-    if (service.artistId === fromArtistId) {
-      service.artistId = toArtistId;
-    }
-  });
 
   asArray(db.bookings).forEach((booking) => {
     if (booking.artistId === fromArtistId) {
@@ -529,7 +521,6 @@ export async function hydrateDB() {
     const next = {
       ...createEmptyDB(),
       users: asArray(dbCache.users).map((user) => normalizeUserRecord({ ...user })),
-      services: asArray(dbCache.services),
       bookings: asArray(dbCache.bookings),
       messages: asArray(dbCache.messages),
       notifications: asArray(dbCache.notifications),
@@ -659,20 +650,6 @@ export function getArtistByCognitoSub(db, cognitoSub) {
     return null;
   }
   return selectCanonicalArtistRecord(db?.artists, cognitoSub);
-}
-
-export function getServiceById(db, serviceId) {
-  if (!serviceId) {
-    return null;
-  }
-  return asArray(db?.services).find((service) => service.id === serviceId) || null;
-}
-
-export function getServicesForArtist(db, artistId) {
-  if (!artistId) {
-    return [];
-  }
-  return asArray(db?.services).filter((service) => service.artistId === artistId);
 }
 
 function createUserRecord(db, identity) {
@@ -1076,7 +1053,6 @@ function upsertBookings(db, items) {
     id: item.id,
     userId: item.userId,
     artistId: item.artistId,
-    serviceId: item.serviceId || null,
     serviceLabel: item.serviceLabel || "",
     budget: Number(item.budget || 0),
     deadline: item.deadline || "",
@@ -1310,7 +1286,6 @@ export async function createBooking(payload) {
   const response = await apiRequest("/v1/bookings", {
     method: "POST",
     body: {
-      serviceId: payload.serviceId || undefined,
       artistId: payload.artistId || undefined,
       serviceLabel: payload.serviceLabel || undefined,
       deadline: payload.deadline,
@@ -1659,150 +1634,6 @@ export async function updateArtistProfile(artistId, patch) {
   }
 
   return remote;
-}
-
-export function upsertService(artistId, servicePatch) {
-  let saved = null;
-
-  updateDB((db) => {
-    const artist = getArtistById(db, artistId);
-    if (!artist) {
-      return;
-    }
-
-    const title = String(servicePatch?.title || "").trim();
-    const description = String(servicePatch?.description || "").trim();
-    const price = Number(servicePatch?.price || 0);
-    const deliveryDays = Number(servicePatch?.deliveryDays || 0);
-
-    if (!title || !description || !Number.isFinite(price) || price <= 0 || !Number.isFinite(deliveryDays) || deliveryDays <= 0) {
-      return;
-    }
-
-    if (servicePatch?.id) {
-      const existing = db.services.find((service) => service.id === servicePatch.id && service.artistId === artistId);
-      if (!existing) {
-        return;
-      }
-
-      Object.assign(existing, {
-        title,
-        description,
-        price,
-        deliveryDays,
-      });
-      saved = existing;
-      artist.priceFrom = Math.min(...getServicesForArtist(db, artistId).map((service) => Number(service.price || 0)).filter((amount) => amount > 0), price);
-      artist.updatedAt = nowIso();
-      return;
-    }
-
-    const created = {
-      id: nextId("s", db.services),
-      artistId,
-      title,
-      description,
-      price,
-      deliveryDays,
-    };
-
-    db.services.push(created);
-    saved = created;
-
-    const prices = getServicesForArtist(db, artistId)
-      .map((service) => Number(service.price || 0))
-      .filter((amount) => amount > 0);
-    artist.priceFrom = prices.length ? Math.min(...prices) : 0;
-    artist.updatedAt = nowIso();
-  });
-
-  if (saved) {
-    runApiMutation(
-      async () => {
-        const body = {
-          title: saved.title,
-          description: saved.description,
-          price: Number(saved.price || 0),
-          deliveryDays: Number(saved.deliveryDays || 0),
-        };
-
-        if (servicePatch?.id) {
-          await apiRequest(`/v1/artist/me/services/${encodeURIComponent(saved.id)}`, {
-            method: "PATCH",
-            body,
-          });
-          return;
-        }
-
-        await apiRequest("/v1/artist/me/services", {
-          method: "POST",
-          body,
-        });
-      },
-      "Saving service via API failed.",
-    );
-  }
-
-  return saved;
-}
-
-export function removeService(artistId, serviceId) {
-  updateDB((db) => {
-    db.services = db.services.filter((service) => !(service.id === serviceId && service.artistId === artistId));
-
-    const removedBookingIds = db.bookings
-      .filter((booking) => booking.serviceId === serviceId)
-      .map((booking) => booking.id);
-
-    db.bookings = db.bookings.filter((booking) => booking.serviceId !== serviceId);
-    db.messages = db.messages.filter(
-      (message) => !(message.bookingId && removedBookingIds.includes(message.bookingId)),
-    );
-    db.invoices = db.invoices.filter((invoice) => !removedBookingIds.includes(invoice.bookingId));
-
-    const artist = getArtistById(db, artistId);
-    if (!artist) {
-      return;
-    }
-
-    const prices = getServicesForArtist(db, artistId)
-      .map((service) => Number(service.price || 0))
-      .filter((amount) => amount > 0);
-    artist.priceFrom = prices.length ? Math.min(...prices) : 0;
-    artist.updatedAt = nowIso();
-
-    const paidTotal = db.bookings
-      .filter(
-        (booking) =>
-          booking.artistId === artistId &&
-          (booking.status === "paid" || booking.status === "completed"),
-      )
-      .reduce((sum, booking) => sum + Number(booking.budget || 0), 0);
-
-    db.payouts = db.payouts.filter((payout) => payout.artistId !== artistId);
-    if (paidTotal > 0) {
-      db.payouts.unshift({
-        id: nextId("pay", db.payouts),
-        artistId,
-        amount: Number((paidTotal * 0.9).toFixed(2)),
-        status: "scheduled",
-        date: isoDaysFromNow(2),
-      });
-    }
-
-    recalcArtistMetrics(db, artistId);
-  });
-
-  if (serviceId) {
-    runApiMutation(
-      async () => {
-        await apiRequest(`/v1/artist/me/services/${encodeURIComponent(serviceId)}`, {
-          method: "DELETE",
-        });
-      },
-      "Removing service via API failed.",
-    );
-  }
 }
 
 export function deleteUserAccount(userId) {

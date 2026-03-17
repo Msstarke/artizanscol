@@ -117,7 +117,7 @@ function renderDiscoveryInsights(filteredArtists) {
       ]
     : [
         { value: activeCategories || "—", label: "ready categories" },
-        { value: "Coming", label: "artist profiles" },
+        { value: "Coming", label: "creator studios" },
         { value: "Open", label: "for registrations" },
       ];
 
@@ -358,8 +358,8 @@ function renderEmptyState() {
     return `
       <article class="empty-state empty-state-rich">
         <p class="site-tag">Discovery is ready</p>
-        <h3>No artist profiles are live yet.</h3>
-        <p>The platform is open. Artist profiles will appear here once creators complete their setup and go live. Check back soon or browse the categories below.</p>
+        <h3>No creator studios are live yet.</h3>
+        <p>The platform is open. Creator studios will appear here once creators complete their setup and go live. Check back soon or browse the categories below.</p>
         <div class="form-actions">
           <a class="btn btn-outline btn-small" href="/about.html">About the platform</a>
           <a class="btn btn-ghost btn-small" href="/artist-preview.html">Preview profile layout</a>

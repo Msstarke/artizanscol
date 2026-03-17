@@ -32,7 +32,7 @@ if (upcomingRoot) {
         <article class="empty-state empty-state-rich">
           <p class="site-tag">Profiles rolling out</p>
           <h3>No live profiles yet.</h3>
-          <p>Artist profiles will appear here as creators complete setup and publish. Browse categories or preview the profile flow in the meantime.</p>
+          <p>Creator studios will appear here as creators complete setup and publish. Browse categories in the meantime.</p>
           <div class="form-actions">
             <a class="btn btn-outline btn-small" href="/explore.html">Open Explore</a>
             <a class="btn btn-ghost btn-small" href="/artist-preview.html">Preview a profile</a>
