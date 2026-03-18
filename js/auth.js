@@ -832,7 +832,7 @@ function renderAccountPanels(session) {
     populateCitySelect(accountCity, accountCityOther, "");
     if (accountCityOther) { accountCityOther.value = ""; accountCityOther.hidden = true; }
     populateCategorySelect(accountCategory);
-    if (accountRate instanceof HTMLSelectElement) accountRate.value = "0";
+    if (accountRate) accountRate.value = "";
     if (prefBookingUpdates instanceof HTMLInputElement) {
       prefBookingUpdates.checked = DEFAULT_ACCOUNT_PREFERENCES.bookingUpdates;
     }
@@ -876,10 +876,7 @@ function renderAccountPanels(session) {
   setLocationFields(accountCountry, accountCity, accountCityOther, user?.location || "");
 
   populateCategorySelect(accountCategory, artist?.category || "");
-  if (accountRate instanceof HTMLSelectElement) {
-    const priceFrom = String(artist?.priceFrom || "0");
-    accountRate.value = [...accountRate.options].find((o) => o.value === priceFrom) ? priceFrom : "0";
-  }
+  if (accountRate) accountRate.value = artist?.priceFrom ? String(artist.priceFrom) : "";
   if (workspaceArtistPreview instanceof HTMLAnchorElement) {
     workspaceArtistPreview.href = artist?.id
       ? `/artist-preview.html?id=${encodeURIComponent(artist.id)}`
@@ -981,10 +978,7 @@ function renderSetup(context) {
   }
   setLocationFields(setupCountry, setupCity, setupCityOther, user?.location || "");
   populateCategorySelect(setupCategory, artist?.category || "");
-  if (setupRate instanceof HTMLSelectElement) {
-    const priceFrom = String(artist?.priceFrom || "0");
-    setupRate.value = [...setupRate.options].find((o) => o.value === priceFrom) ? priceFrom : "0";
-  }
+  if (setupRate) setupRate.value = artist?.priceFrom ? String(artist.priceFrom) : "";
 
   if (setupPrefBookingUpdates instanceof HTMLInputElement) {
     setupPrefBookingUpdates.checked = Boolean(preferences.bookingUpdates);

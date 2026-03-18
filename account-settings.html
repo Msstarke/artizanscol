@@ -202,20 +202,7 @@
                     </label>
                     <label>
                       Hourly rate (AUD)
-                      <select id="setup-rate">
-                        <option value="0">Flexible / on request</option>
-                        <option value="50">$50/hr</option>
-                        <option value="75">$75/hr</option>
-                        <option value="100">$100/hr</option>
-                        <option value="125">$125/hr</option>
-                        <option value="150">$150/hr</option>
-                        <option value="175">$175/hr</option>
-                        <option value="200">$200/hr</option>
-                        <option value="250">$250/hr</option>
-                        <option value="300">$300/hr</option>
-                        <option value="400">$400/hr</option>
-                        <option value="500">$500+/hr</option>
-                      </select>
+                      <input id="setup-rate" type="number" min="0" max="10000" step="1" placeholder="e.g. 150" />
                     </label>
                   </div>
                   <div class="form-actions">
@@ -347,20 +334,7 @@
                         </label>
                         <label>
                           Hourly rate (AUD)
-                          <select id="account-rate">
-                            <option value="0">Flexible / on request</option>
-                            <option value="50">$50/hr</option>
-                            <option value="75">$75/hr</option>
-                            <option value="100">$100/hr</option>
-                            <option value="125">$125/hr</option>
-                            <option value="150">$150/hr</option>
-                            <option value="175">$175/hr</option>
-                            <option value="200">$200/hr</option>
-                            <option value="250">$250/hr</option>
-                            <option value="300">$300/hr</option>
-                            <option value="400">$400/hr</option>
-                            <option value="500">$500+/hr</option>
-                          </select>
+                          <input id="account-rate" type="number" min="0" max="10000" step="1" placeholder="e.g. 150" />
                         </label>
                       </div>
                       <div class="form-actions">
