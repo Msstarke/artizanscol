@@ -262,6 +262,13 @@ label {
   gap: 0.45rem;
 }
 
+.field-hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-muted, #888);
+  margin-top: -0.1rem;
+}
+
 input,
 select,
 textarea {

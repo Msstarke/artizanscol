@@ -306,7 +306,9 @@ function renderArtistDetails() {
       Number(artist.reviewCount || 0) > 0 && Number(artist.rating || 0) > 0
         ? `Rating ${Number(artist.rating || 0).toFixed(1)}`
         : null,
-      `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`,
+      artist.availability === "open" || artist.availability === "limited"
+        ? `Availability: ${artist.availability === "limited" ? "Limited" : "Open"}`
+        : null,
       Number(artist.completedBookings || 0) > 0
         ? `${Number(artist.completedBookings || 0)} completed booking${Number(artist.completedBookings || 0) === 1 ? "" : "s"}`
         : null,
@@ -477,7 +479,10 @@ function renderArtistDetails() {
   if (viewerOwnsArtistProfile()) {
     if (saveArtistBtn) saveArtistBtn.hidden = true;
     if (contactArtistBtn) contactArtistBtn.hidden = true;
-    if (ownerEditBtn) ownerEditBtn.hidden = false;
+    if (ownerEditBtn) {
+      ownerEditBtn.hidden = false;
+      ownerEditBtn.href = "/account-settings.html?section=profile";
+    }
     setBookingFormEnabled(false);
     return;
   }

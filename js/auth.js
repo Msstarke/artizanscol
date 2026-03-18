@@ -203,6 +203,7 @@ const signInPassword = byId("signin-password");
 const signUpForm = byId("signup-form");
 const signUpEmail = byId("signup-email");
 const signUpPassword = byId("signup-password");
+const signUpPasswordConfirm = byId("signup-password-confirm");
 
 const confirmForm = byId("confirm-form");
 const confirmEmail = byId("confirm-email");
@@ -1048,7 +1049,8 @@ function renderSignedInExperience(session) {
   }
 
   renderAccountPanels(session);
-  setActiveSettingsSection(activeSettingsSection);
+  const deepSection = new URLSearchParams(window.location.search).get("section");
+  setActiveSettingsSection(deepSection || activeSettingsSection);
 }
 
 function showView(nextView) {
@@ -1561,9 +1563,15 @@ signUpForm?.addEventListener("submit", async (event) => {
 
   const email = (signUpEmail?.value || "").trim();
   const password = signUpPassword?.value || "";
+  const passwordConfirm = signUpPasswordConfirm?.value || "";
 
   if (!email || !password) {
     showToast("Email and password are required.", "warning");
+    return;
+  }
+
+  if (password !== passwordConfirm) {
+    showToast("Passwords do not match.", "warning");
     return;
   }
 
