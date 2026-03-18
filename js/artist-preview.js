@@ -296,7 +296,7 @@ function renderArtistDetails() {
 
   if (artistMeta) {
     artistMeta.innerHTML = [
-      artist.location ? `Location: ${artist.location}` : null,
+      artist.location ? `Location: ${escapeHtml(artist.location)}` : null,
       Number(artist.priceFrom || 0) > 0 ? `Starting budgets from ${formatMoney(artist.priceFrom || 0)}` : "Budget shaped around the brief",
       Number(artist.reviewCount || 0) > 0 && Number(artist.rating || 0) > 0
         ? `Rating ${Number(artist.rating || 0).toFixed(1)}`

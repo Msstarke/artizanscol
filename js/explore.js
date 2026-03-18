@@ -104,7 +104,7 @@ function renderDiscoveryInsights(filteredArtists) {
   const displayArtists = filteredArtists ?? liveArtists;
   const activeCategories = db.categories.filter((category) => category.active).length;
   const verifiedCount = displayArtists.filter((artist) => artist.verified).length;
-  const openCount = displayArtists.filter((artist) => artist.availability !== "limited").length;
+  const openCount = displayArtists.filter((artist) => artist.availability === "open").length;
   const startingBudgets = displayArtists.map((artist) => Number(artist.priceFrom || 0)).filter((value) => value > 0);
   const lowestBudget = startingBudgets.length ? Math.min(...startingBudgets) : null;
 
@@ -461,7 +461,7 @@ function render() {
       resultSummary.textContent = "A narrow shortlist. Open each profile and compare fit before sending a brief.";
     } else {
       const verifiedCount = artists.filter((artist) => artist.verified).length;
-      const openCount = artists.filter((artist) => artist.availability !== "limited").length;
+      const openCount = artists.filter((artist) => artist.availability === "open").length;
       resultSummary.textContent = `${verifiedCount} reviewed profile${verifiedCount === 1 ? "" : "s"} and ${openCount} open for briefs in this view.`;
     }
   }
