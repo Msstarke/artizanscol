@@ -566,7 +566,7 @@ export async function hydrateDB() {
             title: item.title || "Portfolio Item",
             image: item.imageUrl || item.image || "",
           })),
-          createdAt: artist.createdAt || localArtistsById.get(artist.id)?.createdAt || nowIso(),
+          createdAt: artist.createdAt || nowIso(),
           updatedAt: artist.updatedAt || nowIso(),
         },
         next,

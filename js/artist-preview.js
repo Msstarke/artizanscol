@@ -275,6 +275,11 @@ function renderArtistDetails() {
     document.title = `ARTIZANS.COLLECTIVE | ${artist.name}`;
   }
 
+  const canonicalEl = document.querySelector('link[rel="canonical"]');
+  if (canonicalEl && artist.id) {
+    canonicalEl.href = `https://www.artizanscollective.com/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
+  }
+
   const bioText = String(artist.bio || "").trim();
   const safeBio = bioText.length > 8 && bioText.toLowerCase() !== "bio" && bioText.toLowerCase() !== "placeholder" ? bioText : "";
 
