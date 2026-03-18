@@ -493,6 +493,18 @@ function render() {
   input?.addEventListener("change", render);
 });
 
+sortSelect?.addEventListener("change", () => {
+  const val = sortSelect.value;
+  const artists = getVisibleArtists(getDB());
+  if (val === "most_popular" && artists.every((a) => !a.popularity)) {
+    showToast("Not enough activity data yet — showing newest instead.", "warning");
+    sortSelect.value = "newest";
+  } else if (val === "highest_rated" && artists.every((a) => !a.rating)) {
+    showToast("No ratings yet — showing newest instead.", "warning");
+    sortSelect.value = "newest";
+  }
+});
+
 resetBtn?.addEventListener("click", () => {
   if (searchInput) searchInput.value = "";
   if (categoryFilter) categoryFilter.value = "";

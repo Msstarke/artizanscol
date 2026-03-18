@@ -319,17 +319,23 @@ function renderArtistDetails() {
   }
 
   if (profileHeroMedia) {
-    const leadImage = safeImageUrl(artist.portfolio?.[0]?.image || artist.portfolio?.[0]?.imageUrl);
-    profileHeroMedia.innerHTML = `
-      <article class="profile-media-card">
-        <img src="${escapeHtml(leadImage)}" alt="${escapeHtml(artist.name)} portfolio highlight" />
-        <div class="profile-media-card-copy">
-          <p class="site-tag">Profile highlight</p>
-          <h3>${escapeHtml(artist.portfolio?.[0]?.title || artist.category || "Published profile")}</h3>
-          <p>${escapeHtml(safeBio || "Published profile with live availability, pricing signals, and direct booking access.")}</p>
-        </div>
-      </article>
-    `;
+    const leadPortfolio = artist.portfolio?.[0];
+    const leadImageRaw = leadPortfolio?.image || leadPortfolio?.imageUrl || "";
+    if (leadImageRaw) {
+      const leadImage = safeImageUrl(leadImageRaw);
+      profileHeroMedia.innerHTML = `
+        <article class="profile-media-card">
+          <img src="${escapeHtml(leadImage)}" alt="${escapeHtml(artist.name)} portfolio highlight" />
+          <div class="profile-media-card-copy">
+            <p class="site-tag">Profile highlight</p>
+            <h3>${escapeHtml(leadPortfolio?.title || artist.category || "Published profile")}</h3>
+            <p>${escapeHtml(safeBio || "Published profile with live availability, pricing signals, and direct booking access.")}</p>
+          </div>
+        </article>
+      `;
+    } else {
+      profileHeroMedia.hidden = true;
+    }
   }
 
   if (artistProofGrid) {
@@ -491,7 +497,10 @@ function renderArtistDetails() {
 
   if (saveArtistBtn) {
     saveArtistBtn.hidden = false;
-    saveArtistBtn.textContent = "Save artist";
+    const userId = getActiveUserId();
+    const user = userId ? db.users.find((u) => u.id === userId) : null;
+    const alreadySaved = Boolean(user?.savedArtistIds?.includes(artist?.id));
+    saveArtistBtn.textContent = alreadySaved ? "Saved" : "Save artist";
   }
   if (contactArtistBtn) {
     contactArtistBtn.hidden = false;
@@ -723,7 +732,7 @@ bookingForm?.addEventListener("submit", async (event) => {
       <h2 class="section-title detail-title">Brief submitted.</h2>
       <p class="section-copy">The artist has your request and will respond from their workspace. You can track the status from your bookings.</p>
       <div class="form-actions">
-        <a class="btn btn-primary" href="/account-settings.html">View in workspace</a>
+        <a class="btn btn-primary" href="/account-settings.html?section=bookings">View booking</a>
         <a class="btn btn-outline" href="/explore.html">Browse more artists</a>
       </div>
     `;
