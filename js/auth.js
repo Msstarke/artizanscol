@@ -1570,6 +1570,27 @@ signInForm?.addEventListener("submit", async (event) => {
   }
 });
 
+const passwordMatchHint = byId("password-match-hint");
+function checkPasswordMatch() {
+  if (!signUpPassword || !signUpPasswordConfirm || !passwordMatchHint) return;
+  const pass = signUpPassword.value;
+  const confirm = signUpPasswordConfirm.value;
+  if (!confirm) {
+    passwordMatchHint.hidden = true;
+    return;
+  }
+  passwordMatchHint.hidden = false;
+  if (pass === confirm) {
+    passwordMatchHint.textContent = "Passwords match.";
+    passwordMatchHint.style.color = "var(--color-success, green)";
+  } else {
+    passwordMatchHint.textContent = "Passwords do not match.";
+    passwordMatchHint.style.color = "var(--color-danger, red)";
+  }
+}
+signUpPassword?.addEventListener("input", checkPasswordMatch);
+signUpPasswordConfirm?.addEventListener("input", checkPasswordMatch);
+
 signUpForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
