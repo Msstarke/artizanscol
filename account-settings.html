@@ -207,9 +207,14 @@
                     </label>
                     <label>
                       Hourly rate (AUD)
-                      <input id="setup-rate" type="number" min="0" max="10000" step="1" placeholder="e.g. 150" />
+                      <input id="setup-rate" type="number" min="1" max="10000" step="1" placeholder="e.g. 150" />
                     </label>
                   </div>
+                  <label>
+                    Mediums / skills
+                    <input id="setup-mediums" type="text" maxlength="200" placeholder="e.g. Digital, Watercolour, Pencil" />
+                    <small class="form-hint">Comma-separated list of mediums or skills you work with.</small>
+                  </label>
                   <div class="form-actions">
                     <button class="btn btn-outline" id="setup-profile-back" type="button">Back</button>
                     <button class="btn btn-primary" type="submit">Save and continue</button>
@@ -339,11 +344,17 @@
                         </label>
                         <label>
                           Hourly rate (AUD)
-                          <input id="account-rate" type="number" min="0" max="10000" step="1" placeholder="e.g. 150" />
+                          <input id="account-rate" type="number" min="1" max="10000" step="1" placeholder="e.g. 150" />
                         </label>
                       </div>
+                      <label>
+                        Mediums / skills
+                        <input id="account-mediums" type="text" maxlength="200" placeholder="e.g. Digital, Watercolour, Pencil" />
+                        <small class="form-hint">Comma-separated list of mediums or skills you work with.</small>
+                      </label>
                       <div class="form-actions">
                         <button class="btn btn-outline btn-small" type="submit">Save profile</button>
+                        <button class="btn btn-outline btn-small" id="artist-toggle-visibility" type="button">Show profile</button>
                         <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview listing</a>
                       </div>
                     </form>

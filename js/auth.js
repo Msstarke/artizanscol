@@ -233,6 +233,8 @@ const accountCity = byId("account-city");
 const accountCityOther = byId("account-city-other");
 const accountCategory = byId("account-category");
 const accountRate = byId("account-rate");
+const accountMediums = byId("account-mediums");
+const artistToggleVisibility = byId("artist-toggle-visibility");
 const workspaceArtistPreview = byId("workspace-artist-preview");
 
 const accountPreferencesForm = byId("account-preferences-form");
@@ -276,6 +278,7 @@ const setupCity = byId("setup-city");
 const setupCityOther = byId("setup-city-other");
 const setupCategory = byId("setup-category");
 const setupRate = byId("setup-rate");
+const setupMediums = byId("setup-mediums");
 const setupProfileBack = byId("setup-profile-back");
 const setupPreferencesForm = byId("setup-preferences-form");
 const setupPrefBookingUpdates = byId("setup-pref-booking-updates");
@@ -834,6 +837,8 @@ function renderAccountPanels(session) {
     if (accountCityOther) { accountCityOther.value = ""; accountCityOther.hidden = true; }
     populateCategorySelect(accountCategory);
     if (accountRate) accountRate.value = "";
+    if (accountMediums) accountMediums.value = "";
+    if (artistToggleVisibility) artistToggleVisibility.hidden = true;
     if (prefBookingUpdates instanceof HTMLInputElement) {
       prefBookingUpdates.checked = DEFAULT_ACCOUNT_PREFERENCES.bookingUpdates;
     }
@@ -878,6 +883,11 @@ function renderAccountPanels(session) {
 
   populateCategorySelect(accountCategory, artist?.category || "");
   if (accountRate) accountRate.value = artist?.priceFrom ? String(artist.priceFrom) : "";
+  if (accountMediums) accountMediums.value = Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : "";
+  if (artistToggleVisibility) {
+    artistToggleVisibility.textContent = artistVisibilityButtonLabel(artist);
+    artistToggleVisibility.hidden = !artist?.category;
+  }
   if (workspaceArtistPreview instanceof HTMLAnchorElement) {
     workspaceArtistPreview.href = artist?.id
       ? `/artist-preview.html?id=${encodeURIComponent(artist.id)}`
@@ -980,6 +990,7 @@ function renderSetup(context) {
   setLocationFields(setupCountry, setupCity, setupCityOther, user?.location || "");
   populateCategorySelect(setupCategory, artist?.category || "");
   if (setupRate) setupRate.value = artist?.priceFrom ? String(artist.priceFrom) : "";
+  if (setupMediums) setupMediums.value = Array.isArray(artist?.mediums) ? artist.mediums.join(", ") : "";
 
   if (setupPrefBookingUpdates instanceof HTMLInputElement) {
     setupPrefBookingUpdates.checked = Boolean(preferences.bookingUpdates);
@@ -1371,6 +1382,7 @@ setupProfileForm?.addEventListener("submit", async (event) => {
   const location = getLocationFromFields(setupCountry, setupCity, setupCityOther);
   const category = setupCategory?.value || "";
   const priceFrom = Number(setupRate?.value || 0);
+  const mediums = parseMediumsInput(setupMediums?.value || "");
 
   if (!name) {
     showToast("Name is required.", "warning");
@@ -1387,8 +1399,8 @@ setupProfileForm?.addEventListener("submit", async (event) => {
     if (artist?.id) {
       await updateArtistProfile(artist.id, {
         category,
+        mediums,
         priceFrom,
-        profileVisible: Boolean(category),
       });
     }
     await hydratePrivateDB();
@@ -1678,6 +1690,7 @@ accountProfileForm?.addEventListener("submit", async (event) => {
   const location = getLocationFromFields(accountCountry, accountCity, accountCityOther);
   const category = accountCategory?.value || "";
   const priceFrom = Number(accountRate?.value || 0);
+  const mediums = parseMediumsInput(accountMediums?.value || "");
 
   if (!name) {
     showToast("Display name is required.", "warning");
@@ -1696,8 +1709,8 @@ accountProfileForm?.addEventListener("submit", async (event) => {
     if (artist?.id) {
       await updateArtistProfile(artist.id, {
         category,
+        mediums,
         priceFrom,
-        profileVisible: Boolean(category),
       });
     }
 
@@ -1706,6 +1719,39 @@ accountProfileForm?.addEventListener("submit", async (event) => {
     showToast("Profile saved.", "success");
   } catch (error) {
     showToast(error?.message || "Profile save failed.", "danger");
+  }
+});
+
+artistToggleVisibility?.addEventListener("click", async () => {
+  const context = signedInContext(getSession());
+  if (!context) {
+    showToast("Sign in to change profile visibility.", "warning");
+    return;
+  }
+
+  const { artist } = context;
+  if (!artist?.id) {
+    showToast("Save your profile first before publishing.", "warning");
+    return;
+  }
+
+  if (!artist.category) {
+    showToast("Select a category before making your profile visible.", "warning");
+    return;
+  }
+
+  const newVisible = !artist.profileVisible;
+  try {
+    await updateArtistProfile(artist.id, { profileVisible: newVisible });
+    await hydratePrivateDB();
+    syncSessionFromExisting();
+    const updatedContext = signedInContext(getSession());
+    if (artistToggleVisibility) {
+      artistToggleVisibility.textContent = artistVisibilityButtonLabel(updatedContext?.artist);
+    }
+    showToast(newVisible ? "Profile is now live on Explore." : "Profile hidden from Explore.", "success");
+  } catch (error) {
+    showToast(error?.message || "Could not update visibility.", "danger");
   }
 });
 
