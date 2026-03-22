@@ -7,12 +7,12 @@
   justify-content: center;
   min-height: 46px;
   border: 1px solid var(--button-border-color);
-  border-radius: var(--radius-sm);
-  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  padding: 0.55rem 1.3rem;
   background: var(--button-bg);
   color: var(--button-color);
   text-decoration: none;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, box-shadow 160ms ease,
@@ -96,10 +96,11 @@
 .site-card {
   background: var(--color-surface-strong);
   border: 1px solid var(--color-border);
-  border-radius: 18px;
-  padding: 1.1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
   box-shadow: var(--shadow-soft);
   min-width: 0;
+  transition: box-shadow 0.2s ease;
 }
 
 .site-card h3 {
@@ -109,10 +110,10 @@
 
 .site-tag {
   margin: 0 0 0.55rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(34, 34, 34, 0.66);
+  color: var(--color-orange);
   font-weight: 700;
 }
 
@@ -274,12 +275,21 @@ select,
 textarea {
   width: 100%;
   min-height: 44px;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(24, 24, 24, 0.16);
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(24, 24, 24, 0.12);
+  background: rgba(255, 255, 255, 0.94);
   font-family: inherit;
-  font-size: 0.92rem;
-  padding: 0.62rem 0.78rem;
+  font-size: 0.9rem;
+  padding: 0.62rem 0.85rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-orange);
+  box-shadow: 0 0 0 3px rgba(250, 93, 41, 0.12);
 }
 
 input:focus,
