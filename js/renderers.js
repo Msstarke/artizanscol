@@ -41,7 +41,6 @@ export function artistCardHTML(artist, options = {}) {
         <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
         <div class="artist-card-badges">
           <span class="artist-card-badge artist-card-badge-${artist.verified ? "verified" : "pending"}">${escapeHtml(verifiedLabel)}</span>
-          <span class="artist-card-badge">${escapeHtml(availabilityLabel)}</span>
         </div>
       </a>
       <div class="artist-card-body">
@@ -50,25 +49,15 @@ export function artistCardHTML(artist, options = {}) {
             <h3>${escapeHtml(artist.name)}</h3>
             <p class="artist-card-subtitle">${escapeHtml(artist.category || "Creative profile")} • ${escapeHtml(locationLabel)}</p>
           </div>
-          <span class="artist-card-rating">${escapeHtml(ratingLabel)}</span>
+          <span class="artist-card-price">${escapeHtml(budgetLabel)}</span>
         </div>
-        <p class="artist-card-copy">${escapeHtml(profileCopy)}</p>
         <div class="tag-row">
-          ${Array.isArray(artist.mediums)
+          ${Array.isArray(artist.mediums) && artist.mediums.length
             ? artist.mediums
                 .slice(0, 3)
                 .map((medium) => `<span class="tag">${escapeHtml(medium)}</span>`)
                 .join("")
-            : ""}
-        </div>
-        <div class="artist-card-metrics">
-          <span>${escapeHtml(budgetLabel)}</span>
-          ${reviewLabel ? `<span>${escapeHtml(reviewLabel)}</span>` : ""}
-          ${profileMomentum ? `<span>${escapeHtml(profileMomentum)}</span>` : ""}
-        </div>
-        <div class="artist-card-support">
-          <span>${escapeHtml(profileAgeLabel)}</span>
-          <span>${escapeHtml(artist.handle && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(artist.handle) ? `@${artist.handle}` : "Direct enquiries enabled")}</span>
+            : `<span class="tag">${escapeHtml(availabilityLabel)}</span>`}
         </div>
         <div class="artist-card-footer">
           ${actionButtons}
