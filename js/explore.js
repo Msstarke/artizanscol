@@ -137,6 +137,32 @@ fillSelect(categoryFilter, unique(db.categories.filter((category) => category.ac
 fillSelect(mediumFilter, unique(getVisibleArtists(db).flatMap((artist) => artist.mediums || [])));
 fillSelect(locationFilter, unique(getVisibleArtists(db).map((artist) => artist.location).filter(Boolean)));
 
+// Category chips bar
+const categoryChipsEl = byId("category-chips");
+function renderCategoryChips() {
+  if (!categoryChipsEl) return;
+  const categories = unique(
+    db.categories.filter((c) => c.active).map((c) => c.name)
+      .concat(getVisibleArtists(db).map((a) => a.category).filter(Boolean))
+  );
+  const activeCategory = categoryFilter?.value || "";
+  categoryChipsEl.innerHTML =
+    `<button class="category-chip${!activeCategory ? " is-active" : ""}" data-chip-value="" type="button">All</button>` +
+    categories
+      .map((cat) => `<button class="category-chip${activeCategory === cat ? " is-active" : ""}" data-chip-value="${escapeHtml(cat)}" type="button">${escapeHtml(cat)}</button>`)
+      .join("");
+}
+renderCategoryChips();
+
+categoryChipsEl?.addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-chip-value]");
+  if (!chip) return;
+  const value = chip.getAttribute("data-chip-value");
+  if (categoryFilter) categoryFilter.value = value;
+  renderCategoryChips();
+  render();
+});
+
 // Hide filter selects that have no real options (single-value filters add friction)
 [categoryFilter, mediumFilter, locationFilter].forEach((select) => {
   if (!select) return;
@@ -393,6 +419,7 @@ function render() {
   const liveArtists = getLiveArtists();
 
   renderDiscoveryInsights(artists);
+  renderCategoryChips();
   syncQueryState();
   updateExploreBookingCta(artists);
 

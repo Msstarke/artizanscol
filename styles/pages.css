@@ -16,6 +16,20 @@
   box-shadow: var(--shadow-soft);
   display: grid;
   min-width: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.artist-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 50px rgba(31, 22, 11, 0.14);
+}
+
+.artist-card-media img {
+  transition: transform 0.35s ease;
+}
+
+.artist-card:hover .artist-card-media img {
+  transform: scale(1.05);
 }
 
 .artist-card-media {
@@ -76,6 +90,12 @@
 
 .artist-card-badge-verified {
   background: rgba(185, 239, 203, 0.95);
+  color: #1a5c2e;
+}
+
+.artist-card-badge-verified::before {
+  content: "✓ ";
+  font-weight: 800;
 }
 
 .artist-card-badge-pending {
@@ -595,6 +615,42 @@
   gap: 0.65rem;
 }
 
+.category-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.category-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.category-chip:hover,
+.category-chip.is-active {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
 .discovery-insights {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -939,6 +995,40 @@
   margin-top: 0;
 }
 
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.testimonial-card {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-strong);
+  border: 1px solid var(--color-border);
+}
+
+.testimonial-card blockquote {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.testimonial-card cite {
+  display: block;
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.testimonial-card cite small {
+  display: block;
+  font-weight: 400;
+  color: rgba(24, 24, 24, 0.55);
+  margin-top: 0.15rem;
+}
+
 @media (max-width: 1100px) {
   .artist-grid,
   .portfolio-grid,
@@ -946,6 +1036,7 @@
   .trust-strip,
   .profile-story-grid,
   .why-human-grid,
+  .testimonial-grid,
   .discovery-insights {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -986,6 +1077,7 @@
   .journey-grid,
   .profile-story-grid,
   .why-human-grid,
+  .testimonial-grid,
   .discovery-insights {
     grid-template-columns: 1fr;
   }
