@@ -954,7 +954,7 @@ function setActiveSettingsSection(sectionId) {
   settingsSectionButtons.forEach((button) => {
     const active = button.getAttribute("data-settings-section-btn") === activeSettingsSection;
     button.classList.toggle("is-active", active);
-    button.setAttribute("aria-pressed", active ? "true" : "false");
+    button.setAttribute("aria-selected", active ? "true" : "false");
   });
 }
 

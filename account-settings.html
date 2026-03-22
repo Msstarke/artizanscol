@@ -290,19 +290,19 @@
               </div>
 
               <div class="settings-layout">
-                <nav class="settings-nav" aria-label="Account sections">
-                  <button class="settings-nav-button" data-settings-section-btn="overview" type="button">Overview</button>
-                  <button class="settings-nav-button" data-settings-section-btn="profile" type="button">Profile</button>
-                  <button class="settings-nav-button" data-settings-section-btn="alerts" type="button">Alerts</button>
-                  <button class="settings-nav-button" data-settings-section-btn="saved" type="button">Saved artists</button>
-                  <button class="settings-nav-button" data-settings-section-btn="bookings" type="button">Bookings</button>
-                  <button class="settings-nav-button" data-settings-section-btn="messages" type="button">Messages</button>
-                  <button class="settings-nav-button" data-settings-section-btn="notifications" type="button">Notifications</button>
-                  <button class="settings-nav-button" data-settings-section-btn="data" type="button">Data controls</button>
+                <nav class="settings-nav" role="tablist" aria-label="Account sections">
+                  <button class="settings-nav-button" data-settings-section-btn="overview" type="button" role="tab" aria-selected="true" aria-controls="settings-panel-overview">Overview</button>
+                  <button class="settings-nav-button" data-settings-section-btn="profile" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-profile">Profile</button>
+                  <button class="settings-nav-button" data-settings-section-btn="alerts" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-alerts">Alerts</button>
+                  <button class="settings-nav-button" data-settings-section-btn="saved" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-saved">Saved artists</button>
+                  <button class="settings-nav-button" data-settings-section-btn="bookings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-bookings">Bookings</button>
+                  <button class="settings-nav-button" data-settings-section-btn="messages" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-messages">Messages</button>
+                  <button class="settings-nav-button" data-settings-section-btn="notifications" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-notifications">Notifications</button>
+                  <button class="settings-nav-button" data-settings-section-btn="data" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-data">Data controls</button>
                 </nav>
 
                 <div class="settings-content">
-                  <section class="account-panel settings-section" data-settings-section="overview">
+                  <section class="account-panel settings-section" data-settings-section="overview" id="settings-panel-overview" role="tabpanel">
                     <p class="site-tag">Overview</p>
                     <h3>Activity snapshot</h3>
                     <div class="account-mini-stats workspace-mini-stats">
@@ -317,7 +317,7 @@
                     </div>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="profile" hidden>
+                  <section class="account-panel settings-section" data-settings-section="profile" id="settings-panel-profile" role="tabpanel" hidden>
                     <p class="site-tag">Profile</p>
                     <h3>Personal details</h3>
                     <form id="account-profile-form" class="form-grid">
@@ -361,7 +361,7 @@
                     </form>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="alerts" hidden>
+                  <section class="account-panel settings-section" data-settings-section="alerts" id="settings-panel-alerts" role="tabpanel" hidden>
                     <p class="site-tag">Alerts</p>
                     <h3>Notifications</h3>
                     <form id="account-preferences-form" class="form-grid">
@@ -384,7 +384,7 @@
                     </form>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="saved" hidden>
+                  <section class="account-panel settings-section" data-settings-section="saved" id="settings-panel-saved" role="tabpanel" hidden>
                     <p class="site-tag">Saved artists</p>
                     <h3>Saved list</h3>
                     <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
@@ -394,14 +394,14 @@
                     </div>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="bookings" hidden>
+                  <section class="account-panel settings-section" data-settings-section="bookings" id="settings-panel-bookings" role="tabpanel" hidden>
                     <p class="site-tag">Bookings</p>
                     <h3>Bookings board</h3>
                     <p class="muted" id="workspace-bookings-empty">No bookings yet.</p>
                     <ul class="collection" id="workspace-bookings-list"></ul>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="messages" hidden>
+                  <section class="account-panel settings-section" data-settings-section="messages" id="settings-panel-messages" role="tabpanel" hidden>
                     <p class="site-tag">Messages</p>
                     <h3>Inbox and replies</h3>
                     <form id="workspace-message-form" class="form-grid">
@@ -421,7 +421,7 @@
                     <ul class="collection" id="workspace-messages-list"></ul>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="notifications" hidden>
+                  <section class="account-panel settings-section" data-settings-section="notifications" id="settings-panel-notifications" role="tabpanel" hidden>
                     <p class="site-tag">Notifications</p>
                     <h3>Recent updates</h3>
                     <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
@@ -431,7 +431,7 @@
                     </div>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="data" hidden>
+                  <section class="account-panel settings-section" data-settings-section="data" id="settings-panel-data" role="tabpanel" hidden>
                     <p class="site-tag">Data controls</p>
                     <h3>Downloads and security</h3>
                     <p class="muted">Manage account exports and password access.</p>
