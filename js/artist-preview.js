@@ -53,6 +53,10 @@ const bookingDeadline = byId("booking-deadline");
 const bookingBudget = byId("booking-budget");
 const bookingMessage = byId("booking-message");
 const prefillBooking = byId("prefill-booking");
+const contactFormInline = byId("contact-form-inline");
+const contactMessageBody = byId("contact-message-body");
+const contactSendBtn = byId("contact-send-btn");
+const contactCancelBtn = byId("contact-cancel-btn");
 
 function viewerOwnsArtistProfile() {
   return Boolean(artist && session.activeArtistId === artist.id && isCognitoAuthenticated());
@@ -461,6 +465,7 @@ function renderArtistDetails() {
       .map((entry) => entry.item)
       .slice(0, 3);
 
+    const categoryParam = artist.category ? `?category=${encodeURIComponent(artist.category)}` : "";
     relatedProfiles.classList.toggle("has-empty-state", !items.length);
     relatedProfiles.innerHTML = items.length
       ? items
@@ -469,7 +474,8 @@ function renderArtistDetails() {
               previewHref: `/artist-preview.html?id=${encodeURIComponent(String(item.id || ""))}`,
               actionButtons: `<div class="form-actions"><a class="btn btn-outline btn-small" href="/artist-preview.html?id=${encodeURIComponent(String(item.id || ""))}">View profile</a></div>`,
             }))
-          .join("")
+          .join("") +
+          `<div class="form-actions" style="margin-top:1rem"><a class="btn btn-outline btn-small" href="/explore.html${escapeHtml(categoryParam)}">View more in ${escapeHtml(artist.category || "Explore")}</a></div>`
       : `
           <article class="empty-state empty-state-rich">
             <p class="site-tag">Keep exploring</p>
@@ -561,7 +567,7 @@ saveArtistBtn?.addEventListener("click", async () => {
   }
 });
 
-contactArtistBtn?.addEventListener("click", async () => {
+contactArtistBtn?.addEventListener("click", () => {
   if (!artist || !profileIsPublic()) {
     showToast("This artist is not accepting public enquiries right now.", "warning");
     return;
@@ -578,9 +584,28 @@ contactArtistBtn?.addEventListener("click", async () => {
     return;
   }
 
-  if (!assertCanMutate(session)) {
+  if (contactFormInline) {
+    contactFormInline.hidden = !contactFormInline.hidden;
+    if (!contactFormInline.hidden && contactMessageBody) {
+      contactMessageBody.focus();
+    }
+  }
+});
+
+contactSendBtn?.addEventListener("click", async () => {
+  const userId = getActiveUserId();
+  if (!userId || !artist) return;
+
+  if (!assertCanMutate(session)) return;
+
+  const body = (contactMessageBody?.value || "").trim();
+  if (!body) {
+    showToast("Write a message before sending.", "warning");
     return;
   }
+
+  contactSendBtn.disabled = true;
+  contactSendBtn.textContent = "Sending…";
 
   try {
     await sendMessage({
@@ -590,14 +615,23 @@ contactArtistBtn?.addEventListener("click", async () => {
       fromId: userId,
       toRole: "artist",
       toId: artist.id,
-      body: "Hi, I would like to discuss a potential project.",
+      body,
     });
 
-    showToast("Message sent to artist", "success");
+    showToast("Message sent to artist.", "success");
     contactArtistBtn.textContent = "Message sent";
+    if (contactFormInline) contactFormInline.hidden = true;
+    if (contactMessageBody) contactMessageBody.value = "";
   } catch (error) {
     showToast(error?.message || "Message could not be sent.", "danger");
+  } finally {
+    contactSendBtn.disabled = false;
+    contactSendBtn.textContent = "Send message";
   }
+});
+
+contactCancelBtn?.addEventListener("click", () => {
+  if (contactFormInline) contactFormInline.hidden = true;
 });
 
 openBookingBtn?.addEventListener("click", () => {
@@ -615,6 +649,14 @@ openBookingBtn?.addEventListener("click", () => {
   if (!userId) {
     redirectToAuth();
     return;
+  }
+
+  // Smart prefill from artist profile
+  if (bookingFocus instanceof HTMLInputElement && !bookingFocus.value) {
+    bookingFocus.value = artist.category || "";
+  }
+  if (bookingBudget && !bookingBudget.value && artist.priceFrom > 0) {
+    bookingBudget.value = String(artist.priceFrom);
   }
 
   bookingForm?.scrollIntoView({ behavior: "smooth", block: "start" });

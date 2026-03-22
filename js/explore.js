@@ -216,8 +216,11 @@ function getFilteredArtists() {
       return false;
     }
 
-    if (location && !String(artist.location || "").toLowerCase().includes(location.toLowerCase())) {
-      return false;
+    if (location) {
+      const loc = location.toLowerCase();
+      const parts = String(artist.location || "").split(",").map((p) => p.trim().toLowerCase());
+      const match = parts.some((part) => part === loc || part.startsWith(loc));
+      if (!match) return false;
     }
 
     if (availability && artist.availability !== availability) {
