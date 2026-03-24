@@ -2,6 +2,35 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-03-24
+- Added dark/light mode toggle system: full CSS variable foundation with 15+ semantic tokens (`--color-text`, `--color-text-soft`, `--color-border-soft`, `--color-card-bg`, etc.), `[data-theme="dark"]` override block, theme toggle button (sun/moon icons) in header, `localStorage` persistence with system preference fallback, and FOUC prevention inline script on all 11 HTML pages. Site defaults to dark mode.
+- Refactored 60+ hardcoded `rgba()` values across `base.css`, `components.css`, and `pages.css` to semantic CSS variables, enabling dark mode to work across cards, badges, tags, buttons, inputs, navigation, header, footer, sidebar, profile pages, booking rails, stats, setup/settings panels, FAQ accordion, filters, chips, and empty states.
+- Added scroll-triggered reveal animations: `IntersectionObserver`-based `.reveal` / `.reveal-children` CSS classes with staggered child delays (60ms each, 6 children), applied to homepage and about page sections.
+- Added page load fade-in animation (`@keyframes pageIn`) and `@media (prefers-reduced-motion: reduce)` to disable all animations for accessibility.
+- Added monospace accent font (`--font-mono`) to `.eyebrow`, `.site-tag`, `.faq-group-title`, `.footer-link-group p`, and `.discovery-insight-card span` labels.
+- Upgraded all card/button hover transitions to `cubic-bezier(0.22, 1, 0.36, 1)` easing with subtle `scale(1.005–1.01)` transforms for depth.
+- Added dark mode noise overlay adjustment, dark body background radial gradients, and dark image placeholder gradients for portfolio items.
+- Added portfolio management section to account settings: artists can add portfolio items (title, medium, image URL), remove items, and set any item as the profile cover image (first portfolio item). Portfolio saves via the existing onboarding endpoint.
+
+## 2026-03-22
+- Cleaner artist cards: stripped to essentials (image, name, category, location, mediums/availability tags, price), removed bio copy, metrics row, support row.
+- Gradient hero text on homepage with `background-clip: text` effect.
+- Hero copy and stats fadeInUp animations on page load.
+- Pill-shaped buttons (`border-radius: var(--radius-pill)`) across all button variants.
+- Orange accent color on eyebrow labels, site tags, artist card prices, and journey step numbers.
+- Category chips bar on Explore page: horizontal scrollable pill buttons synced with sidebar dropdown.
+- Discovery insight cards: centered, orange numbers, uppercase labels.
+- Journey cards and CTA cards with hover lift and increased padding.
+- Rich footer applied to all 7 public pages with brand block, link grid, and gradient background.
+
+## 2026-03-21
+- Fixed P1-P4 bugs: profile visibility toggle, mediums input, save button state, hero media placeholder, booking success links, sort feedback, password match hint, ARIA roles on settings nav.
+- Contact button replaced with inline textarea form instead of hardcoded message.
+- Location filter changed from `.includes()` to comma-separated part matching with `startsWith`.
+- Booking form auto-prefills category and rate from artist profile.
+- Related profiles section adds "View more in {category}" link to Explore.
+- Removed fake testimonials section until real quotes are available.
+
 ## 2026-03-17
 - Renamed "artist profile" to "creator studio" across all user-facing copy: account settings nav, setup flow, status labels, toast messages, empty states, meta descriptions, and public pages (about, faq, explore, artist-preview). Internal variable/function names and backend code unchanged.
 - Location field replaced with a structured country dropdown + city/region text input across setup flow and account settings. Stores as "City, Country" string — no backend schema change. Country list covers 50+ countries with "Other…" fallback. Existing stored locations are parsed back into the split fields on load.

@@ -29,7 +29,7 @@ import {
 } from "./cognito-auth.js";
 import { clearCognitoIdentity, getSession, setCognitoIdentity, setSession } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, showToast } from "./utils.js";
+import { byId, escapeHtml, sanitizeImageUrl, showToast } from "./utils.js";
 
 initSharedPage();
 await hydrateDB();
@@ -236,6 +236,12 @@ const accountRate = byId("account-rate");
 const accountMediums = byId("account-mediums");
 const artistToggleVisibility = byId("artist-toggle-visibility");
 const workspaceArtistPreview = byId("workspace-artist-preview");
+const portfolioGrid = byId("portfolio-grid");
+const portfolioAddTitle = byId("portfolio-add-title");
+const portfolioAddMedium = byId("portfolio-add-medium");
+const portfolioAddImage = byId("portfolio-add-image");
+const portfolioAddBtn = byId("portfolio-add-btn");
+const portfolioAddForm = byId("portfolio-add-form");
 
 const accountPreferencesForm = byId("account-preferences-form");
 const prefBookingUpdates = byId("pref-booking-updates");
@@ -824,6 +830,52 @@ function renderNotifications(context) {
   });
 }
 
+function renderPortfolio(context) {
+  if (!portfolioGrid) return;
+  const { artist } = context;
+  const items = Array.isArray(artist?.portfolio) ? artist.portfolio : [];
+
+  if (!items.length) {
+    portfolioGrid.innerHTML = "";
+    return;
+  }
+
+  portfolioGrid.innerHTML = items
+    .map((item, idx) => {
+      const imgSrc = sanitizeImageUrl(item.imageUrl || item.image, "");
+      const isCover = idx === 0;
+      return `
+        <div class="portfolio-manage-item${isCover ? " is-cover" : ""}" data-portfolio-idx="${idx}">
+          ${isCover ? '<span class="cover-badge">Cover</span>' : ""}
+          ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio piece")}" loading="lazy" />` : ""}
+          <div class="portfolio-manage-item-body">
+            <strong>${escapeHtml(item.title || "Untitled")}</strong>
+            <span>${escapeHtml(item.medium || "")}</span>
+            <div class="portfolio-manage-item-actions">
+              ${!isCover ? `<button type="button" data-portfolio-cover="${idx}">Set as cover</button>` : ""}
+              <button type="button" data-portfolio-delete="${idx}">Remove</button>
+            </div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function savePortfolio(artist, newPortfolio) {
+  if (!artist?.id) return;
+  try {
+    await updateArtistProfile(artist.id, { portfolio: newPortfolio });
+    await hydratePrivateDB();
+    const session = getSession();
+    const ctx = signedInContext(session);
+    if (ctx) renderPortfolio(ctx);
+    showToast("Portfolio updated.", "success");
+  } catch (error) {
+    showToast(error?.message || "Portfolio save failed.", "danger");
+  }
+}
+
 function renderAccountPanels(session) {
   const context = signedInContext(session);
 
@@ -922,6 +974,7 @@ function renderAccountPanels(session) {
   ).length;
   writeText(statUnreadUpdates, unreadCount);
 
+  renderPortfolio(context);
   renderSavedArtists(context);
   renderBookings(context);
   const messageBookings = Array.from(
@@ -1773,6 +1826,71 @@ artistToggleVisibility?.addEventListener("click", async () => {
     showToast(newVisible ? "Profile is now live on Explore." : "Profile hidden from Explore.", "success");
   } catch (error) {
     showToast(error?.message || "Could not update visibility.", "danger");
+  }
+});
+
+// Portfolio: Add item
+portfolioAddBtn?.addEventListener("click", async () => {
+  const context = signedInContext(getSession());
+  if (!context?.artist?.id) {
+    showToast("Save your profile first.", "warning");
+    return;
+  }
+
+  const title = (portfolioAddTitle?.value || "").trim();
+  const medium = (portfolioAddMedium?.value || "").trim();
+  const imageUrl = (portfolioAddImage?.value || "").trim();
+
+  if (!title) {
+    showToast("Title is required.", "warning");
+    return;
+  }
+
+  const currentPortfolio = Array.isArray(context.artist.portfolio) ? [...context.artist.portfolio] : [];
+  currentPortfolio.push({
+    id: `p_${Date.now()}`,
+    title,
+    medium: medium || "Mixed media",
+    imageUrl,
+    createdAt: new Date().toISOString(),
+  });
+
+  await savePortfolio(context.artist, currentPortfolio);
+
+  if (portfolioAddTitle) portfolioAddTitle.value = "";
+  if (portfolioAddMedium) portfolioAddMedium.value = "";
+  if (portfolioAddImage) portfolioAddImage.value = "";
+  if (portfolioAddForm) portfolioAddForm.open = false;
+});
+
+// Portfolio: Delete + Set as cover (delegated)
+portfolioGrid?.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLButtonElement)) return;
+
+  const context = signedInContext(getSession());
+  if (!context?.artist?.id) return;
+
+  const currentPortfolio = Array.isArray(context.artist.portfolio) ? [...context.artist.portfolio] : [];
+
+  const deleteIdx = target.dataset.portfolioDelete;
+  if (deleteIdx !== undefined) {
+    const idx = Number(deleteIdx);
+    if (idx >= 0 && idx < currentPortfolio.length) {
+      currentPortfolio.splice(idx, 1);
+      await savePortfolio(context.artist, currentPortfolio);
+    }
+    return;
+  }
+
+  const coverIdx = target.dataset.portfolioCover;
+  if (coverIdx !== undefined) {
+    const idx = Number(coverIdx);
+    if (idx > 0 && idx < currentPortfolio.length) {
+      const [item] = currentPortfolio.splice(idx, 1);
+      currentPortfolio.unshift(item);
+      await savePortfolio(context.artist, currentPortfolio);
+    }
   }
 });
 

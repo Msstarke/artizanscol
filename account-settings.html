@@ -294,6 +294,7 @@
                 <nav class="settings-nav" role="tablist" aria-label="Account sections">
                   <button class="settings-nav-button" data-settings-section-btn="overview" type="button" role="tab" aria-selected="true" aria-controls="settings-panel-overview">Overview</button>
                   <button class="settings-nav-button" data-settings-section-btn="profile" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-profile">Profile</button>
+                  <button class="settings-nav-button" data-settings-section-btn="portfolio" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-portfolio">Portfolio</button>
                   <button class="settings-nav-button" data-settings-section-btn="alerts" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-alerts">Alerts</button>
                   <button class="settings-nav-button" data-settings-section-btn="saved" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-saved">Saved artists</button>
                   <button class="settings-nav-button" data-settings-section-btn="bookings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-bookings">Bookings</button>
@@ -360,6 +361,36 @@
                         <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview listing</a>
                       </div>
                     </form>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="portfolio" id="settings-panel-portfolio" role="tabpanel" hidden>
+                    <p class="site-tag">Portfolio</p>
+                    <h3>Your work</h3>
+                    <p class="muted" style="margin:0 0 0.5rem;">Add pieces to your portfolio. The first item becomes your profile cover image.</p>
+
+                    <div id="portfolio-grid" class="portfolio-manage-grid"></div>
+
+                    <details id="portfolio-add-form" class="portfolio-add-details">
+                      <summary class="btn btn-outline btn-small" style="width:fit-content;">+ Add portfolio item</summary>
+                      <div class="form-grid" style="margin-top:0.75rem;">
+                        <label>
+                          Title
+                          <input id="portfolio-add-title" type="text" maxlength="100" placeholder="e.g. Sunset over Sydney Harbour" />
+                        </label>
+                        <label>
+                          Medium
+                          <input id="portfolio-add-medium" type="text" maxlength="80" placeholder="e.g. Digital illustration" />
+                        </label>
+                        <label>
+                          Image URL
+                          <input id="portfolio-add-image" type="url" maxlength="500" placeholder="https://..." />
+                          <small class="form-hint">Paste a link to your image (hosted on Imgur, Google Drive, etc.)</small>
+                        </label>
+                        <div class="form-actions">
+                          <button class="btn btn-primary btn-small" id="portfolio-add-btn" type="button">Add to portfolio</button>
+                        </div>
+                      </div>
+                    </details>
                   </section>
 
                   <section class="account-panel settings-section" data-settings-section="alerts" id="settings-panel-alerts" role="tabpanel" hidden>
