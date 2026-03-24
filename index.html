@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/components.css" />
     <link rel="stylesheet" href="/styles/pages.css" />
+    <script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.dataset.theme='dark'})()</script>
   </head>
   <body>
     <div class="noise-overlay" aria-hidden="true"></div>
@@ -62,7 +63,7 @@
       </section>
 
       <!-- Featured Artists -->
-      <section class="container content-section" aria-labelledby="artists-title">
+      <section class="container content-section reveal" aria-labelledby="artists-title">
         <div class="section-intro">
           <div>
             <p class="eyebrow">LIVE PROFILES</p>
@@ -74,7 +75,7 @@
       </section>
 
       <!-- How it works -->
-      <section class="container content-section" id="how-it-works" aria-labelledby="how-title">
+      <section class="container content-section reveal" id="how-it-works" aria-labelledby="how-title">
         <div class="section-intro">
           <div>
             <p class="eyebrow">HOW IT WORKS</p>
@@ -82,7 +83,7 @@
           </div>
           <p class="section-copy muted">Three steps. No extra clutter.</p>
         </div>
-        <div class="journey-grid">
+        <div class="journey-grid reveal-children">
           <article class="journey-card">
             <span class="journey-step">01</span>
             <h3>Browse</h3>
@@ -102,8 +103,8 @@
       </section>
 
       <!-- Bottom CTA -->
-      <section class="container content-section" aria-labelledby="cta-title">
-        <div class="home-cta-split">
+      <section class="container content-section reveal" aria-labelledby="cta-title">
+        <div class="home-cta-split reveal-children">
           <article class="home-cta-card site-card">
             <p class="site-tag">For clients</p>
             <h2 id="cta-title" class="home-cta-title">Find your artist.</h2>
