@@ -38,7 +38,7 @@ export function artistCardHTML(artist, options = {}) {
   return `
     <article class="artist-card">
       <a class="artist-card-media" href="${escapeHtml(previewHref)}" aria-label="Open ${escapeHtml(artist.name)} profile">
-        <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" />
+        <img src="${escapeHtml(imageSrc)}" alt="${escapeHtml(artist.name)} preview" loading="lazy" decoding="async" />
         <div class="artist-card-badges">
           <span class="artist-card-badge artist-card-badge-${artist.verified ? "verified" : "pending"}">${escapeHtml(verifiedLabel)}</span>
         </div>

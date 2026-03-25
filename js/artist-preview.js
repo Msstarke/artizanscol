@@ -399,7 +399,7 @@ function renderArtistDetails() {
             const desc = String(item.description || "").trim();
             return `
               <article class="portfolio-item">
-                <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(title || "Portfolio sample")}" loading="lazy" />
+                <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(title || "Portfolio sample")}" loading="lazy" decoding="async" />
                 ${title || desc ? `
                 <div class="portfolio-item-caption">
                   ${title ? `<h3>${escapeHtml(title)}</h3>` : ""}

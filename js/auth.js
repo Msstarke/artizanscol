@@ -847,7 +847,7 @@ function renderPortfolio(context) {
       return `
         <div class="portfolio-manage-item${isCover ? " is-cover" : ""}" data-portfolio-idx="${idx}">
           ${isCover ? '<span class="cover-badge">Cover</span>' : ""}
-          ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio piece")}" loading="lazy" />` : ""}
+          ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio piece")}" loading="lazy" decoding="async" />` : '<div class="portfolio-manage-placeholder">No image</div>'}
           <div class="portfolio-manage-item-body">
             <strong>${escapeHtml(item.title || "Untitled")}</strong>
             <span>${escapeHtml(item.medium || "")}</span>
