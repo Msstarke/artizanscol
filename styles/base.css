@@ -712,6 +712,94 @@ body {
   to   { opacity: 1; }
 }
 
+/* ── Page exit transition ─────────────────── */
+
+body.is-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s var(--ease-out-expo), transform 0.25s var(--ease-out-expo);
+  pointer-events: none;
+}
+
+/* ── Hero text stagger ────────────────────── */
+
+.hero-stagger .word {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: wordIn 0.5s var(--ease-out-expo) both;
+}
+
+@keyframes wordIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Marquee ──────────────────────────────── */
+
+.marquee-section {
+  overflow: hidden;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--color-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.marquee-track {
+  display: flex;
+  gap: 2rem;
+  width: max-content;
+  animation: marqueeScroll 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.marquee-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border-soft);
+  background: var(--color-surface);
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--color-text);
+  transition: border-color 0.2s ease, transform 0.2s var(--ease-out-expo);
+}
+
+.marquee-item:hover {
+  border-color: var(--color-orange);
+  transform: translateY(-2px);
+}
+
+.marquee-item img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-bg-tint);
+}
+
+.marquee-item-info strong {
+  display: block;
+  font-size: 0.85rem;
+  letter-spacing: -0.01em;
+}
+
+.marquee-item-info span {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
 /* ── Reduced motion ───────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
@@ -722,8 +810,13 @@ body {
   }
 
   .reveal,
-  .reveal-children > * {
+  .reveal-children > *,
+  .hero-stagger .word {
     opacity: 1;
     transform: none;
+  }
+
+  .marquee-track {
+    animation: none;
   }
 }

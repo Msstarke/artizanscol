@@ -1,6 +1,6 @@
 import { getDB, getVisibleArtists, hydrateDB, getArtistById } from "./store.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, escapeHtml, formatMoney } from "./utils.js";
+import { byId, escapeHtml, formatMoney, sanitizeImageUrl } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
 import { getSession } from "./session.js";
 
@@ -71,6 +71,35 @@ if (heroStats) {
       `,
     )
     .join("");
+}
+
+// Artist marquee
+const marqueeSection = byId("artist-marquee");
+const marqueeTrack = byId("marquee-track");
+if (marqueeSection && marqueeTrack && visibleArtists.length >= 3) {
+  const items = [...visibleArtists]
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 12);
+
+  const FALLBACK_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Crect width='36' height='36' fill='%23dac3a8' rx='18'/%3E%3C/svg%3E";
+
+  const itemHTML = items
+    .map((a) => {
+      const href = `/artist-preview.html?id=${encodeURIComponent(String(a.id || ""))}`;
+      const portfolio = Array.isArray(a.portfolio) ? a.portfolio : [];
+      const imgSrc = sanitizeImageUrl(portfolio[0]?.imageUrl || portfolio[0]?.image, FALLBACK_IMG);
+      return `<a class="marquee-item" href="${escapeHtml(href)}">
+        <img src="${escapeHtml(imgSrc)}" alt="" width="36" height="36" loading="lazy" />
+        <div class="marquee-item-info">
+          <strong>${escapeHtml(a.name || "Artist")}</strong>
+          <span>${escapeHtml(a.category || "Creative")}</span>
+        </div>
+      </a>`;
+    })
+    .join("");
+
+  marqueeTrack.innerHTML = itemHTML + itemHTML;
+  marqueeSection.hidden = false;
 }
 
 // Adapt artist CTAs based on session state
