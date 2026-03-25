@@ -712,31 +712,6 @@ body {
   to   { opacity: 1; }
 }
 
-/* ── Page exit transition ─────────────────── */
-
-body.is-leaving {
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: opacity 0.25s var(--ease-out-expo), transform 0.25s var(--ease-out-expo);
-  pointer-events: none;
-}
-
-/* ── Hero text stagger ────────────────────── */
-
-.hero-stagger .word {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: wordIn 0.5s var(--ease-out-expo) both;
-}
-
-@keyframes wordIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 /* ── Marquee ──────────────────────────────── */
 
 .marquee-section {
@@ -810,8 +785,7 @@ body.is-leaving {
   }
 
   .reveal,
-  .reveal-children > *,
-  .hero-stagger .word {
+  .reveal-children > * {
     opacity: 1;
     transform: none;
   }

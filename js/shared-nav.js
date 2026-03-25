@@ -290,45 +290,6 @@ function initRevealObserver() {
   qsa(".reveal, .reveal-children").forEach((el) => observer.observe(el));
 }
 
-function initPageTransitions() {
-  document.addEventListener("click", (e) => {
-    const link = e.target.closest("a[href]");
-    if (!link || link.target === "_blank" || link.hasAttribute("download")) return;
-    const href = link.getAttribute("href") || "";
-    if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("javascript:")) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey) return;
-
-    const url = new URL(href, window.location.origin);
-    if (url.origin !== window.location.origin) return;
-    if (url.pathname === window.location.pathname && url.hash) return;
-
-    e.preventDefault();
-    document.body.classList.add("is-leaving");
-    setTimeout(() => {
-      window.location.href = href;
-    }, 220);
-  });
-}
-
-function initHeroStagger() {
-  qsa(".hero-stagger").forEach((el) => {
-    const text = el.textContent || "";
-    const html = el.innerHTML;
-    if (el.querySelector(".word")) return;
-
-    const parts = html.split(/<br\s*\/?>/gi);
-    el.innerHTML = parts
-      .map((line) =>
-        line
-          .trim()
-          .split(/\s+/)
-          .map((word, i) => `<span class="word" style="animation-delay:${i * 0.07}s">${word}</span>`)
-          .join(" "),
-      )
-      .join("<br>");
-  });
-}
-
 let toastBound = false;
 function bindToastEvent() {
   if (toastBound) {
@@ -357,8 +318,6 @@ export function initSharedPage() {
   bindToastEvent();
   initThemeToggle();
   initRevealObserver();
-  initPageTransitions();
-  initHeroStagger();
 
   return { session, db };
 }
