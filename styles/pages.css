@@ -26,6 +26,11 @@
 
 .artist-card-media img {
   transition: transform 0.4s var(--ease-out-expo);
+  background: linear-gradient(135deg, #efe4d3 0%, #dac3a8 100%);
+}
+
+[data-theme="dark"] .artist-card-media img {
+  background: linear-gradient(135deg, #2a2520 0%, #3d3028 100%);
 }
 
 .artist-card:hover .artist-card-media img {
@@ -91,6 +96,11 @@
 .artist-card-badge-verified {
   background: rgba(185, 239, 203, 0.95);
   color: #1a5c2e;
+}
+
+[data-theme="dark"] .artist-card-badge-verified {
+  background: rgba(67, 170, 104, 0.2);
+  color: #6dd98e;
 }
 
 .artist-card-badge-verified::before {

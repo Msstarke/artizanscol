@@ -394,6 +394,7 @@ textarea {
 .status-requested,
 .status-payment_pending {
   background: #fff7d9;
+  color: #7a5d00;
 }
 
 .status-accepted,
@@ -403,6 +404,7 @@ textarea {
 .status-resolved,
 .status-scheduled {
   background: #e5f8ea;
+  color: #1a5c2e;
 }
 
 .status-cancelled,
@@ -410,10 +412,45 @@ textarea {
 .status-open,
 .status-warning {
   background: #ffe6e2;
+  color: #9c2b1f;
 }
 
 .status-reviewing {
   background: #e6ecff;
+  color: #2b3f8e;
+}
+
+[data-theme="dark"] .status-requested,
+[data-theme="dark"] .status-payment_pending {
+  background: rgba(180, 140, 20, 0.18);
+  color: #e8c94a;
+  border-color: rgba(180, 140, 20, 0.3);
+}
+
+[data-theme="dark"] .status-accepted,
+[data-theme="dark"] .status-confirmed,
+[data-theme="dark"] .status-completed,
+[data-theme="dark"] .status-paid,
+[data-theme="dark"] .status-resolved,
+[data-theme="dark"] .status-scheduled {
+  background: rgba(67, 170, 104, 0.15);
+  color: #6dd98e;
+  border-color: rgba(67, 170, 104, 0.3);
+}
+
+[data-theme="dark"] .status-cancelled,
+[data-theme="dark"] .status-declined,
+[data-theme="dark"] .status-open,
+[data-theme="dark"] .status-warning {
+  background: rgba(200, 60, 45, 0.15);
+  color: #ef8a80;
+  border-color: rgba(200, 60, 45, 0.3);
+}
+
+[data-theme="dark"] .status-reviewing {
+  background: rgba(70, 90, 200, 0.15);
+  color: #8da4f0;
+  border-color: rgba(70, 90, 200, 0.3);
 }
 
 .empty-state {
@@ -511,13 +548,13 @@ textarea {
   top: 0.52rem;
   width: 0.42rem;
   height: 1px;
-  background: rgba(34, 34, 34, 0.34);
+  background: var(--color-text-faint);
 }
 
 .tree ul {
   margin-top: 0.3rem;
   margin-left: 0.34rem;
-  border-left: 1px solid rgba(34, 34, 34, 0.18);
+  border-left: 1px solid var(--color-border);
   padding-left: 0.52rem;
 }
 
