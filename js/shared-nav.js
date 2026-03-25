@@ -245,6 +245,11 @@ function bindGlobalButtons() {
 }
 
 function initThemeToggle() {
+  const stored = localStorage.getItem("theme");
+  if (stored === "light") {
+    document.documentElement.dataset.theme = "light";
+  }
+
   const isDark = () => document.documentElement.dataset.theme === "dark";
 
   const updateIcons = () => {
