@@ -180,6 +180,9 @@ function mapArtistCard(artist: ArtistRecord) {
     profileViews: artist.profileViews,
     completedBookings: artist.completedBookings,
     acceptanceRate: artist.acceptanceRate,
+    portfolio: Array.isArray(artist.portfolio) && artist.portfolio.length > 0
+      ? [artist.portfolio[0]]
+      : [],
     createdAt: artist.createdAt,
     updatedAt: artist.updatedAt,
   };
