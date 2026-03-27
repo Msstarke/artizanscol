@@ -752,11 +752,11 @@ function renderMessages(context) {
 
   const messages = context.db.messages
     .filter((message) => ownerIds.has(message.fromId) || ownerIds.has(message.toId))
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-    .slice(0, 20);
+    .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+    .slice(-30);
 
   const empty = messages.length === 0;
-  setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, empty, "No messages yet.");
+  setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, empty, "No messages yet. Send one from an artist's profile.");
   if (empty || !workspaceMessagesList) {
     return;
   }
@@ -765,25 +765,25 @@ function renderMessages(context) {
     const fromUser = context.db.users.find((item) => item.id === message.fromId);
     const fromArtist = context.db.artists.find((item) => item.id === message.fromId);
     const mine = message.fromId === context.user?.id || message.fromId === context.artist?.id;
+    const senderName = mine ? "You" : fromUser?.name || fromArtist?.name || "Member";
 
     const item = document.createElement("li");
-    item.className = "collection-item workspace-item";
+    item.className = `message-bubble${mine ? " message-mine" : ""}`;
 
-    const title = document.createElement("h4");
-    title.textContent = `${mine ? "You" : fromUser?.name || fromArtist?.name || "Member"} · ${formatDateTime(message.createdAt)}`;
-    item.appendChild(title);
-
-    const detail = document.createElement("p");
-    detail.className = "muted";
-    detail.textContent = message.bookingId ? `Thread ${message.bookingId}` : "General thread";
-    item.appendChild(detail);
-
-    const body = document.createElement("p");
-    body.textContent = message.body || "";
-    item.appendChild(body);
+    item.innerHTML = `
+      <div class="message-bubble-head">
+        <strong>${escapeHtml(senderName)}</strong>
+        <span>${escapeHtml(formatDateTime(message.createdAt))}</span>
+      </div>
+      <p>${escapeHtml(message.body || "")}</p>
+    `;
 
     workspaceMessagesList.appendChild(item);
   });
+
+  if (workspaceMessagesList) {
+    workspaceMessagesList.scrollTop = workspaceMessagesList.scrollHeight;
+  }
 }
 
 function renderNotifications(context) {
