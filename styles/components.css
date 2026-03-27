@@ -293,16 +293,20 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: none;
+  outline: 2px solid rgba(250, 93, 41, 0.3);
+  outline-offset: 1px;
   border-color: var(--color-orange);
   box-shadow: 0 0 0 3px rgba(250, 93, 41, 0.12);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid rgba(250, 93, 41, 0.2);
-  outline-offset: 1px;
+[aria-invalid="true"] {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(220, 76, 63, 0.12);
+}
+
+[aria-invalid="true"]:focus {
+  outline-color: var(--color-error);
+  border-color: var(--color-error);
   border-color: rgba(250, 93, 41, 0.48);
 }
 

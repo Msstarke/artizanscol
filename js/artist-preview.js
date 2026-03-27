@@ -715,23 +715,32 @@ bookingForm?.addEventListener("submit", async (event) => {
   const budget = Number(bookingBudget?.value || 0);
   const message = (bookingMessage?.value || "").trim();
 
+  const markInvalid = (el, invalid) => { if (el) el.setAttribute("aria-invalid", String(invalid)); };
+  markInvalid(bookingFocus, !projectFocus);
+  markInvalid(bookingDeadline, !deadline);
+  markInvalid(bookingBudget, !budget);
+  markInvalid(bookingMessage, !message);
+
   if (!projectFocus || !deadline || !budget || !message) {
     showToast("Project focus, deadline, budget, and message are required.", "warning");
     return;
   }
 
   if (!Number.isFinite(budget) || budget < 1 || budget > MAX_BOOKING_BUDGET) {
+    markInvalid(bookingBudget, true);
     showToast(`Budget must be between 1 and ${MAX_BOOKING_BUDGET}.`, "warning");
     return;
   }
 
   const minDate = minBookingDateISO();
   if (deadline < minDate) {
+    markInvalid(bookingDeadline, true);
     showToast("Deadline cannot be in the past.", "warning");
     return;
   }
 
   if (message.length > MAX_BOOKING_MESSAGE_LENGTH) {
+    markInvalid(bookingMessage, true);
     showToast(`Message must be ${MAX_BOOKING_MESSAGE_LENGTH} characters or fewer.`, "warning");
     return;
   }

@@ -133,8 +133,9 @@
                 </label>
               </div>
               <label>
-                Budget
-                <input id="booking-budget" type="number" min="1" max="1000000" step="1" required />
+                Budget (AUD)
+                <input id="booking-budget" type="number" min="1" max="1000000" step="1" required aria-describedby="budget-hint" />
+                <small id="budget-hint" class="form-hint">Your total budget for this project, between $1 and $1,000,000.</small>
               </label>
               <label>
                 Project message
