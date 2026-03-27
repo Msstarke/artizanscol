@@ -598,17 +598,22 @@ function renderSavedArtists(context) {
   }
 
   artists.forEach((artist) => {
+    const portfolio = Array.isArray(artist.portfolio) ? artist.portfolio : [];
+    const imgSrc = sanitizeImageUrl(portfolio[0]?.imageUrl || portfolio[0]?.image, "");
+    const priceLabel = Number(artist.priceFrom || 0) > 0 ? `From $${artist.priceFrom}` : "";
+
     const item = document.createElement("li");
-    item.className = "collection-item workspace-item";
+    item.className = "collection-item saved-artist-card";
 
-    const title = document.createElement("h4");
-    title.textContent = artist.name || "Artist";
-    item.appendChild(title);
-
-    const meta = document.createElement("p");
-    meta.className = "muted";
-    meta.textContent = `${artist.category || "Category"} · ${artist.location || "Location pending"}`;
-    item.appendChild(meta);
+    item.innerHTML = `
+      <div class="saved-artist-row">
+        ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(artist.name || "Artist")}" class="saved-artist-thumb" loading="lazy" decoding="async" />` : ""}
+        <div class="saved-artist-info">
+          <strong>${escapeHtml(artist.name || "Artist")}</strong>
+          <span class="muted">${escapeHtml(artist.category || "Creative")}${artist.location ? ` · ${escapeHtml(artist.location)}` : ""}${priceLabel ? ` · ${escapeHtml(priceLabel)}` : ""}</span>
+        </div>
+      </div>
+    `;
 
     const actions = document.createElement("div");
     actions.className = "form-actions";
@@ -616,7 +621,7 @@ function renderSavedArtists(context) {
     const viewLink = document.createElement("a");
     viewLink.className = "btn btn-outline btn-small";
     viewLink.href = `/artist-preview.html?id=${encodeURIComponent(artist.id)}`;
-    viewLink.textContent = "View";
+    viewLink.textContent = "View profile";
     actions.appendChild(viewLink);
 
     const removeBtn = document.createElement("button");
@@ -809,20 +814,20 @@ function renderNotifications(context) {
 
   notifications.forEach((notification) => {
     const item = document.createElement("li");
-    item.className = `collection-item workspace-item${notification.read ? "" : " is-unread"}`;
+    item.className = `collection-item notification-item${notification.read ? "" : " is-unread"}`;
 
-    const title = document.createElement("h4");
-    title.textContent = notification.title || "Update";
-    item.appendChild(title);
-
-    const detail = document.createElement("p");
-    detail.className = "muted";
-    detail.textContent = `${normalizeStatusLabel(notification.type || "update")} · ${formatDateTime(notification.createdAt)}`;
-    item.appendChild(detail);
-
-    const body = document.createElement("p");
-    body.textContent = notification.detail || "";
-    item.appendChild(body);
+    const typeLabel = normalizeStatusLabel(notification.type || "update");
+    item.innerHTML = `
+      <div class="notification-item-head">
+        <div>
+          ${!notification.read ? '<span class="notification-dot"></span>' : ""}
+          <strong>${escapeHtml(notification.title || "Update")}</strong>
+        </div>
+        <span class="muted">${escapeHtml(formatDateTime(notification.createdAt))}</span>
+      </div>
+      ${notification.detail ? `<p>${escapeHtml(notification.detail)}</p>` : ""}
+      <span class="notification-type">${escapeHtml(typeLabel)}</span>
+    `;
 
     workspaceNotificationsList.appendChild(item);
   });
