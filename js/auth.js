@@ -660,31 +660,29 @@ function renderBookings(context) {
   bookings.forEach((booking) => {
     const artist = context.db.artists.find((item) => item.id === booking.artistId);
     const user = context.db.users.find((item) => item.id === booking.userId);
-    const bookingLabel = booking.serviceLabel || artist?.category || "Profile request";
+    const isClient = context.user && booking.userId === context.user.id;
+    const otherName = isClient ? (artist?.name || "Artist") : (user?.name || "Client");
+    const bookingLabel = booking.serviceLabel || artist?.category || "Project request";
+    const deadlineStr = booking.deadline ? new Date(booking.deadline).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }) : "No deadline";
 
     const item = document.createElement("li");
-    item.className = "collection-item workspace-item";
+    item.className = "collection-item booking-card-item";
 
-    const heading = document.createElement("h4");
-    heading.textContent = `${bookingLabel} · ${booking.id}`;
-    item.appendChild(heading);
-
-    const detail = document.createElement("p");
-    detail.className = "muted";
-    detail.textContent = `${formatCurrency(booking.budget)} · Due ${booking.deadline || "-"} · Client ${user?.name || "-"} · Artist ${artist?.name || "-"}`;
-    item.appendChild(detail);
-
-    const metaRow = document.createElement("div");
-    metaRow.className = "meta-row";
-    const status = document.createElement("span");
-    status.className = `status-badge status-${booking.status}`;
-    status.textContent = normalizeStatusLabel(booking.status);
-    metaRow.appendChild(status);
-
-    const updatedAt = document.createElement("span");
-    updatedAt.textContent = `Updated ${formatDateTime(booking.updatedAt)}`;
-    metaRow.appendChild(updatedAt);
-    item.appendChild(metaRow);
+    const statusClass = escapeHtml(booking.status || "requested");
+    item.innerHTML = `
+      <div class="booking-card-top">
+        <div>
+          <h4>${escapeHtml(bookingLabel)}</h4>
+          <p class="muted">${isClient ? "To" : "From"} <strong>${escapeHtml(otherName)}</strong></p>
+        </div>
+        <span class="status-badge status-${statusClass}">${escapeHtml(normalizeStatusLabel(booking.status))}</span>
+      </div>
+      <div class="booking-card-details">
+        <span>${escapeHtml(formatCurrency(booking.budget))}</span>
+        <span>${escapeHtml(deadlineStr)}</span>
+        <span>Updated ${escapeHtml(formatDateTime(booking.updatedAt))}</span>
+      </div>
+    `;
 
     const actions = bookingActionsForContext(booking, context);
     if (actions.length) {
