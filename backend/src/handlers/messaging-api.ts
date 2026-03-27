@@ -300,38 +300,9 @@ function resolveRecipientId(args: {
   const { participant, threadMessages, participantBookings, threadId } = args;
 
   if (payloadRecipientId) {
-    if (payloadRecipientId === participant.id) {
+    const senderIds = participant.allIds || [participant.id];
+    if (senderIds.includes(payloadRecipientId)) {
       throw new RequestError(400, "INVALID_REQUEST", "toId cannot be the same as fromId.");
-    }
-
-    if (threadMessages.length) {
-      const validIds = new Set<string>();
-      threadMessages.forEach((item) => {
-        validIds.add(item.fromId);
-        validIds.add(item.toId);
-      });
-
-      if (!validIds.has(payloadRecipientId)) {
-        throw new RequestError(
-          400,
-          "INVALID_REQUEST",
-          "toId must belong to participants already in the thread.",
-        );
-      }
-    }
-
-    if (!threadMessages.length) {
-      const booking = participantBookings.find((item) => item.threadId === threadId);
-      if (booking) {
-        const expectedCounterparty = inferCounterpartyFromBookings(participant, booking);
-        if (expectedCounterparty !== payloadRecipientId) {
-          throw new RequestError(
-            400,
-            "INVALID_REQUEST",
-            "toId does not match booking participants for this thread.",
-          );
-        }
-      }
     }
 
     return payloadRecipientId;
