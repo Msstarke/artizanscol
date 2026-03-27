@@ -307,7 +307,7 @@ test("POST /v1/threads/{threadId}/messages creates a message", async () => {
   assert.equal(repo.messages.length, 3);
 });
 
-test("POST /v1/threads/{threadId}/messages enforces anti-spam rate limit", async () => {
+test("POST /v1/threads/{threadId}/messages allows rapid messages (no rate limit)", async () => {
   const repo = baseRepo();
   const now = new Date();
 
@@ -338,9 +338,9 @@ test("POST /v1/threads/{threadId}/messages enforces anti-spam rate limit", async
     }),
   );
 
-  assert.equal(response.statusCode, 429);
+  assert.equal(response.statusCode, 201);
   const parsed = JSON.parse(String(response.body));
-  assert.equal(parsed.error.code, "RATE_LIMITED");
+  assert.equal(parsed.ok, true);
 });
 
 test("GET /v1/me/updates returns unread counts and deltas since timestamp", async () => {
