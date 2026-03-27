@@ -400,12 +400,13 @@ function renderEmptyState() {
 
   return `
     <article class="empty-state empty-state-rich">
-      <p class="site-tag">No matches right now</p>
-      <h3>Nothing matches this exact filter set.</h3>
-      <p>Try adjusting your filters or browse all live profiles to find the right match.</p>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.35;margin-bottom:0.25rem;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      <p class="site-tag">No matches</p>
+      <h3>No artists match these filters.</h3>
+      <p>${escapeHtml(String(liveArtists.length))} artist${liveArtists.length === 1 ? "" : "s"} live on the platform — try broadening your search.</p>
       <div class="form-actions">
-        <button class="btn btn-outline btn-small" type="button" data-clear-empty-state>Reset filters</button>
-        <a class="btn btn-ghost btn-small" href="/explore.html">View all live profiles</a>
+        <button class="btn btn-primary btn-small" type="button" data-clear-empty-state>Clear all filters</button>
+        <a class="btn btn-ghost btn-small" href="/explore.html">Browse all</a>
       </div>
       ${renderSuggestedLinks(getSuggestedCategories(4))}
       ${renderSuggestedLinks(getSuggestedMediums(4), "empty-state-links empty-state-links-secondary")}
