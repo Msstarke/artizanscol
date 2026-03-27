@@ -54,6 +54,7 @@ type Participant = {
   id: string;
   role: Extract<NotificationOwnerRole, "user" | "artist">;
   email: string;
+  allIds: string[];
 };
 
 class RequestError extends Error {
@@ -223,21 +224,30 @@ async function resolveParticipant(
   repository: MessagingWorkspaceRepository,
   cognitoSub: string,
 ): Promise<Participant | null> {
-  const user = await repository.getUserByCognitoSub(cognitoSub);
+  const [user, artist] = await Promise.all([
+    repository.getUserByCognitoSub(cognitoSub),
+    repository.getArtistByCognitoSub(cognitoSub),
+  ]);
+
+  const allIds: string[] = [];
+  if (user) allIds.push(user.id);
+  if (artist) allIds.push(artist.id);
+
   if (user) {
     return {
       id: user.id,
       role: "user",
       email: user.email || user.cognitoEmail,
+      allIds,
     };
   }
 
-  const artist = await repository.getArtistByCognitoSub(cognitoSub);
   if (artist) {
     return {
       id: artist.id,
       role: "artist",
       email: artist.cognitoEmail,
+      allIds,
     };
   }
 
@@ -259,8 +269,9 @@ function ensureThreadAccess(
   threadMessages: MessageRecord[],
   participantBookings: BookingRecord[],
 ): void {
-  // Allow if participant has existing messages in the thread
-  if (threadMessages.some((item) => belongsToThread(item, participant.id))) {
+  // Allow if participant has existing messages in the thread (check all IDs)
+  const ids = participant.allIds || [participant.id];
+  if (threadMessages.some((item) => ids.some((pid) => belongsToThread(item, pid)))) {
     return;
   }
 
@@ -270,8 +281,8 @@ function ensureThreadAccess(
     return;
   }
 
-  // Allow if participant ID is part of the thread ID (threads are t_userId_artistId)
-  if (threadId.includes(participant.id)) {
+  // Allow if any of the participant's IDs (user + artist) are part of the thread ID
+  if (ids.some((pid) => threadId.includes(pid))) {
     return;
   }
 
