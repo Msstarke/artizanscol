@@ -106,6 +106,9 @@ function ensureToastRoot() {
   if (!root) {
     root = document.createElement("div");
     root.className = "toast-root";
+    root.setAttribute("role", "status");
+    root.setAttribute("aria-live", "polite");
+    root.setAttribute("aria-atomic", "true");
     document.body.append(root);
   }
   return root;

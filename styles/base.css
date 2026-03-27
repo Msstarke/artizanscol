@@ -629,6 +629,27 @@ iframe {
   }
 }
 
+/* ── Skip link ────────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--color-orange);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  border-radius: var(--radius-pill);
+  z-index: 100;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0.75rem;
+}
+
 /* ── Theme toggle ─────────────────────────── */
 
 .theme-toggle {

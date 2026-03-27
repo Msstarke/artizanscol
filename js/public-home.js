@@ -89,7 +89,7 @@ if (marqueeSection && marqueeTrack && visibleArtists.length >= 3) {
       const portfolio = Array.isArray(a.portfolio) ? a.portfolio : [];
       const imgSrc = sanitizeImageUrl(portfolio[0]?.imageUrl || portfolio[0]?.image, FALLBACK_IMG);
       return `<a class="marquee-item" href="${escapeHtml(href)}">
-        <img src="${escapeHtml(imgSrc)}" alt="" width="36" height="36" loading="lazy" />
+        <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(a.name || "Artist")}" width="36" height="36" loading="lazy" />
         <div class="marquee-item-info">
           <strong>${escapeHtml(a.name || "Artist")}</strong>
           <span>${escapeHtml(a.category || "Creative")}</span>
