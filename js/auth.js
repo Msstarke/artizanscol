@@ -1459,6 +1459,10 @@ setupProfileForm?.addEventListener("submit", async (event) => {
         priceFrom,
       });
     }
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "preferences",
+    });
     await hydratePrivateDB();
     syncSessionFromExisting();
   } catch (error) {
@@ -1502,6 +1506,10 @@ setupPreferencesForm?.addEventListener("submit", async (event) => {
       messageAlerts: Boolean(setupPrefMessageAlerts?.checked),
       marketingEmails: Boolean(setupPrefMarketingEmails?.checked),
       browserNotifications,
+    });
+    await updateUserSetup(context.user.id, {
+      status: "in_progress",
+      currentStep: "review",
     });
     await hydratePrivateDB();
     syncSessionFromExisting();
