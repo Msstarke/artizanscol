@@ -626,24 +626,6 @@ async function handlePatchArtistProfile(
   const patchName = normalizeRequiredText(payload.name ?? artist.name, "name", 80);
   const patchBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 
-  const modOptions = await getModerationOptions();
-  const modVerdict = moderateText([
-    { name: "name", value: patchName },
-    { name: "bio", value: patchBio },
-  ], modOptions);
-  if (!modVerdict.allowed) {
-    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
-  }
-  if (modVerdict.flagged) {
-    const report = buildAutoModerationReport({
-      targetId: artist.id,
-      verdict: modVerdict,
-      handler: "artist-api/profile",
-      contentSnapshot: `name=${patchName}; bio=${patchBio}`,
-    });
-    await reportWriter.createReport(report).catch(() => {});
-  }
-
   const newHandle = slugify(normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60));
   if (newHandle && newHandle !== artist.handle) {
     const taken = await repository.isHandleTaken(newHandle, artist.id);
@@ -711,24 +693,6 @@ async function handlePutOnboarding(
 
   const onboardingBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 
-  const modOptions = await getModerationOptions();
-  const modVerdict = moderateText([
-    { name: "bio", value: onboardingBio },
-    { name: "category", value: String(payload.category || "") },
-  ], modOptions);
-  if (!modVerdict.allowed) {
-    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited content. Please revise and try again.");
-  }
-  if (modVerdict.flagged) {
-    const report = buildAutoModerationReport({
-      targetId: artist.id,
-      verdict: modVerdict,
-      handler: "artist-api/onboarding",
-      contentSnapshot: `bio=${onboardingBio}`,
-    });
-    await reportWriter.createReport(report).catch(() => {});
-  }
-
   const next = normalizeArtist(touchRecordMeta(
     {
       ...artist,
@@ -781,15 +745,6 @@ async function handleCreateService(
   const serviceTitle = normalizeRequiredText(payload.title, "title", 120);
   const serviceDesc = normalizeRequiredText(payload.description, "description", 2000);
 
-  const modOptions = await getModerationOptions();
-  const modVerdict = moderateText([
-    { name: "title", value: serviceTitle },
-    { name: "description", value: serviceDesc },
-  ], modOptions);
-  if (!modVerdict.allowed) {
-    throw new RequestError(400, "CONTENT_BLOCKED", "Your service contains prohibited content. Please revise and try again.");
-  }
-
   const service: ServiceRecord = {
     ...meta,
     artistId: artist.id,
@@ -800,16 +755,6 @@ async function handleCreateService(
   };
 
   await repository.createService(service);
-
-  if (modVerdict.flagged) {
-    const report = buildAutoModerationReport({
-      targetId: service.id,
-      verdict: modVerdict,
-      handler: "artist-api/service",
-      contentSnapshot: `title=${serviceTitle}; description=${serviceDesc}`,
-    });
-    await reportWriter.createReport(report).catch(() => {});
-  }
 
   return json(201, success(mapService(service)));
 }
@@ -841,15 +786,6 @@ async function handleUpdateService(
   const updatedTitle = payload.title == null ? existing.title : normalizeRequiredText(payload.title, "title", 120);
   const updatedDesc = payload.description == null ? existing.description : normalizeRequiredText(payload.description, "description", 2000);
 
-  const modOptions = await getModerationOptions();
-  const modVerdict = moderateText([
-    { name: "title", value: updatedTitle },
-    { name: "description", value: updatedDesc },
-  ]);
-  if (!modVerdict.allowed) {
-    throw new RequestError(400, "CONTENT_BLOCKED", "Your service contains prohibited content. Please revise and try again.");
-  }
-
   const next = touchRecordMeta(
     {
       ...existing,
@@ -864,16 +800,6 @@ async function handleUpdateService(
   );
 
   await repository.updateService(next);
-
-  if (modVerdict.flagged) {
-    const report = buildAutoModerationReport({
-      targetId: next.id,
-      verdict: modVerdict,
-      handler: "artist-api/service-update",
-      contentSnapshot: `title=${updatedTitle}; description=${updatedDesc}`,
-    });
-    await reportWriter.createReport(report).catch(() => {});
-  }
 
   return json(200, success(mapService(next)));
 }
