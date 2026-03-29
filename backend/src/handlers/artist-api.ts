@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { loadEnv } from "../lib/env.js";
 import { getArtistPublishSummary } from "../domain/artist-publishing.js";
 import { canTransitionBookingStatus } from "../domain/booking.js";
 import { failure, success } from "../domain/api-response.js";
@@ -1064,6 +1067,46 @@ async function handleMarkArtistNotificationsRead(
   return json(200, success({ updatedCount }));
 }
 
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const EXT_MAP: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+let s3Client: S3Client | null = null;
+
+async function handleGetUploadUrl(
+  event: APIGatewayProxyEventV2,
+  artist: ArtistRecord,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const env = loadEnv();
+  if (!env.uploadsBucketName) {
+    return json(503, failure("NOT_CONFIGURED", "Image uploads are not configured."));
+  }
+
+  const payload = parseJsonRequestBody(event) as Record<string, unknown>;
+  const contentType = String(payload?.contentType || "").trim();
+  if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
+    return json(400, failure("INVALID_REQUEST", "contentType must be image/jpeg, image/png, or image/webp."));
+  }
+
+  if (!s3Client) {
+    s3Client = new S3Client({ region: env.awsRegion });
+  }
+
+  const ext = EXT_MAP[contentType] || "jpg";
+  const key = `portfolio/${artist.id}/${randomUUID()}.${ext}`;
+
+  const command = new PutObjectCommand({
+    Bucket: env.uploadsBucketName,
+    Key: key,
+    ContentType: contentType,
+    ContentLength: MAX_UPLOAD_SIZE,
+  });
+
+  const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
+  const publicUrl = `https://${env.uploadsBucketName}.s3.${env.awsRegion}.amazonaws.com/${key}`;
+
+  return json(200, success({ uploadUrl, publicUrl, key, expiresIn: 300 }));
+}
+
 export function createArtistApiHandler(
   repository: ArtistWorkspaceRepository,
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
@@ -1136,6 +1179,10 @@ export function createArtistApiHandler(
 
       if (method === "POST" && path === "/v1/artist/me/notifications/read-all") {
         return await handleMarkArtistNotificationsRead(repository, artist);
+      }
+
+      if (method === "POST" && path === "/v1/artist/me/upload-url") {
+        return await handleGetUploadUrl(event, artist);
       }
 
       return json(404, failure("NOT_FOUND", "Route not found."));

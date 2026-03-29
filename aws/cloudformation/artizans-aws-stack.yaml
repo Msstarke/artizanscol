@@ -150,6 +150,43 @@ Resources:
             Action: s3:ListBucket
             Resource: !GetAtt ArtizansSiteBucket.Arn
 
+  ArtizansUploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [PUT]
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  ArtizansUploadsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtizansUploadsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowPublicRead
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${ArtizansUploadsBucket.Arn}/*'
+
   ArtizansManagedCertificate:
     Type: AWS::CertificateManager::Certificate
     Condition: CreateManagedCertificateCondition
@@ -185,7 +222,7 @@ Resources:
             Protection: true
             Override: true
           ContentSecurityPolicy:
-            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
+            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com https://*.s3.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
             Override: true
         CustomHeadersConfig:
           Items:
@@ -255,7 +292,7 @@ Resources:
             Protection: true
             Override: true
           ContentSecurityPolicy:
-            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
+            ContentSecurityPolicy: !Sub "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self'; connect-src 'self' https://cognito-idp.${AWS::Region}.amazonaws.com https://*.execute-api.${AWS::Region}.amazonaws.com https://*.s3.${AWS::Region}.amazonaws.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;"
             Override: true
         CustomHeadersConfig:
           Items:
@@ -979,6 +1016,11 @@ Resources:
                   - !Ref ArtizansStripeSecret
                   - !Ref ArtizansStripeWebhookSecret
                   - !Ref ArtizansAppSecret
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub '${ArtizansUploadsBucket.Arn}/*'
 
   ArtizansPublicApiFunction:
     Type: AWS::Lambda::Function
@@ -1114,6 +1156,7 @@ Resources:
           STRIPE_SECRET_ARN: !Ref ArtizansStripeSecret
           STRIPE_WEBHOOK_SECRET_ARN: !Ref ArtizansStripeWebhookSecret
           APP_SECRET_ARN: !Ref ArtizansAppSecret
+          UPLOADS_BUCKET_NAME: !Ref ArtizansUploadsBucket
           COGNITO_USER_POOL_ID: !Ref ArtizansUserPool
           COGNITO_CLIENT_ID: !Ref ArtizansUserPoolClient
           COGNITO_ISSUER: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${ArtizansUserPool}'
@@ -1969,6 +2012,8 @@ Resources:
 Outputs:
   BucketName:
     Value: !Ref ArtizansSiteBucket
+  UploadsBucketName:
+    Value: !Ref ArtizansUploadsBucket
   CloudFrontDistributionId:
     Value: !Ref ArtizansDistribution
   CloudFrontDomainName:

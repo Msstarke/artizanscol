@@ -30,6 +30,7 @@ import {
 import { clearCognitoIdentity, getSession, setCognitoIdentity, setSession } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, sanitizeImageUrl, showToast } from "./utils.js";
+import { apiRequest } from "./api-client.js";
 
 initSharedPage();
 await hydrateDB();
@@ -1850,11 +1851,61 @@ portfolioAddBtn?.addEventListener("click", async () => {
 
   const title = (portfolioAddTitle?.value || "").trim();
   const medium = (portfolioAddMedium?.value || "").trim();
-  const imageUrl = (portfolioAddImage?.value || "").trim();
+  const file = portfolioAddImage?.files?.[0] || null;
 
   if (!title) {
     showToast("Title is required.", "warning");
     return;
+  }
+
+  let imageUrl = "";
+
+  if (file) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      showToast("Only JPG, PNG, or WebP images are allowed.", "warning");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be under 5 MB.", "warning");
+      return;
+    }
+
+    portfolioAddBtn.disabled = true;
+    portfolioAddBtn.textContent = "Uploading…";
+
+    try {
+      const urlResponse = await apiRequest("/v1/artist/me/upload-url", {
+        method: "POST",
+        body: { contentType: file.type },
+      });
+
+      if (!urlResponse?.data?.uploadUrl) {
+        showToast("Could not get upload URL.", "danger");
+        portfolioAddBtn.disabled = false;
+        portfolioAddBtn.textContent = "Add to portfolio";
+        return;
+      }
+
+      const uploadResult = await fetch(urlResponse.data.uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!uploadResult.ok) {
+        showToast("Image upload failed.", "danger");
+        portfolioAddBtn.disabled = false;
+        portfolioAddBtn.textContent = "Add to portfolio";
+        return;
+      }
+
+      imageUrl = urlResponse.data.publicUrl;
+    } catch (error) {
+      showToast("Image upload failed.", "danger");
+      portfolioAddBtn.disabled = false;
+      portfolioAddBtn.textContent = "Add to portfolio";
+      return;
+    }
   }
 
   const currentPortfolio = Array.isArray(context.artist.portfolio) ? [...context.artist.portfolio] : [];
@@ -1872,6 +1923,8 @@ portfolioAddBtn?.addEventListener("click", async () => {
   if (portfolioAddMedium) portfolioAddMedium.value = "";
   if (portfolioAddImage) portfolioAddImage.value = "";
   if (portfolioAddForm) portfolioAddForm.open = false;
+  portfolioAddBtn.disabled = false;
+  portfolioAddBtn.textContent = "Add to portfolio";
 });
 
 // Portfolio: Delete + Set as cover (delegated)

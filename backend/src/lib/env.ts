@@ -21,6 +21,7 @@ export type AppEnv = {
   stripeSecretArn: string;
   stripeWebhookSecretArn: string;
   appSecretArn?: string;
+  uploadsBucketName?: string;
 
   cognitoIssuer: string;
   cognitoUserPoolId: string;
@@ -65,6 +66,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     stripeSecretArn: requireEnv("STRIPE_SECRET_ARN", env),
     stripeWebhookSecretArn: requireEnv("STRIPE_WEBHOOK_SECRET_ARN", env),
     appSecretArn,
+    uploadsBucketName: String(env.UPLOADS_BUCKET_NAME || "").trim() || undefined,
 
     cognitoIssuer: requireEnv("COGNITO_ISSUER", env),
     cognitoUserPoolId: requireEnv("COGNITO_USER_POOL_ID", env),
