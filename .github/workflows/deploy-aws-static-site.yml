@@ -254,13 +254,19 @@ jobs:
             --content-type "font/woff2" \
             --exclude "*" --include "*.woff2"
 
-          # Set long cache on CSS/JS (1 day — cleared on deploy via invalidation)
-          for pattern in "styles/*.css" "js/*.js"; do
-            dir=$(dirname "$pattern")
-            aws s3 cp "$BUCKET/$dir/" "$BUCKET/$dir/" \
-              --recursive --metadata-directive REPLACE \
-              --cache-control "public, max-age=86400"
-          done
+          # Set long cache + correct content-type on CSS
+          aws s3 cp "$BUCKET/styles/" "$BUCKET/styles/" \
+            --recursive --metadata-directive REPLACE \
+            --cache-control "public, max-age=86400" \
+            --content-type "text/css" \
+            --exclude "*" --include "*.css"
+
+          # Set long cache + correct content-type on JS
+          aws s3 cp "$BUCKET/js/" "$BUCKET/js/" \
+            --recursive --metadata-directive REPLACE \
+            --cache-control "public, max-age=86400" \
+            --content-type "application/javascript" \
+            --exclude "*" --include "*.js"
 
           # Set no-cache on HTML (always fresh)
           for f in $(find . -maxdepth 1 -name "*.html" -printf "%f\n" 2>/dev/null || ls *.html 2>/dev/null); do
