@@ -439,21 +439,14 @@
                   <section class="account-panel settings-section" data-settings-section="messages" id="settings-panel-messages" role="tabpanel" hidden>
                     <p class="site-tag">Messages</p>
                     <h3>Inbox and replies</h3>
-                    <form id="workspace-message-form" class="form-grid">
-                      <label>
-                        Booking thread
-                        <select id="workspace-message-booking"></select>
-                      </label>
-                      <label>
-                        Message
-                        <textarea id="workspace-message-body" maxlength="3000" placeholder="Write your message"></textarea>
-                      </label>
-                      <div class="form-actions">
-                        <button class="btn btn-outline btn-small" type="submit">Send message</button>
-                      </div>
-                    </form>
+                    <div id="thread-tabs" class="thread-tabs"></div>
                     <p class="muted" id="workspace-messages-empty">No messages yet. Send one from an artist's profile.</p>
                     <ul class="collection message-thread" id="workspace-messages-list"></ul>
+                    <form id="workspace-message-form" class="message-compose-form">
+                      <select id="workspace-message-booking" hidden></select>
+                      <textarea id="workspace-message-body" maxlength="3000" placeholder="Write a reply..." rows="2"></textarea>
+                      <button class="btn btn-primary btn-small" type="submit">Send</button>
+                    </form>
                   </section>
 
                   <section class="account-panel settings-section" data-settings-section="notifications" id="settings-panel-notifications" role="tabpanel" hidden>

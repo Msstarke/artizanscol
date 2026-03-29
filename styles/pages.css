@@ -1587,6 +1587,81 @@
   white-space: nowrap;
 }
 
+/* Thread tabs */
+
+.thread-tabs {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+  margin-bottom: 0.5rem;
+}
+
+.thread-tabs::-webkit-scrollbar { display: none; }
+
+.thread-tabs:empty { display: none; }
+
+.thread-tab {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.thread-tab:hover {
+  border-color: var(--color-text-faint);
+}
+
+.thread-tab.is-active {
+  background: rgba(250, 93, 41, 0.08);
+  border-color: rgba(250, 93, 41, 0.25);
+}
+
+[data-theme="dark"] .thread-tab.is-active {
+  background: rgba(250, 93, 41, 0.12);
+  border-color: rgba(250, 93, 41, 0.3);
+}
+
+.thread-tab strong {
+  font-size: 0.82rem;
+}
+
+.thread-tab span {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+/* Message compose form */
+
+.message-compose-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.message-compose-form textarea {
+  flex: 1;
+  min-height: 40px;
+  resize: none;
+}
+
+.message-compose-form .btn {
+  flex-shrink: 0;
+}
+
 .message-thread {
   display: flex;
   flex-direction: column;

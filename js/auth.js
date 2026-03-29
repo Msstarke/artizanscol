@@ -750,25 +750,81 @@ function renderMessageOptions(context, relatedBookings) {
   });
 }
 
+let activeThreadId = "";
+const threadTabsEl = byId("thread-tabs");
+
+function getThreadsFromMessages(context) {
+  const ownerIds = new Set([context.user?.id, context.artist?.id].filter(Boolean));
+  const allMessages = context.db.messages
+    .filter((m) => ownerIds.has(m.fromId) || ownerIds.has(m.toId));
+
+  const threadMap = new Map();
+  allMessages.forEach((m) => {
+    const tid = m.threadId || m.bookingId || "general";
+    if (!threadMap.has(tid)) threadMap.set(tid, []);
+    threadMap.get(tid).push(m);
+  });
+
+  const threads = [];
+  for (const [threadId, msgs] of threadMap) {
+    msgs.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    const lastMsg = msgs[msgs.length - 1];
+    const booking = context.db.bookings.find((b) => b.threadId === threadId || b.id === lastMsg?.bookingId);
+    const otherIds = new Set();
+    msgs.forEach((m) => { if (!ownerIds.has(m.fromId)) otherIds.add(m.fromId); if (!ownerIds.has(m.toId)) otherIds.add(m.toId); });
+    const otherId = [...otherIds][0];
+    const otherUser = context.db.users.find((u) => u.id === otherId);
+    const otherArtist = context.db.artists.find((a) => a.id === otherId);
+    const otherName = otherUser?.name || otherArtist?.name || "Member";
+    const label = booking?.serviceLabel || otherName;
+
+    threads.push({ threadId, label, otherName, booking, messages: msgs, lastMsg });
+  }
+
+  threads.sort((a, b) => new Date(b.lastMsg?.createdAt || 0).getTime() - new Date(a.lastMsg?.createdAt || 0).getTime());
+  return threads;
+}
+
+function renderThreadTabs(threads) {
+  if (!threadTabsEl) return;
+  if (!threads.length) { threadTabsEl.innerHTML = ""; return; }
+
+  if (!activeThreadId && threads.length) activeThreadId = threads[0].threadId;
+
+  threadTabsEl.innerHTML = threads.map((t) => `
+    <button class="thread-tab${t.threadId === activeThreadId ? " is-active" : ""}" data-thread-id="${escapeHtml(t.threadId)}" type="button">
+      <strong>${escapeHtml(t.otherName)}</strong>
+      <span>${escapeHtml(t.label)}</span>
+    </button>
+  `).join("");
+}
+
 function renderMessages(context) {
   clearNode(workspaceMessagesList);
-  const ownerIds = new Set([context.user?.id, context.artist?.id].filter(Boolean));
+  const threads = getThreadsFromMessages(context);
 
-  const messages = context.db.messages
-    .filter((message) => ownerIds.has(message.fromId) || ownerIds.has(message.toId))
-    .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
-    .slice(-30);
-
-  const empty = messages.length === 0;
+  const empty = threads.length === 0;
   setCollectionEmptyState(workspaceMessagesList, workspaceMessagesEmpty, empty, "No messages yet. Send one from an artist's profile.");
   if (empty || !workspaceMessagesList) {
+    if (threadTabsEl) threadTabsEl.innerHTML = "";
     return;
   }
 
-  messages.forEach((message) => {
+  renderThreadTabs(threads);
+
+  const active = threads.find((t) => t.threadId === activeThreadId) || threads[0];
+  if (!active) return;
+
+  // Set the booking selector to match the active thread
+  if (workspaceMessageBooking && active.booking) {
+    workspaceMessageBooking.value = active.booking.id;
+  }
+
+  active.messages.forEach((message) => {
     const fromUser = context.db.users.find((item) => item.id === message.fromId);
     const fromArtist = context.db.artists.find((item) => item.id === message.fromId);
-    const mine = message.fromId === context.user?.id || message.fromId === context.artist?.id;
+    const ownerIds = new Set([context.user?.id, context.artist?.id].filter(Boolean));
+    const mine = ownerIds.has(message.fromId);
     const senderName = mine ? "You" : fromUser?.name || fromArtist?.name || "Member";
 
     const item = document.createElement("li");
@@ -1000,6 +1056,27 @@ function setupStepLabel(step) {
   return labels[step] || titleize(step);
 }
 
+let messagePollTimer = null;
+function startMessagePolling() {
+  if (messagePollTimer) return;
+  messagePollTimer = setInterval(async () => {
+    try {
+      await hydratePrivateDB();
+      const context = signedInContext(getSession());
+      if (context && activeSettingsSection === "messages") {
+        renderMessages(context);
+      }
+    } catch (_) {}
+  }, 15000);
+}
+
+function stopMessagePolling() {
+  if (messagePollTimer) {
+    clearInterval(messagePollTimer);
+    messagePollTimer = null;
+  }
+}
+
 function setActiveSettingsSection(sectionId) {
   const available = settingsSections.map((section) => section.getAttribute("data-settings-section"));
   activeSettingsSection = available.includes(sectionId) ? sectionId : "overview";
@@ -1013,6 +1090,9 @@ function setActiveSettingsSection(sectionId) {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-selected", active ? "true" : "false");
   });
+
+  if (activeSettingsSection === "messages") startMessagePolling();
+  else stopMessagePolling();
 }
 
 function renderSetup(context) {
@@ -2093,6 +2173,15 @@ workspaceRefreshBtn?.addEventListener("click", async () => {
   await hydratePrivateDB();
   syncSessionFromExisting();
   showToast("Workspace refreshed.", "success");
+});
+
+// Thread tab clicks
+threadTabsEl?.addEventListener("click", (e) => {
+  const tab = e.target.closest("[data-thread-id]");
+  if (!tab) return;
+  activeThreadId = tab.dataset.threadId || "";
+  const context = signedInContext(getSession());
+  if (context) renderMessages(context);
 });
 
 workspaceMessageForm?.addEventListener("submit", async (event) => {
