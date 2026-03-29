@@ -307,12 +307,12 @@ test("POST /v1/threads/{threadId}/messages creates a message", async () => {
   assert.equal(repo.messages.length, 3);
 });
 
-test("POST /v1/threads/{threadId}/messages allows rapid messages (no rate limit)", async () => {
+test("POST /v1/threads/{threadId}/messages enforces rate limit at 20 messages", async () => {
   const repo = baseRepo();
   const now = new Date();
 
-  repo.messages = Array.from({ length: 5 }).map((_, index) => {
-    const createdAt = new Date(now.getTime() - index * 5_000).toISOString();
+  repo.messages = Array.from({ length: 20 }).map((_, index) => {
+    const createdAt = new Date(now.getTime() - index * 2_000).toISOString();
     return {
       ...createRecordMeta({ id: `m_recent_${index}`, createdBy: "u1", now: createdAt }),
       threadId: "t_u1_a1",
@@ -338,9 +338,9 @@ test("POST /v1/threads/{threadId}/messages allows rapid messages (no rate limit)
     }),
   );
 
-  assert.equal(response.statusCode, 201);
+  assert.equal(response.statusCode, 429);
   const parsed = JSON.parse(String(response.body));
-  assert.equal(parsed.ok, true);
+  assert.equal(parsed.error.code, "RATE_LIMITED");
 });
 
 test("GET /v1/me/updates returns unread counts and deltas since timestamp", async () => {

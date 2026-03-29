@@ -629,6 +629,19 @@ async function handlePatchArtistProfile(
   const patchName = normalizeRequiredText(payload.name ?? artist.name, "name", 80);
   const patchBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([
+    { name: "name", value: patchName },
+    { name: "bio", value: patchBio },
+  ], modOptions);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited language. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({ targetId: artist.id, verdict: modVerdict, handler: "artist-api/profile", contentSnapshot: `name=${patchName}; bio=${patchBio}` });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   const newHandle = slugify(normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60));
   if (newHandle && newHandle !== artist.handle) {
     const taken = await repository.isHandleTaken(newHandle, artist.id);
@@ -695,6 +708,19 @@ async function handlePutOnboarding(
   }>(event, ARTIST_ONBOARDING_SCHEMA);
 
   const onboardingBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
+
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([
+    { name: "bio", value: onboardingBio },
+    { name: "category", value: String(payload.category || "") },
+  ], modOptions);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited language. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({ targetId: artist.id, verdict: modVerdict, handler: "artist-api/onboarding", contentSnapshot: `bio=${onboardingBio}` });
+    await reportWriter.createReport(report).catch(() => {});
+  }
 
   const next = normalizeArtist(touchRecordMeta(
     {

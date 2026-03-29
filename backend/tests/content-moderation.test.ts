@@ -22,13 +22,13 @@ describe("moderateText", () => {
     assert.ok(verdict.reasons.some((r) => r.rule === "prohibited_language"));
   });
 
-  it("blocks profanity", () => {
+  it("flags profanity but allows submission", () => {
     const verdict = moderateText([
       { name: "message", value: "This is a shit situation" },
     ]);
-    assert.equal(verdict.allowed, false);
+    assert.equal(verdict.allowed, true);
     assert.equal(verdict.flagged, true);
-    assert.ok(verdict.reasons.some((r) => r.rule === "prohibited_language"));
+    assert.ok(verdict.reasons.some((r) => r.rule === "profanity"));
   });
 
   it("flags mild language but allows submission", () => {
@@ -97,18 +97,17 @@ describe("moderateText", () => {
     assert.ok(verdict.reasons.some((r) => r.rule === "contact_info_email"));
   });
 
-  it("blocks placeholder content", () => {
+  it("allows placeholder content (not blocked)", () => {
     const verdict = moderateText([
       { name: "bio", value: "test" },
     ]);
-    assert.equal(verdict.allowed, false);
-    assert.ok(verdict.reasons.some((r) => r.rule === "placeholder_content"));
+    assert.equal(verdict.allowed, true);
   });
 
-  it("blocks junk placeholder words", () => {
-    for (const junk of ["lol", "bruh", "idk", "nothing", "n/a", "ok"]) {
-      const verdict = moderateText([{ name: "bio", value: junk }]);
-      assert.equal(verdict.allowed, false, `Expected "${junk}" to be blocked`);
+  it("allows short casual words", () => {
+    for (const word of ["lol", "bruh", "idk", "nothing", "n/a", "ok"]) {
+      const verdict = moderateText([{ name: "bio", value: word }]);
+      assert.equal(verdict.allowed, true, `Expected "${word}" to be allowed`);
     }
   });
 
@@ -152,12 +151,11 @@ describe("moderateText", () => {
     assert.ok(verdict.reasons.some((r) => r.rule === "doxxing_ip_address"));
   });
 
-  it("blocks keyboard mash / gibberish", () => {
+  it("allows keyboard sequences (gibberish check removed)", () => {
     const verdict = moderateText([
       { name: "bio", value: "asdfghjkl" },
     ]);
-    assert.equal(verdict.allowed, false);
-    assert.ok(verdict.reasons.some((r) => r.rule === "gibberish_content"));
+    assert.equal(verdict.allowed, true);
   });
 
   it("blocks repeated word spam", () => {

@@ -32,7 +32,7 @@ const MAX_LIMIT = 100;
 const MAX_REQUEST_BODY_BYTES = 16 * 1024;
 const MAX_MESSAGE_LENGTH = 3000;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const RATE_LIMIT_MAX_MESSAGES = 5;
+const RATE_LIMIT_MAX_MESSAGES = 20;
 const THREAD_MESSAGE_CREATE_SCHEMA: JsonSchema = {
   type: "object",
   required: ["body"],
@@ -475,10 +475,17 @@ async function handlePostThreadMessage(
   const payloadRecipientId = normalizeOptionalText(payload.toId, "toId", 80);
   const bookingId = normalizeOptionalText(payload.bookingId, "bookingId", 80) || undefined;
 
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([{ name: "body", value: messageBody }], modOptions);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your message contains prohibited language. Please revise and try again.");
+  }
+
   const participantBookings = await listParticipantBookings(repository, participant);
   const threadMessages = await repository.listMessagesByThreadId(threadId);
 
   ensureThreadAccess(participant, threadId, threadMessages, participantBookings);
+  enforceRateLimit(threadMessages, participant.id);
 
   const toId = resolveRecipientId({
     participant,

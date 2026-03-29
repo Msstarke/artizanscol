@@ -34,21 +34,21 @@ export type ModerationField = {
 // ---------------------------------------------------------------------------
 
 /** Hard-block terms (slurs, hate speech, and all profanity). Matched on word boundaries. */
+/** Hard-block terms: slurs and hate speech. Submissions are rejected outright. */
 const BLOCK_WORDS: string[] = [
-  "nigger", "nigga", "faggot", "fag", "retard", "kike", "spic",
+  "nigger", "nigga", "faggot", "kike", "spic",
   "wetback", "chink", "gook", "tranny", "coon", "darkie",
   "beaner", "towelhead", "raghead",
-  "fuck", "fucking", "fucker", "motherfucker",
-  "shit", "shitty", "bullshit",
-  "asshole",
-  "bitch", "dick", "cock", "pussy",
-  "piss",
-  "bastard", "whore", "slut",
 ];
 
-/** Soft-flag terms (mild language). Allowed through but flagged for review. */
+/** Soft-flag terms: profanity and mild language. Allowed through but flagged for admin review. */
 const FLAG_WORDS: string[] = [
+  "fuck", "fucking", "fucker", "motherfucker",
+  "shit", "shitty", "bullshit",
+  "asshole", "bitch", "whore", "slut",
   "ass", "damn", "crap", "hell",
+  "dick", "cock", "pussy", "piss", "bastard",
+  "fag", "retard",
 ];
 
 // ---------------------------------------------------------------------------
@@ -250,14 +250,13 @@ function checkSpamPatterns(text: string, field: string): ModerationReason[] {
       "Saint Martins", "Central Saint",
     ]);
     const matches = [...text.matchAll(namePattern)].filter((m) => !notNames.has(m[0]));
-    // 2+ name-like patterns = likely listing people → block
-    // 1 name-like pattern = flag for review (could be legitimate)
+    // Name-like patterns — flag for review, don't block
     if (matches.length >= 2) {
       reasons.push({
         rule: "names_in_content",
-        severity: "block",
+        severity: "flag",
         field,
-        detail: `Multiple names detected in ${field} — possible doxxing.`,
+        detail: `Multiple names detected in ${field}.`,
       });
     } else if (matches.length === 1) {
       reasons.push({
@@ -267,16 +266,6 @@ function checkSpamPatterns(text: string, field: string): ModerationReason[] {
         detail: `Possible name detected in ${field}.`,
       });
     }
-  }
-
-  // Gibberish / keyboard mash
-  if (isGibberish(text)) {
-    reasons.push({
-      rule: "gibberish_content",
-      severity: "block",
-      field,
-      detail: `Gibberish or keyboard mash detected in ${field}.`,
-    });
   }
 
   return reasons;
@@ -331,7 +320,6 @@ export function moderateText(fields: ModerationField[], options?: ModerationOpti
     reasons.push(...checkWordList(text, normalized, allBlockWords, "block", name));
     reasons.push(...checkWordList(text, normalized, allFlagWords, "flag", name));
     reasons.push(...checkSpamPatterns(text, name));
-    reasons.push(...checkPlaceholder(text, name));
   }
 
   const hasBlock = reasons.some((r) => r.severity === "block");

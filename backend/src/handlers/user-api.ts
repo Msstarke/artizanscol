@@ -546,6 +546,19 @@ async function handlePatchProfile(
   const location = normalizeOptionalText(payload.location, "location", 80);
   const bio = normalizeOptionalText(payload.bio, "bio", 280);
 
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([
+    { name: "name", value: name },
+    { name: "bio", value: bio },
+  ], modOptions);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your profile contains prohibited language. Please revise and try again.");
+  }
+  if (modVerdict.flagged) {
+    const report = buildAutoModerationReport({ targetId: user.id, verdict: modVerdict, handler: "user-api/profile", contentSnapshot: `name=${name}; bio=${bio}` });
+    await reportWriter.createReport(report).catch(() => {});
+  }
+
   const setup = normalizeUserSetup(user);
 
   const next = normalizeUser(touchRecordMeta(
@@ -763,6 +776,12 @@ async function handleCreateBooking(
   const deadline = normalizeDeadline(payload.deadline);
   const budget = normalizeBudget(payload.budget);
   const message = normalizeName(payload.message, "message", 3000);
+
+  const modOptions = await getModerationOptions();
+  const modVerdict = moderateText([{ name: "message", value: message }], modOptions);
+  if (!modVerdict.allowed) {
+    throw new RequestError(400, "CONTENT_BLOCKED", "Your booking message contains prohibited language. Please revise and try again.");
+  }
 
   let service = null;
   if (serviceId) {
