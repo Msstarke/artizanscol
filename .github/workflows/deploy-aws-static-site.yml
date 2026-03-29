@@ -200,9 +200,39 @@ jobs:
           print(f"Injected API base URL: {api_base_url}")
           PY
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Minify JS and CSS
+        run: |
+          npm install -g terser clean-css-cli
+          echo "Minifying CSS..."
+          for f in styles/base.css styles/components.css styles/pages.css; do
+            if [ -f "$f" ]; then
+              BEFORE=$(wc -c < "$f")
+              cleancss -o "$f" "$f"
+              AFTER=$(wc -c < "$f")
+              echo "  $f: $BEFORE → $AFTER bytes"
+            fi
+          done
+          echo "Minifying JS..."
+          for f in js/*.js; do
+            if [ -f "$f" ]; then
+              BEFORE=$(wc -c < "$f")
+              terser "$f" --compress --mangle --module -o "$f" 2>/dev/null || true
+              AFTER=$(wc -c < "$f")
+              echo "  $f: $BEFORE → $AFTER bytes"
+            fi
+          done
+
       - name: Deploy to S3
         run: |
-          aws s3 sync . "s3://${{ steps.resolve.outputs.bucket }}" \
+          BUCKET="s3://${{ steps.resolve.outputs.bucket }}"
+
+          # Sync all files first
+          aws s3 sync . "$BUCKET" \
             --delete \
             --exclude ".git/*" \
             --exclude ".github/*" \
@@ -216,6 +246,29 @@ jobs:
             --exclude "*.json" \
             --exclude "*.lock" \
             --exclude "*.ai"
+
+          # Set long cache on fonts (immutable, versioned)
+          aws s3 cp "$BUCKET/assets/fonts/" "$BUCKET/assets/fonts/" \
+            --recursive --metadata-directive REPLACE \
+            --cache-control "public, max-age=31536000, immutable" \
+            --content-type "font/woff2" \
+            --exclude "*" --include "*.woff2"
+
+          # Set long cache on CSS/JS (1 day — cleared on deploy via invalidation)
+          for pattern in "styles/*.css" "js/*.js"; do
+            dir=$(dirname "$pattern")
+            aws s3 cp "$BUCKET/$dir/" "$BUCKET/$dir/" \
+              --recursive --metadata-directive REPLACE \
+              --cache-control "public, max-age=86400"
+          done
+
+          # Set no-cache on HTML (always fresh)
+          for f in $(find . -maxdepth 1 -name "*.html" -printf "%f\n" 2>/dev/null || ls *.html 2>/dev/null); do
+            aws s3 cp "$BUCKET/$f" "$BUCKET/$f" \
+              --metadata-directive REPLACE \
+              --cache-control "no-cache, must-revalidate" \
+              --content-type "text/html; charset=utf-8"
+          done
 
       - name: Invalidate CloudFront cache
         run: |
