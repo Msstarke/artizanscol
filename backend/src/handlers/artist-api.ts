@@ -1124,7 +1124,6 @@ async function handleGetUploadUrl(
     Bucket: env.uploadsBucketName,
     Key: key,
     ContentType: contentType,
-    ContentLength: MAX_UPLOAD_SIZE,
   });
 
   const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });

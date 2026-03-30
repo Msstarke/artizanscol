@@ -75,6 +75,14 @@ class InMemoryAdminRepo implements AdminWorkspaceRepository {
     }
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    this.users = this.users.filter((u) => u.id !== userId);
+  }
+
+  async deleteArtist(artistId: string): Promise<void> {
+    this.artists = this.artists.filter((a) => a.id !== artistId);
+  }
+
   async listCategories(): Promise<CategoryRecord[]> {
     return this.categories;
   }

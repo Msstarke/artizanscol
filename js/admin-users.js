@@ -162,8 +162,9 @@ function renderFiltered() {
             ${
               user.deleted
                 ? `<button class="btn btn-outline btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="restore">Restore</button>`
-                : `<button class="btn btn-outline btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="delete" style="color:var(--color-error);border-color:var(--color-error);">Delete user</button>`
+                : `<button class="btn btn-outline btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="delete" style="color:var(--color-error);border-color:var(--color-error);">Suspend</button>`
             }
+            <button class="btn btn-ghost btn-small" type="button" data-user-id="${escapeHtml(user.id)}" data-action="hard-delete" style="color:var(--color-error);">Hard delete</button>
           </div>
         </div>
       </div>
@@ -209,6 +210,33 @@ usersListEl?.addEventListener("click", async (e) => {
     }
     btn.disabled = false;
     btn.textContent = origText;
+    return;
+  }
+
+  // Hard delete
+  if (action === "hard-delete") {
+    const confirmed = window.confirm(
+      "PERMANENTLY delete this user and their artist profile? This cannot be undone.",
+    );
+    if (!confirmed) return;
+
+    btn.disabled = true;
+    btn.textContent = "Deleting…";
+
+    try {
+      const res = await apiRequest(`/v1/admin/platform/users/${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+      });
+      if (!res?.ok) throw new Error(res?.error?.message || "Hard delete failed.");
+
+      allUsers = allUsers.filter((u) => u.id !== userId);
+      showToast("User permanently deleted.", "success");
+      renderFiltered();
+    } catch (err) {
+      showToast(err?.message || "Hard delete failed.", "error");
+      btn.disabled = false;
+      btn.textContent = "Hard delete";
+    }
     return;
   }
 

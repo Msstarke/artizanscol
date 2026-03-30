@@ -448,6 +448,14 @@ class RuntimeRepository
     await this.putItem(this.env.usersTableName, normalizeUserRecord(user));
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    await this.deleteById(this.env.usersTableName, userId);
+  }
+
+  async deleteArtist(artistId: string): Promise<void> {
+    await this.deleteById(this.env.artistsTableName, artistId);
+  }
+
   async getArtistById(artistId: string): Promise<ArtistRecord | null> {
     const record = await this.getById<ArtistRecord>(this.env.artistsTableName, artistId);
     return record ? normalizeArtistRecord(record) : null;

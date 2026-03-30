@@ -713,6 +713,46 @@ async function handlePatchPlatformUser(
   return json(200, success(mapUser(next)));
 }
 
+async function handleDeletePlatformUser(
+  event: APIGatewayProxyEventV2,
+  repository: AdminWorkspaceRepository,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const userId = event.pathParameters?.userId;
+  if (!userId) {
+    return json(400, failure("INVALID_REQUEST", "userId is required."));
+  }
+
+  const user = await repository.getUserById(userId);
+  if (!user) {
+    return json(404, failure("NOT_FOUND", "User not found."));
+  }
+
+  // Delete linked artist profile
+  if (user.cognitoSub) {
+    const allArtists = await repository.listAllArtists();
+    const linkedArtist = allArtists.find((a) => a.cognitoSub === user.cognitoSub);
+    if (linkedArtist) {
+      await repository.deleteArtist(linkedArtist.id);
+    }
+  }
+
+  // Delete user record
+  await repository.deleteUser(userId);
+
+  auditLog({
+    action: "admin.user.hard_delete",
+    actorId: identitySub,
+    actorRoles: ["admin"],
+    resourceType: "user",
+    resourceId: userId,
+    outcome: "success",
+    metadata: { userName: user.name, userEmail: user.cognitoEmail || user.email },
+  });
+
+  return json(200, success({ deleted: true, userId }));
+}
+
 async function handlePatchPlatformCategory(
   event: APIGatewayProxyEventV2,
   repository: AdminWorkspaceRepository,
@@ -1046,6 +1086,10 @@ export function createAdminApiHandler(
 
       if (method === "PATCH" && /^\/v1\/admin\/platform\/users\/[^/]+$/.test(path)) {
         return await handlePatchPlatformUser(event, repository, identity.sub);
+      }
+
+      if (method === "DELETE" && /^\/v1\/admin\/platform\/users\/[^/]+$/.test(path)) {
+        return await handleDeletePlatformUser(event, repository, identity.sub);
       }
 
       if (method === "PATCH" && /^\/v1\/admin\/platform\/categories\/[^/]+$/.test(path)) {
