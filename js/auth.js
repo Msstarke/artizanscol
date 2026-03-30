@@ -2232,49 +2232,52 @@ workspaceMessageForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  const bookingId = String(workspaceMessageBooking?.value || "").trim();
   const body = String(workspaceMessageBody?.value || "").trim();
-  if (!bookingId || !body) {
-    showToast("Select a booking thread and write a message.", "warning");
+  if (!body) {
+    showToast("Write a message before sending.", "warning");
     return;
   }
 
-  const booking = context.db.bookings.find((item) => item.id === bookingId);
-  if (!booking) {
-    showToast("Booking thread not found.", "warning");
+  if (!activeThreadId) {
+    showToast("Select a conversation thread first.", "warning");
     return;
   }
 
-  let payload = null;
-  if (context.user?.id && booking.userId === context.user.id) {
-    payload = {
-      threadId: booking.threadId,
-      bookingId: booking.id,
-      fromRole: "user",
-      fromId: booking.userId,
-      toRole: "artist",
-      toId: booking.artistId,
-      body,
-    };
-  } else if (context.artist?.id && booking.artistId === context.artist.id) {
-    payload = {
-      threadId: booking.threadId,
-      bookingId: booking.id,
-      fromRole: "artist",
-      fromId: booking.artistId,
-      toRole: "user",
-      toId: booking.userId,
-      body,
-    };
-  }
-
-  if (!payload) {
-    showToast("You do not have access to this booking thread.", "warning");
+  // Find the active thread to determine the recipient
+  const threads = getThreadsFromMessages(context);
+  const thread = threads.find((t) => t.threadId === activeThreadId);
+  if (!thread) {
+    showToast("Thread not found. Try refreshing.", "warning");
     return;
   }
+
+  // Determine fromId and toId
+  const ownerIds = new Set([context.user?.id, context.artist?.id].filter(Boolean));
+  const otherIds = new Set();
+  thread.messages.forEach((m) => {
+    if (!ownerIds.has(m.fromId)) otherIds.add(m.fromId);
+    if (!ownerIds.has(m.toId)) otherIds.add(m.toId);
+  });
+  const toId = [...otherIds][0] || "";
+  const fromId = context.user?.id || context.artist?.id || "";
+
+  if (!toId) {
+    showToast("Could not determine recipient.", "warning");
+    return;
+  }
+
+  const payload = {
+    threadId: activeThreadId,
+    bookingId: thread.booking?.id || null,
+    fromRole: "user",
+    fromId,
+    toRole: "artist",
+    toId,
+    body,
+  };
 
   const submitBtn = workspaceMessageForm.querySelector('button[type="submit"]');
-  const originalBtnText = submitBtn?.textContent || "Send message";
+  const originalBtnText = submitBtn?.textContent || "Send";
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Sending…";
@@ -2293,7 +2296,8 @@ workspaceMessageForm?.addEventListener("submit", async (event) => {
     }
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
     await hydratePrivateDB();
-    syncSessionFromExisting();
+    const refreshedContext = signedInContext(getSession());
+    if (refreshedContext) renderMessages(refreshedContext);
     showToast("Message sent.", "success");
   } catch (error) {
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
