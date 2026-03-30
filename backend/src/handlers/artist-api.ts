@@ -626,6 +626,15 @@ async function handlePatchArtistProfile(
     profileVisible?: unknown;
   }>(event, ARTIST_PROFILE_PATCH_SCHEMA);
 
+  // Lock profile edits after verification — only allow visibility and availability changes
+  if (artist.verified) {
+    const lockedFields = ["name", "handle", "category", "mediums", "priceFrom", "bio", "location"];
+    const attemptedLocked = lockedFields.filter((f) => payload[f as keyof typeof payload] !== undefined);
+    if (attemptedLocked.length > 0) {
+      throw new RequestError(400, "PROFILE_LOCKED", "Your profile has been verified and cannot be edited. Contact support if you need changes.");
+    }
+  }
+
   const patchName = normalizeRequiredText(payload.name ?? artist.name, "name", 80);
   const patchBio = normalizeOptionalText(payload.bio ?? artist.bio, "bio", 1200);
 

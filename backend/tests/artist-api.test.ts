@@ -172,7 +172,7 @@ function baseRepo(): InMemoryArtistWorkspaceRepo {
       category: "Illustration",
       mediums: ["Digital", "Ink"],
       location: "Melbourne",
-      verified: true,
+      verified: false,
       popularity: 31,
       rating: 4.9,
       reviewCount: 44,

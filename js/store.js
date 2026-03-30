@@ -101,9 +101,16 @@ export function getArtistPublishSummary(artist) {
   }
 
   const publishReady = missingFields.length === 0;
-  const publishState = publishReady
-    ? (Boolean(artist?.profileVisible) ? "live" : "ready")
-    : "draft";
+  let publishState;
+  if (!publishReady) {
+    publishState = "draft";
+  } else if (artist?.profileVisible && artist?.verified) {
+    publishState = "live";
+  } else if (artist?.profileVisible && !artist?.verified) {
+    publishState = "pending_review";
+  } else {
+    publishState = "ready";
+  }
 
   return {
     publishState,

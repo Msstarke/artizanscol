@@ -519,7 +519,11 @@ function artistProfileStatus(artist) {
 }
 
 function artistVisibilityButtonLabel(artist) {
-  return getArtistPublishSummary(artist).publishState === "live" ? "Hide profile" : "Show profile";
+  const state = getArtistPublishSummary(artist).publishState;
+  if (state === "live") return "Hide profile";
+  if (state === "pending_review") return "Awaiting review";
+  if (artist?.verified) return "Show profile";
+  return "Submit for review";
 }
 
 function parseMediumsInput(value) {
@@ -1000,6 +1004,28 @@ function renderAccountPanels(session) {
     artistToggleVisibility.textContent = artistVisibilityButtonLabel(artist);
     artistToggleVisibility.hidden = !artist?.category;
   }
+
+  // Lock profile fields after verification
+  const profileLocked = Boolean(artist?.verified);
+  const lockableFields = [accountName, accountCountry, accountCity, accountCityOther, accountCategory, accountRate, accountMediums];
+  lockableFields.forEach((field) => {
+    if (field) {
+      field.disabled = profileLocked;
+      if (profileLocked) field.title = "Profile locked — verified profiles cannot be edited";
+    }
+  });
+
+  // Show locked notice
+  const profileForm = byId("account-profile-form");
+  const existingNotice = profileForm?.querySelector(".profile-locked-notice");
+  if (existingNotice) existingNotice.remove();
+  if (profileLocked && profileForm) {
+    const notice = document.createElement("div");
+    notice.className = "profile-locked-notice";
+    notice.innerHTML = '<p class="muted" style="margin:0;"><strong style="color:var(--color-orange);">Verified profile</strong> — your profile has been reviewed and approved. Contact support to request changes.</p>';
+    profileForm.prepend(notice);
+  }
+
   if (workspaceArtistPreview instanceof HTMLAnchorElement) {
     workspaceArtistPreview.href = artist?.id
       ? `/artist-preview.html?id=${encodeURIComponent(artist.id)}`
@@ -1906,6 +1932,13 @@ artistToggleVisibility?.addEventListener("click", async () => {
     return;
   }
 
+  // If already pending review, don't allow toggle
+  const state = getArtistPublishSummary(artist).publishState;
+  if (state === "pending_review") {
+    showToast("Your profile is awaiting admin review. You'll be notified when it's approved.", "info");
+    return;
+  }
+
   const newVisible = !artist.profileVisible;
   try {
     await updateArtistProfile(artist.id, { profileVisible: newVisible });
@@ -1915,7 +1948,13 @@ artistToggleVisibility?.addEventListener("click", async () => {
     if (artistToggleVisibility) {
       artistToggleVisibility.textContent = artistVisibilityButtonLabel(updatedContext?.artist);
     }
-    showToast(newVisible ? "Profile is now live on Explore." : "Profile hidden from Explore.", "success");
+    if (newVisible && !artist.verified) {
+      showToast("Profile submitted for review. An admin will review it shortly.", "success");
+    } else if (newVisible && artist.verified) {
+      showToast("Profile is now live on Explore.", "success");
+    } else {
+      showToast("Profile hidden from Explore.", "success");
+    }
   } catch (error) {
     showToast(error?.message || "Could not update visibility.", "danger");
   }

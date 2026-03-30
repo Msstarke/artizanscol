@@ -411,6 +411,7 @@ async function handleVerifyOrRejectArtist(
     {
       ...artist,
       verified: action === "verify",
+      profileVisible: action === "verify" ? true : false,
       bio: action === "reject" && note
         ? `${artist.bio}\n\n[Admin note] ${note}`.trim()
         : artist.bio,

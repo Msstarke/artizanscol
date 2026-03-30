@@ -1,6 +1,6 @@
 import type { ArtistRecord } from "./entities.js";
 
-export type ArtistPublishState = "draft" | "ready" | "live";
+export type ArtistPublishState = "draft" | "ready" | "pending_review" | "live";
 
 export type ArtistPublishSummary = {
   publishState: ArtistPublishState;
@@ -37,9 +37,17 @@ export function getArtistPublishSummary(artist: ArtistRecord): ArtistPublishSumm
   }
 
   const publishReady = missingFields.length === 0;
-  const publishState: ArtistPublishState = publishReady
-    ? (artist.profileVisible ? "live" : "ready")
-    : "draft";
+
+  let publishState: ArtistPublishState;
+  if (!publishReady) {
+    publishState = "draft";
+  } else if (artist.profileVisible && artist.verified) {
+    publishState = "live";
+  } else if (artist.profileVisible && !artist.verified) {
+    publishState = "pending_review";
+  } else {
+    publishState = "ready";
+  }
 
   return {
     publishState,
@@ -49,5 +57,6 @@ export function getArtistPublishSummary(artist: ArtistRecord): ArtistPublishSumm
 }
 
 export function isArtistLive(artist: ArtistRecord): boolean {
-  return getArtistPublishSummary(artist).publishState === "live";
+  const summary = getArtistPublishSummary(artist);
+  return summary.publishState === "live";
 }
