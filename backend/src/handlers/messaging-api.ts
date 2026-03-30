@@ -258,9 +258,19 @@ async function listParticipantBookings(
   repository: MessagingWorkspaceRepository,
   participant: Participant,
 ): Promise<BookingRecord[]> {
-  return participant.role === "user"
-    ? repository.listBookingsByUserId(participant.id)
-    : repository.listBookingsByArtistId(participant.id);
+  const allIds = participant.allIds || [participant.id];
+  const results = await Promise.all([
+    repository.listBookingsByUserId(allIds[0] || participant.id),
+    allIds[1] ? repository.listBookingsByArtistId(allIds[1]) : Promise.resolve([]),
+  ]);
+  const seen = new Set<string>();
+  const bookings: BookingRecord[] = [];
+  for (const batch of results) {
+    for (const b of batch) {
+      if (!seen.has(b.id)) { seen.add(b.id); bookings.push(b); }
+    }
+  }
+  return bookings;
 }
 
 function ensureThreadAccess(
@@ -353,7 +363,21 @@ async function handleGetThreads(
   participant: Participant,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   const page = parsePage(event.queryStringParameters);
-  const messages = await repository.listMessagesByParticipantId(participant.id);
+  const allIds = participant.allIds || [participant.id];
+  const messageResults = await Promise.all(
+    allIds.map((pid) => repository.listMessagesByParticipantId(pid)),
+  );
+  // Deduplicate messages by id
+  const seenIds = new Set<string>();
+  const messages: MessageRecord[] = [];
+  for (const batch of messageResults) {
+    for (const msg of batch) {
+      if (!seenIds.has(msg.id)) {
+        seenIds.add(msg.id);
+        messages.push(msg);
+      }
+    }
+  }
   const bookings = await listParticipantBookings(repository, participant);
 
   const threadIds = new Set<string>([
