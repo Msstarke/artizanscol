@@ -53,7 +53,7 @@
             <div>
               <p class="eyebrow">ADMIN PANEL</p>
               <h1 class="section-title">Artist verification</h1>
-              <p class="section-copy">Review artist submissions and verify or reject them. Only verified artists display the verified badge.</p>
+              <p class="section-copy">Review artist profiles waiting for approval. Verified artists go live on the platform. Rejected artists can edit and resubmit.</p>
             </div>
             <div class="browse-hero-actions">
               <a class="btn btn-ghost btn-small" href="/admin/index.html">Overview</a>
@@ -72,8 +72,8 @@
             <label class="filter-label" for="artist-filter-verified">Filter</label>
             <select class="filter-select" id="artist-filter-verified">
               <option value="">All artists</option>
-              <option value="false">Unverified only</option>
-              <option value="true">Verified only</option>
+              <option value="false" selected>Pending review</option>
+              <option value="true">Verified</option>
             </select>
             <button class="btn btn-ghost btn-small" type="button" id="artist-reload-btn">Reload</button>
           </div>

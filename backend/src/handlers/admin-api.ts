@@ -359,7 +359,7 @@ async function handleGetArtistsReview(
     ? null
     : parseBoolean(verifiedFilterRaw, "verified");
 
-  const artists = await repository.listArtists();
+  const artists = await repository.listAllArtists();
   const filtered = verifiedFilter == null
     ? artists
     : artists.filter((artist) => artist.verified === verifiedFilter);
