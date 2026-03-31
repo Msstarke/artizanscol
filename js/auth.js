@@ -720,6 +720,15 @@ function renderBookings(context) {
       item.appendChild(actionRow);
     }
 
+    if (booking.threadId) {
+      const threadLink = document.createElement("a");
+      threadLink.href = "/account-settings.html?section=messages";
+      threadLink.className = "btn-link muted";
+      threadLink.style.cssText = "font-size:0.82rem;display:inline-block;margin-top:0.35rem;";
+      threadLink.textContent = "View thread";
+      item.appendChild(threadLink);
+    }
+
     workspaceBookingsList.appendChild(item);
   });
 }
@@ -899,7 +908,7 @@ function renderPortfolio(context) {
   const items = Array.isArray(artist?.portfolio) ? artist.portfolio : [];
 
   if (!items.length) {
-    portfolioGrid.innerHTML = "";
+    portfolioGrid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:1.5rem 0;">No portfolio items yet. Add your first piece below.</p>`;
     return;
   }
 

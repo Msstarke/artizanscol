@@ -29,6 +29,14 @@ const FOOTER_LINK_GROUPS = [
       { href: "/legal.html", label: "Legal" },
     ],
   },
+  {
+    title: "Connect",
+    links: [
+      { href: "#", label: "Instagram" },
+      { href: "#", label: "Twitter / X" },
+      { href: "#", label: "LinkedIn" },
+    ],
+  },
 ];
 
 function normalizeHeaderShell() {

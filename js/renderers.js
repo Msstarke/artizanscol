@@ -51,6 +51,7 @@ export function artistCardHTML(artist, options = {}) {
           </div>
           <span class="artist-card-price">${escapeHtml(budgetLabel)}</span>
         </div>
+        <p class="artist-card-bio muted">${escapeHtml(profileCopy.length > 80 ? profileCopy.slice(0, 80) + "…" : profileCopy)}</p>
         <div class="tag-row">
           ${Array.isArray(artist.mediums) && artist.mediums.length
             ? artist.mediums

@@ -657,6 +657,7 @@
 .category-chip {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
   padding: 0.45rem 1rem;
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-border);
@@ -835,7 +836,7 @@
 .filter-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 44px;
   padding: 0 0.8rem;
   border-radius: var(--radius-pill);
   background: var(--color-bg-tint);
