@@ -368,7 +368,6 @@ const CATEGORIES = [
   "Interior Design", "Architecture", "Video Production", "Copywriting",
   "Sculpture", "Ceramics", "Painting", "Drawing", "Printmaking",
   "Textile Art", "Jewellery Design", "Glasswork", "Woodwork", "Metalwork",
-  "AI-Assisted",
 ];
 
 function populateCategorySelect(selectEl, selectedValue = "") {
@@ -1550,6 +1549,13 @@ setupProfileForm?.addEventListener("submit", async (event) => {
   if (!name) {
     showToast("Name is required.", "warning");
     return;
+  }
+
+  if (!category) {
+    showToast("Category is required to publish your profile later.", "warning");
+  }
+  if (!priceFrom) {
+    showToast("Starting rate is required to publish your profile later.", "warning");
   }
 
   try {

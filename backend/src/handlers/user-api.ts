@@ -873,9 +873,17 @@ async function handleCreateBooking(
   return json(201, success(mapBooking(booking)));
 }
 
+// Transitions only the artist may initiate
+const ARTIST_ONLY_TRANSITIONS = new Set(["accepted", "declined"]);
+// Transitions only the client may initiate
+const CLIENT_ONLY_TRANSITIONS = new Set(["confirmed", "payment_pending", "paid", "completed"]);
+// Transitions both parties may initiate
+const SHARED_TRANSITIONS = new Set(["cancelled"]);
+
 async function handleUpdateBookingStatus(
   event: APIGatewayProxyEventV2,
   repository: UserWorkspaceRepository,
+  artistRepository: ArtistNameSyncRepository,
   user: UserRecord,
   identitySub: string,
 ): Promise<APIGatewayProxyStructuredResultV2> {
@@ -895,8 +903,24 @@ async function handleUpdateBookingStatus(
     return json(404, failure("NOT_FOUND", "Booking not found."));
   }
 
-  if (booking.userId !== user.id) {
-    return json(403, failure("FORBIDDEN", "You do not own this booking."));
+  // Determine caller's relationship to this booking
+  const isClient = booking.userId === user.id;
+  const callerArtist = await artistRepository.getArtistByCognitoSub(identitySub);
+  const isArtist = Boolean(callerArtist && callerArtist.id === booking.artistId);
+
+  if (!isClient && !isArtist) {
+    return json(403, failure("FORBIDDEN", "You are not a party to this booking."));
+  }
+
+  // Enforce role-based transition rules
+  if (ARTIST_ONLY_TRANSITIONS.has(nextStatusRaw) && !isArtist) {
+    return json(403, failure("FORBIDDEN", "Only the artist can perform this action."));
+  }
+  if (CLIENT_ONLY_TRANSITIONS.has(nextStatusRaw) && !isClient) {
+    return json(403, failure("FORBIDDEN", "Only the client can perform this action."));
+  }
+  if (!ARTIST_ONLY_TRANSITIONS.has(nextStatusRaw) && !CLIENT_ONLY_TRANSITIONS.has(nextStatusRaw) && !SHARED_TRANSITIONS.has(nextStatusRaw)) {
+    return json(400, failure("INVALID_REQUEST", "Unrecognised transition."));
   }
 
   if (!canTransitionBookingStatus(booking.status, nextStatusRaw)) {
@@ -1075,7 +1099,7 @@ export function createUserApiHandler(
       }
 
       if (method === "POST" && path.startsWith("/v1/bookings/") && path.endsWith("/status")) {
-        return await handleUpdateBookingStatus(event, repository, user, identity.sub);
+        return await handleUpdateBookingStatus(event, repository, artistRepository, user, identity.sub);
       }
 
       if (method === "GET" && path === "/v1/me/notifications") {

@@ -315,6 +315,14 @@ textarea {
   resize: vertical;
 }
 
+.char-counter {
+  display: block;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.25rem;
+}
+
 .form-actions {
   display: flex;
   gap: 0.5rem;

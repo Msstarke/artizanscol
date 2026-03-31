@@ -70,6 +70,7 @@
             <label>
               Your message
               <textarea id="contact-message-body" maxlength="2000" rows="3" placeholder="Introduce yourself and describe what you're looking for..."></textarea>
+              <span class="char-counter" id="contact-message-counter">0 / 2000</span>
             </label>
             <div class="form-actions">
               <button class="btn btn-primary btn-small" type="button" id="contact-send-btn">Send message</button>
@@ -145,6 +146,7 @@
                   required
                   placeholder="Describe the brief, intended use, style references, and anything the artist should know before replying."
                 ></textarea>
+                <span class="char-counter" id="booking-message-counter">0 / 2000</span>
               </label>
               <div class="form-actions">
                 <button class="btn btn-primary" type="submit">Send booking request</button>

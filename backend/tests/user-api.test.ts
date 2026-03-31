@@ -534,14 +534,14 @@ test("POST /v1/bookings/{id}/status applies valid transition and emits notificat
       pathParameters: { bookingId: "b1" },
       claims,
       body: {
-        status: "accepted",
+        status: "cancelled",
       },
     }),
   );
 
   assert.equal(response.statusCode, 200);
   const parsed = JSON.parse(String(response.body));
-  assert.equal(parsed.data.status, "accepted");
+  assert.equal(parsed.data.status, "cancelled");
   assert.equal(repo.notifications.length, 2);
 });
 

@@ -52,11 +52,23 @@ const bookingFocus = byId("booking-service");
 const bookingDeadline = byId("booking-deadline");
 const bookingBudget = byId("booking-budget");
 const bookingMessage = byId("booking-message");
+const bookingMessageCounter = byId("booking-message-counter");
 const prefillBooking = byId("prefill-booking");
 const contactFormInline = byId("contact-form-inline");
 const contactMessageBody = byId("contact-message-body");
+const contactMessageCounter = byId("contact-message-counter");
 const contactSendBtn = byId("contact-send-btn");
 const contactCancelBtn = byId("contact-cancel-btn");
+
+function initCharCounter(textarea, counter, maxLength) {
+  if (!textarea || !counter) return;
+  const update = () => { counter.textContent = `${textarea.value.length} / ${maxLength}`; };
+  textarea.addEventListener("input", update);
+  update();
+}
+
+initCharCounter(bookingMessage, bookingMessageCounter, 2000);
+initCharCounter(contactMessageBody, contactMessageCounter, 2000);
 
 function viewerOwnsArtistProfile() {
   return Boolean(artist && session.activeArtistId === artist.id && isCognitoAuthenticated());
@@ -622,6 +634,18 @@ contactSendBtn?.addEventListener("click", async () => {
     contactArtistBtn.textContent = "Message sent";
     if (contactFormInline) contactFormInline.hidden = true;
     if (contactMessageBody) contactMessageBody.value = "";
+    if (contactMessageCounter) contactMessageCounter.textContent = "0 / 2000";
+
+    // Show persistent "View in messages" link near the contact button
+    const existingLink = document.getElementById("contact-messages-link");
+    if (!existingLink && contactArtistBtn?.parentElement) {
+      const link = document.createElement("a");
+      link.id = "contact-messages-link";
+      link.href = "/account-settings.html?section=messages";
+      link.className = "btn btn-ghost btn-small";
+      link.textContent = "View in messages";
+      contactArtistBtn.insertAdjacentElement("afterend", link);
+    }
   } catch (error) {
     showToast(error?.message || "Message could not be sent.", "danger");
   } finally {

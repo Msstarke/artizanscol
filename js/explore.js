@@ -419,6 +419,7 @@ function render() {
   const activeLabels = getActiveFilterLabels();
   const liveArtists = getLiveArtists();
 
+  updateSortOptionAvailability();
   renderDiscoveryInsights(artists);
   renderCategoryChips();
   syncQueryState();
@@ -511,8 +512,20 @@ function render() {
   });
 }
 
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const debouncedRender = debounce(render, 300);
+
+searchInput?.addEventListener("input", debouncedRender);
+searchInput?.addEventListener("change", debouncedRender);
+
 [
-  searchInput,
   categoryFilter,
   mediumFilter,
   locationFilter,
@@ -524,17 +537,25 @@ function render() {
   input?.addEventListener("change", render);
 });
 
-sortSelect?.addEventListener("change", () => {
-  const val = sortSelect.value;
+function updateSortOptionAvailability() {
+  if (!sortSelect) return;
   const artists = getVisibleArtists(getDB());
-  if (val === "most_popular" && artists.every((a) => !a.popularity)) {
-    showToast("Not enough activity data yet — showing newest instead.", "warning");
-    sortSelect.value = "newest";
-  } else if (val === "highest_rated" && artists.every((a) => !a.rating)) {
-    showToast("No ratings yet — showing newest instead.", "warning");
+  const hasPopularity = artists.some((a) => a.popularity);
+  const hasRatings = artists.some((a) => a.rating);
+  for (const option of sortSelect.options) {
+    if (option.value === "most_popular") {
+      option.disabled = !hasPopularity;
+      option.textContent = hasPopularity ? "Most popular" : "Most popular (no data yet)";
+    } else if (option.value === "highest_rated") {
+      option.disabled = !hasRatings;
+      option.textContent = hasRatings ? "Highest rated" : "Highest rated (no ratings yet)";
+    }
+  }
+  // If current selection is now disabled, reset to newest
+  if (sortSelect.selectedOptions[0]?.disabled) {
     sortSelect.value = "newest";
   }
-});
+}
 
 resetBtn?.addEventListener("click", () => {
   if (searchInput) searchInput.value = "";
