@@ -124,6 +124,7 @@ function renderArtistItems(items) {
             : `<button class="btn btn-primary btn-small" type="button" data-action="verify" data-artist-id="${escapeHtml(artist.id)}">Verify artist</button>
                <button class="btn btn-outline btn-small" type="button" data-action="reject" data-artist-id="${escapeHtml(artist.id)}">Reject</button>`
         }
+        <button class="btn btn-ghost btn-small" type="button" data-action="clear-portfolio" data-artist-id="${escapeHtml(artist.id)}" style="color:var(--color-error);">Clear portfolio</button>
       </div>
     `;
 
@@ -139,6 +140,23 @@ artistListEl?.addEventListener("click", async (e) => {
   const artistId = btn.dataset.artistId;
   if (!action || !artistId) return;
 
+  if (action === "clear-portfolio") {
+    if (!window.confirm("Remove all portfolio items from this artist? This cannot be undone.")) return;
+    btn.disabled = true;
+    btn.textContent = "Clearing…";
+    try {
+      const res = await apiRequest(`/v1/admin/artists/${encodeURIComponent(artistId)}/clear-portfolio`, { method: "POST" });
+      if (!res?.ok) throw new Error(res?.error?.message || "Failed to clear portfolio.");
+      showToast("Portfolio cleared.", "success");
+      await loadArtistReviewSection();
+    } catch (err) {
+      showToast(err?.message || "Failed to clear portfolio.", "error");
+      btn.disabled = false;
+      btn.textContent = "Clear portfolio";
+    }
+    return;
+  }
+
   const note = action === "reject" ? (window.prompt("Rejection note (optional):") ?? "") : "";
 
   btn.disabled = true;
@@ -151,7 +169,6 @@ artistListEl?.addEventListener("click", async (e) => {
     });
     if (!res?.ok) throw new Error(res?.error?.message || "Action failed.");
     showToast(`Artist ${action === "verify" ? "verified" : "rejected"}.`, "success");
-    // Refresh the list
     await loadArtistReviewSection();
   } catch (err) {
     showToast(err?.message || "Action failed.", "error");

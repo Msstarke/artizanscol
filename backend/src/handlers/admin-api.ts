@@ -1121,6 +1121,17 @@ export function createAdminApiHandler(
         return await handleResetUserFields(event, repository, identity.sub);
       }
 
+      if (method === "POST" && /^\/v1\/admin\/artists\/[^/]+\/clear-portfolio$/.test(path)) {
+        const artistId = event.pathParameters?.artistId || path.split("/")[4];
+        if (!artistId) return json(400, failure("INVALID_REQUEST", "artistId is required."));
+        const artist = await repository.getArtistById(artistId);
+        if (!artist) return json(404, failure("NOT_FOUND", "Artist not found."));
+        const next = touchRecordMeta({ ...artist, portfolio: [] }, identity.sub);
+        await repository.patchArtist(next);
+        auditLog({ action: "admin.artist.clear_portfolio", actorId: identity.sub, actorRoles: ["admin"], resourceType: "artist", resourceId: artistId, outcome: "success", metadata: { previousCount: (artist.portfolio || []).length } });
+        return json(200, success({ cleared: true, artistId }));
+      }
+
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof RequestError) {
