@@ -736,6 +736,12 @@
   gap: 1rem;
 }
 
+fieldset.filter-group {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
 .filter-group {
   display: grid;
   gap: 0.75rem;

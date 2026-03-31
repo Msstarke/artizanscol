@@ -78,11 +78,11 @@
               <input id="search-input" type="text" placeholder="Name, category, medium..." />
             </label>
 
-            <div class="filter-group">
-              <div class="filter-group-title">
+            <fieldset class="filter-group">
+              <legend class="filter-group-title">
                 <h3>Focus</h3>
                 <p>Start with the type of work and medium you need.</p>
-              </div>
+              </legend>
               <label>
                 Category
                 <select id="category-filter">
@@ -95,13 +95,13 @@
                   <option value="">All mediums</option>
                 </select>
               </label>
-            </div>
+            </fieldset>
 
-            <div class="filter-group">
-              <div class="filter-group-title">
+            <fieldset class="filter-group">
+              <legend class="filter-group-title">
                 <h3>Availability</h3>
                 <p>Use practical signals before you open full profiles.</p>
-              </div>
+              </legend>
               <label>
                 Location
                 <select id="location-filter">
@@ -120,13 +120,13 @@
                 Max starting price (AUD)
                 <input id="price-filter" type="number" min="0" max="100000" step="50" placeholder="e.g. 400" />
               </label>
-            </div>
+            </fieldset>
 
-            <div class="filter-group">
-              <div class="filter-group-title">
+            <fieldset class="filter-group">
+              <legend class="filter-group-title">
                 <h3>Sort</h3>
                 <p>Choose what matters most for your shortlist.</p>
-              </div>
+              </legend>
               <label>
                 Results order
                 <select id="sort-select">
@@ -135,7 +135,7 @@
                   <option value="highest_rated">Highest rated</option>
                 </select>
               </label>
-            </div>
+            </fieldset>
 
             <div class="form-actions">
               <button class="btn btn-outline" type="button" id="reset-filters">Reset filters</button>

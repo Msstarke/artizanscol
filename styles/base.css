@@ -59,7 +59,7 @@
   --color-text: #181818;
   --color-text-soft: rgba(24, 24, 24, 0.72);
   --color-text-muted: rgba(24, 24, 24, 0.6);
-  --color-text-faint: rgba(24, 24, 24, 0.45);
+  --color-text-faint: rgba(24, 24, 24, 0.55);
   --color-ink-soft: rgba(24, 24, 24, 0.74);
   --color-border: rgba(24, 24, 24, 0.12);
   --color-border-soft: rgba(24, 24, 24, 0.08);
@@ -86,7 +86,7 @@
   --color-text: #e4ddd4;
   --color-text-soft: rgba(228, 221, 212, 0.72);
   --color-text-muted: rgba(228, 221, 212, 0.55);
-  --color-text-faint: rgba(228, 221, 212, 0.35);
+  --color-text-faint: rgba(228, 221, 212, 0.48);
   --color-ink-soft: rgba(228, 221, 212, 0.74);
   --color-border: rgba(255, 255, 255, 0.1);
   --color-border-soft: rgba(255, 255, 255, 0.06);
@@ -400,7 +400,7 @@ iframe {
 .footer-brand,
 .footer-copy,
 .footer-meta,
-.footer-link-group p {
+.footer-link-group h4 {
   margin: 0;
 }
 
@@ -431,7 +431,7 @@ iframe {
   gap: 0.38rem;
 }
 
-.footer-link-group p {
+.footer-link-group h4 {
   font-family: var(--font-mono);
   font-size: 0.74rem;
   font-weight: 700;

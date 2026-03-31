@@ -129,7 +129,7 @@ function normalizeFooterShell() {
       ${FOOTER_LINK_GROUPS.map(
         (group) => `
           <div class="footer-link-group">
-            <p>${group.title}</p>
+            <h4>${group.title}</h4>
             ${group.links.map((link) => `<a href="${link.href}">${link.label}</a>`).join("")}
           </div>
         `,
@@ -208,6 +208,11 @@ function markActiveLinks() {
     const url = new URL(href, window.location.origin);
     const isActive = path === url.pathname;
     link.classList.toggle("is-active", isActive);
+    if (isActive) {
+      link.setAttribute("aria-current", "page");
+    } else {
+      link.removeAttribute("aria-current");
+    }
   });
 }
 

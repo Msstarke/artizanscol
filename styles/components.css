@@ -293,7 +293,7 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid rgba(250, 93, 41, 0.3);
+  outline: 2px solid rgba(250, 93, 41, 0.5);
   outline-offset: 1px;
   border-color: var(--color-orange);
   box-shadow: 0 0 0 3px rgba(250, 93, 41, 0.12);
@@ -307,7 +307,6 @@ textarea:focus {
 [aria-invalid="true"]:focus {
   outline-color: var(--color-error);
   border-color: var(--color-error);
-  border-color: rgba(250, 93, 41, 0.48);
 }
 
 textarea {
