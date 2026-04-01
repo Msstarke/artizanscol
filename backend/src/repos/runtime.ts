@@ -29,6 +29,7 @@ import type {
   NotificationRecord,
   PayoutRecord,
   ReportRecord,
+  ReviewRecord,
   RoleAssignmentRecord,
   ServiceRecord,
   SystemConfigRecord,
@@ -658,6 +659,28 @@ class RuntimeRepository
 
   async createMessage(message: MessageRecord): Promise<void> {
     await this.putItem(this.env.messagesTableName, normalizeMessageRecord(message));
+  }
+
+  async createReview(review: ReviewRecord): Promise<void> {
+    await this.putItem(this.env.reviewsTableName, review);
+  }
+
+  async listReviewsByArtistId(artistId: string): Promise<ReviewRecord[]> {
+    return await this.queryAll<ReviewRecord>({
+      TableName: this.env.reviewsTableName,
+      IndexName: "ReviewsByArtistCreatedAt",
+      KeyConditionExpression: "artistId = :artistId",
+      ExpressionAttributeValues: { ":artistId": artistId },
+    });
+  }
+
+  async getReviewByBookingId(bookingId: string): Promise<ReviewRecord | null> {
+    const items = await this.scanAll<ReviewRecord>({
+      TableName: this.env.reviewsTableName,
+      FilterExpression: "bookingId = :bookingId",
+      ExpressionAttributeValues: { ":bookingId": bookingId },
+    });
+    return items[0] || null;
   }
 
   async listReports(): Promise<ReportRecord[]> {

@@ -368,7 +368,7 @@ function extractArtistId(event: APIGatewayProxyEventV2): string | null {
     return fromParam;
   }
 
-  const match = String(event.rawPath || "").match(/^\/v1\/artists\/([^/?#]+)$/);
+  const match = String(event.rawPath || "").match(/^\/v1\/artists\/([^/?#]+)(?:\/.*)?$/);
   if (!match) {
     return null;
   }
@@ -425,6 +425,46 @@ async function handleGetArtistById(
   );
 }
 
+async function handleGetArtistReviews(
+  event: APIGatewayProxyEventV2,
+  repository: PublicDiscoveryRepository,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const artistId = extractArtistId(event);
+  if (!artistId) {
+    throw new RequestError(400, "INVALID_REQUEST", "artistId is required.");
+  }
+
+  const query = toQueryMap(event.queryStringParameters);
+  const page = parsePage(query);
+
+  const allReviews = await repository.listReviewsByArtistId(artistId);
+  const visible = allReviews
+    .filter((r) => r.visible)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const paged = pageItems(visible, page);
+
+  return json(
+    200,
+    success({
+      items: paged.items.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        body: r.body,
+        createdAt: r.createdAt,
+      })),
+      pagination: {
+        limit: page.limit,
+        cursor: page.cursor,
+        nextCursor: paged.nextCursor,
+        count: paged.items.length,
+      },
+    }),
+    {
+      cacheControl: PUBLIC_CACHE_CONTROL,
+    },
+  );
+}
+
 export function createPublicApiHandler(repository: PublicDiscoveryRepository) {
   return async function handler(
     event: APIGatewayProxyEventV2,
@@ -450,6 +490,10 @@ export function createPublicApiHandler(repository: PublicDiscoveryRepository) {
 
       if (method === "GET" && path === "/v1/artists") {
         return await handleListArtists(event, repository);
+      }
+
+      if (method === "GET" && /^\/v1\/artists\/[^/]+\/reviews$/.test(path)) {
+        return await handleGetArtistReviews(event, repository);
       }
 
       if (method === "GET" && path.startsWith("/v1/artists/")) {

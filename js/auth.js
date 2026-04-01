@@ -720,6 +720,111 @@ function renderBookings(context) {
       item.appendChild(actionRow);
     }
 
+    // "Leave a review" button for completed bookings (client-side only)
+    if (booking.status === "completed" && isClient) {
+      const reviewWrap = document.createElement("div");
+      reviewWrap.className = "booking-review-wrap";
+
+      const reviewBtn = document.createElement("button");
+      reviewBtn.type = "button";
+      reviewBtn.className = "btn btn-outline btn-small";
+      reviewBtn.textContent = "Leave a review";
+      reviewBtn.addEventListener("click", () => {
+        reviewBtn.hidden = true;
+        reviewForm.hidden = false;
+      });
+      reviewWrap.appendChild(reviewBtn);
+
+      const reviewForm = document.createElement("div");
+      reviewForm.className = "booking-review-form";
+      reviewForm.hidden = true;
+      reviewForm.innerHTML = `
+        <div class="star-rating-input">
+          ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="star-btn" data-star="${n}" aria-label="${n} star${n > 1 ? "s" : ""}">\u2606</button>`).join("")}
+        </div>
+        <textarea class="review-textarea" maxlength="1000" rows="3" placeholder="Share your experience with this artist..."></textarea>
+        <span class="char-counter review-char-counter">0 / 1000</span>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary btn-small review-submit-btn">Submit review</button>
+          <button type="button" class="btn btn-ghost btn-small review-cancel-btn">Cancel</button>
+        </div>
+      `;
+      reviewWrap.appendChild(reviewForm);
+
+      let selectedRating = 0;
+      const starBtns = reviewForm.querySelectorAll(".star-btn");
+      starBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedRating = Number(btn.dataset.star);
+          starBtns.forEach((sb) => {
+            const val = Number(sb.dataset.star);
+            sb.textContent = val <= selectedRating ? "\u2605" : "\u2606";
+            sb.classList.toggle("star-selected", val <= selectedRating);
+          });
+        });
+      });
+
+      const textarea = reviewForm.querySelector(".review-textarea");
+      const charCounter = reviewForm.querySelector(".review-char-counter");
+      if (textarea && charCounter) {
+        textarea.addEventListener("input", () => {
+          charCounter.textContent = `${textarea.value.length} / 1000`;
+        });
+      }
+
+      reviewForm.querySelector(".review-cancel-btn")?.addEventListener("click", () => {
+        reviewForm.hidden = true;
+        reviewBtn.hidden = false;
+      });
+
+      reviewForm.querySelector(".review-submit-btn")?.addEventListener("click", async () => {
+        if (!selectedRating) {
+          showToast("Please select a star rating.", "warning");
+          return;
+        }
+        const body = (textarea?.value || "").trim();
+        if (!body) {
+          showToast("Please write a review.", "warning");
+          return;
+        }
+        if (body.length > 1000) {
+          showToast("Review must be 1000 characters or less.", "warning");
+          return;
+        }
+
+        const submitBtn = reviewForm.querySelector(".review-submit-btn");
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Submitting...";
+        }
+
+        try {
+          const result = await apiRequest(`/v1/me/bookings/${encodeURIComponent(booking.id)}/review`, {
+            method: "POST",
+            body: { rating: selectedRating, body },
+          });
+          if (result.ok) {
+            reviewWrap.innerHTML = `<p class="muted" style="font-size:0.85rem;">Review submitted - ${selectedRating} star${selectedRating !== 1 ? "s" : ""}. Thank you!</p>`;
+            showToast("Review submitted successfully.", "success");
+          } else {
+            showToast(result.error?.message || "Could not submit review.", "warning");
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = "Submit review";
+            }
+          }
+        } catch (error) {
+          showToast(error?.message || "Could not submit review.", "danger");
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Submit review";
+          }
+        }
+      });
+
+      item.appendChild(reviewWrap);
+    }
+
     if (booking.threadId) {
       const threadLink = document.createElement("a");
       threadLink.href = "/account-settings.html?section=messages";
@@ -855,6 +960,43 @@ function renderMessages(context) {
 
   if (workspaceMessagesList) {
     workspaceMessagesList.scrollTop = workspaceMessagesList.scrollHeight;
+  }
+}
+
+function renderAnalytics(context) {
+  const analyticsNavBtn = byId("analytics-nav-btn");
+  const { artist } = context;
+
+  if (!artist) {
+    if (analyticsNavBtn) analyticsNavBtn.hidden = true;
+    return;
+  }
+
+  if (analyticsNavBtn) analyticsNavBtn.hidden = false;
+
+  const profileViews = byId("stat-profile-views");
+  const completedBookings = byId("stat-completed-bookings");
+  const acceptanceRate = byId("stat-acceptance-rate");
+  const avgRating = byId("stat-avg-rating");
+  const totalEarnings = byId("stat-total-earnings");
+  const emptyNote = byId("analytics-empty-note");
+
+  if (profileViews) profileViews.textContent = String(artist.profileViews || 0);
+  if (completedBookings) completedBookings.textContent = String(artist.completedBookings || 0);
+  if (acceptanceRate) acceptanceRate.textContent = `${Math.round(artist.acceptanceRate || 0)}%`;
+  if (avgRating) avgRating.textContent = Number(artist.rating || 0) > 0 ? Number(artist.rating).toFixed(1) : "-";
+
+  // Fetch earnings from API
+  apiRequest("/v1/artist/me/earnings").then((res) => {
+    if (res.ok && totalEarnings) {
+      const earnings = Number(res.data?.totalEarnings || res.data?.total || 0);
+      totalEarnings.textContent = earnings > 0 ? `$${earnings.toLocaleString("en-AU", { minimumFractionDigits: 2 })}` : "$0";
+    }
+  }).catch(() => {});
+
+  if (emptyNote) {
+    const hasActivity = Number(artist.completedBookings || 0) > 0 || Number(artist.profileViews || 0) > 0;
+    emptyNote.hidden = hasActivity;
   }
 }
 
@@ -1077,6 +1219,7 @@ function renderAccountPanels(session) {
   renderMessageOptions(context, messageBookings);
   renderMessages(context);
   renderNotifications(context);
+  renderAnalytics(context);
 }
 
 function setupStepLabel(step) {

@@ -812,6 +812,36 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
+  ArtizansReviewsTable:
+    Type: AWS::DynamoDB::Table
+    Condition: UseServerlessApi
+    Properties:
+      TableName: !Sub '${ProjectName}-${EnvironmentName}-reviews'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: artistId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ReviewsByArtistCreatedAt
+          KeySchema:
+            - AttributeName: artistId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
   ArtizansCategoriesTable:
     Type: AWS::DynamoDB::Table
     Condition: UseServerlessApi
@@ -991,6 +1021,8 @@ Resources:
                   - !Sub '${ArtizansNotificationsTable.Arn}/index/*'
                   - !GetAtt ArtizansReportsTable.Arn
                   - !Sub '${ArtizansReportsTable.Arn}/index/*'
+                  - !GetAtt ArtizansReviewsTable.Arn
+                  - !Sub '${ArtizansReviewsTable.Arn}/index/*'
                   - !GetAtt ArtizansCategoriesTable.Arn
                   - !Sub '${ArtizansCategoriesTable.Arn}/index/*'
                   - !GetAtt ArtizansInvoicesTable.Arn
@@ -1043,6 +1075,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1095,6 +1128,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1147,6 +1181,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1200,6 +1235,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1252,6 +1288,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1304,6 +1341,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable
@@ -1356,6 +1394,7 @@ Resources:
           MESSAGES_TABLE_NAME: !Ref ArtizansMessagesTable
           NOTIFICATIONS_TABLE_NAME: !Ref ArtizansNotificationsTable
           REPORTS_TABLE_NAME: !Ref ArtizansReportsTable
+          REVIEWS_TABLE_NAME: !Ref ArtizansReviewsTable
           CATEGORIES_TABLE_NAME: !Ref ArtizansCategoriesTable
           INVOICES_TABLE_NAME: !Ref ArtizansInvoicesTable
           PAYOUTS_TABLE_NAME: !Ref ArtizansPayoutsTable

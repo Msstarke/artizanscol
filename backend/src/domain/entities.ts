@@ -121,6 +121,15 @@ export type ReportRecord = PersistedRecord & {
   metadata?: Record<string, unknown>;
 };
 
+export type ReviewRecord = PersistedRecord & {
+  bookingId: string;
+  userId: string;
+  artistId: string;
+  rating: number;
+  body: string;
+  visible: boolean;
+};
+
 export type CategoryRecord = PersistedRecord & {
   name: string;
   sortName: string;

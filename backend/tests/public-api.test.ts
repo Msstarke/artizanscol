@@ -25,6 +25,10 @@ class InMemoryPublicDiscoveryRepo implements PublicDiscoveryRepository {
   async listServicesByArtistId(artistId: string): Promise<ServiceRecord[]> {
     return this.services.filter((service) => service.artistId === artistId);
   }
+
+  async listReviewsByArtistId(_artistId: string): Promise<import("../src/domain/entities.js").ReviewRecord[]> {
+    return [];
+  }
 }
 
 function nowIso(day: number): string {

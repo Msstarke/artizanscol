@@ -303,6 +303,7 @@
                   <button class="settings-nav-button" data-settings-section-btn="bookings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-bookings">Bookings</button>
                   <button class="settings-nav-button" data-settings-section-btn="messages" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-messages">Messages</button>
                   <button class="settings-nav-button" data-settings-section-btn="notifications" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-notifications">Notifications</button>
+                  <button class="settings-nav-button" data-settings-section-btn="analytics" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-analytics" id="analytics-nav-btn" hidden>Analytics</button>
                   <button class="settings-nav-button" data-settings-section-btn="data" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-data">Data controls</button>
                 </nav>
 
@@ -457,6 +458,19 @@
                     <div class="form-actions">
                       <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
                     </div>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="analytics" id="settings-panel-analytics" role="tabpanel" hidden>
+                    <p class="site-tag">Analytics</p>
+                    <h3>Performance overview</h3>
+                    <div class="account-mini-stats analytics-stats">
+                      <article class="kpi"><small>Profile views</small><strong id="stat-profile-views">0</strong></article>
+                      <article class="kpi"><small>Completed bookings</small><strong id="stat-completed-bookings">0</strong></article>
+                      <article class="kpi"><small>Acceptance rate</small><strong id="stat-acceptance-rate">0%</strong></article>
+                      <article class="kpi"><small>Average rating</small><strong id="stat-avg-rating">-</strong></article>
+                      <article class="kpi"><small>Total earnings</small><strong id="stat-total-earnings">$0</strong></article>
+                    </div>
+                    <p class="muted" id="analytics-empty-note">Analytics data will appear once your artist profile is active and receiving bookings.</p>
                   </section>
 
                   <section class="account-panel settings-section" data-settings-section="data" id="settings-panel-data" role="tabpanel" hidden>

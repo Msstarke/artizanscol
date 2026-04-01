@@ -7,6 +7,7 @@ import type {
   BookingRecord,
   NotificationOwnerRole,
   NotificationRecord,
+  ReviewRecord,
   UserRecord,
 } from "../domain/entities.js";
 import { ownerReadKey } from "../domain/index-keys.js";
@@ -1039,6 +1040,104 @@ async function handleMarkNotificationsRead(
   );
 }
 
+async function handleCreateReview(
+  event: APIGatewayProxyEventV2,
+  repository: UserWorkspaceRepository,
+  artistRepository: ArtistNameSyncRepository,
+  user: UserRecord,
+  identitySub: string,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  const pathMatch = String(event.rawPath || "").match(/^\/v1\/me\/bookings\/([^/?#]+)\/review$/);
+  const bookingId = pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+  if (!bookingId) {
+    throw new RequestError(400, "INVALID_REQUEST", "bookingId is required.");
+  }
+
+  const booking = (await repository.listBookingsByUserId(user.id)).find((b) => b.id === bookingId);
+  if (!booking) {
+    return json(404, failure("NOT_FOUND", "Booking not found."));
+  }
+  if (booking.userId !== user.id) {
+    return json(403, failure("FORBIDDEN", "You can only review your own bookings."));
+  }
+  if (booking.status !== "completed") {
+    return json(400, failure("INVALID_REQUEST", "You can only review completed bookings."));
+  }
+
+  const existing = await repository.getReviewByBookingId(bookingId);
+  if (existing) {
+    return json(400, failure("DUPLICATE", "You have already reviewed this booking."));
+  }
+
+  const payload = parseBody<{ rating?: unknown; body?: unknown }>(event);
+  const rating = Number(payload.rating);
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    throw new RequestError(400, "INVALID_REQUEST", "Rating must be between 1 and 5.");
+  }
+  const body = String(payload.body || "").trim();
+  if (!body || body.length > 1000) {
+    throw new RequestError(400, "INVALID_REQUEST", "Review body is required and must be 1000 characters or less.");
+  }
+
+  const review: ReviewRecord = {
+    ...createRecordMeta({ id: `rev_${randomUUID()}`, createdBy: identitySub }),
+    bookingId,
+    userId: user.id,
+    artistId: booking.artistId,
+    rating,
+    body,
+    visible: true,
+  };
+
+  await repository.createReview(review);
+
+  // Update artist aggregate rating
+  const allReviews = await repository.listReviewsByArtistId(booking.artistId);
+  const visibleReviews = allReviews.filter((r) => r.visible);
+  const avgRating = visibleReviews.length > 0
+    ? visibleReviews.reduce((sum, r) => sum + r.rating, 0) / visibleReviews.length
+    : 0;
+
+  const artist = await repository.getArtistById(booking.artistId);
+  if (artist) {
+    await artistRepository.patchArtist(
+      touchRecordMeta(
+        {
+          ...artist,
+          rating: Math.round(avgRating * 10) / 10,
+          reviewCount: visibleReviews.length,
+        },
+        identitySub,
+      ),
+    );
+  }
+
+  await emitNotification(repository, {
+    ownerRole: "artist",
+    ownerId: booking.artistId,
+    type: "review_received",
+    title: "New review received",
+    detail: `${user.name} left a ${rating}-star review.`,
+    createdBy: identitySub,
+  });
+
+  auditLog({
+    action: "review.create",
+    actorId: identitySub,
+    actorRoles: ["user"],
+    resourceType: "review",
+    resourceId: review.id,
+    outcome: "success",
+    metadata: {
+      bookingId,
+      artistId: booking.artistId,
+      rating,
+    },
+  });
+
+  return json(201, success({ id: review.id, rating: review.rating, body: review.body }));
+}
+
 export function createUserApiHandler(
   repository: UserWorkspaceRepository = new NoopUserWorkspaceRepository(),
   roleAssignmentsRepository: RoleAssignmentsRepository = new NoopRoleAssignmentsRepository(),
@@ -1113,6 +1212,10 @@ export function createUserApiHandler(
 
       if (method === "POST" && path.startsWith("/v1/bookings/") && path.endsWith("/status")) {
         return await handleUpdateBookingStatus(event, repository, artistRepository, user, identity.sub);
+      }
+
+      if (method === "POST" && /^\/v1\/me\/bookings\/[^/]+\/review$/.test(path)) {
+        return await handleCreateReview(event, repository, artistRepository, user, identity.sub);
       }
 
       if (method === "GET" && path === "/v1/me/notifications") {

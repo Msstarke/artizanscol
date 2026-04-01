@@ -7,6 +7,7 @@ import type {
   BookingRecord,
   NotificationOwnerRole,
   NotificationRecord,
+  ReviewRecord,
   ServiceRecord,
   UserRecord,
 } from "../src/domain/entities.js";
@@ -108,6 +109,20 @@ class InMemoryUserWorkspaceRepo implements UserWorkspaceRepository {
 
   async createNotification(notification: NotificationRecord): Promise<void> {
     this.notifications.unshift(notification);
+  }
+
+  public reviews: ReviewRecord[] = [];
+
+  async createReview(review: ReviewRecord): Promise<void> {
+    this.reviews.push(review);
+  }
+
+  async listReviewsByArtistId(artistId: string): Promise<ReviewRecord[]> {
+    return this.reviews.filter((r) => r.artistId === artistId);
+  }
+
+  async getReviewByBookingId(bookingId: string): Promise<ReviewRecord | null> {
+    return this.reviews.find((r) => r.bookingId === bookingId) || null;
   }
 
   async markNotificationsRead(ownerRole: NotificationOwnerRole, ownerId: string): Promise<number> {

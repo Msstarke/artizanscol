@@ -16,6 +16,7 @@ import { assertCanMutate } from "./router-guards.js";
 import { initSharedPage } from "./shared-nav.js";
 import { byId, escapeHtml, formatMoney, getQueryParam, showToast } from "./utils.js";
 import { artistCardHTML } from "./renderers.js";
+import { apiRequest } from "./api-client.js";
 
 initSharedPage();
 await hydrateDB();
@@ -822,5 +823,48 @@ bookingForm?.addEventListener("submit", async (event) => {
   }
 });
 
+function renderStars(rating) {
+  const full = Math.round(rating);
+  let stars = "";
+  for (let i = 1; i <= 5; i++) {
+    stars += `<span class="star ${i <= full ? "star-filled" : "star-empty"}">${i <= full ? "\u2605" : "\u2606"}</span>`;
+  }
+  return stars;
+}
+
+async function loadAndRenderReviews() {
+  const reviewsSection = byId("reviews-section");
+  const reviewsGrid = byId("reviews-grid");
+  const reviewsTitle = byId("reviews-title");
+  if (!reviewsSection || !reviewsGrid || !artist) return;
+
+  try {
+    const res = await apiRequest(`/v1/artists/${encodeURIComponent(artist.id)}/reviews`);
+    if (!res.ok || !res.data?.items?.length) return;
+
+    const items = res.data.items;
+    reviewsSection.hidden = false;
+    if (reviewsTitle) {
+      reviewsTitle.textContent = `Reviews (${items.length})`;
+    }
+
+    reviewsGrid.innerHTML = items.map((review) => {
+      const dateStr = new Date(review.createdAt).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+      return `
+        <article class="review-card-public">
+          <div class="review-card-head">
+            <div class="review-stars">${renderStars(review.rating)}</div>
+            <span class="review-date muted">${escapeHtml(dateStr)}</span>
+          </div>
+          <p class="review-body">${escapeHtml(review.body)}</p>
+        </article>
+      `;
+    }).join("");
+  } catch (_) {
+    // Silently fail - reviews are non-critical
+  }
+}
+
 updateBookingCta();
 renderArtistDetails();
+loadAndRenderReviews();

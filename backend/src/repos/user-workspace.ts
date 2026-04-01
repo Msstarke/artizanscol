@@ -3,6 +3,7 @@ import type {
   BookingRecord,
   NotificationOwnerRole,
   NotificationRecord,
+  ReviewRecord,
   ServiceRecord,
   UserRecord,
 } from "../domain/entities.js";
@@ -29,6 +30,10 @@ export interface UserWorkspaceRepository {
   ): Promise<NotificationRecord[]>;
   createNotification(notification: NotificationRecord): Promise<void>;
   markNotificationsRead(ownerRole: NotificationOwnerRole, ownerId: string): Promise<number>;
+
+  createReview(review: ReviewRecord): Promise<void>;
+  listReviewsByArtistId(artistId: string): Promise<ReviewRecord[]>;
+  getReviewByBookingId(bookingId: string): Promise<ReviewRecord | null>;
 }
 
 export class NoopUserWorkspaceRepository implements UserWorkspaceRepository {
@@ -84,5 +89,15 @@ export class NoopUserWorkspaceRepository implements UserWorkspaceRepository {
     _ownerId: string,
   ): Promise<number> {
     return 0;
+  }
+
+  async createReview(_review: ReviewRecord): Promise<void> {}
+
+  async listReviewsByArtistId(_artistId: string): Promise<ReviewRecord[]> {
+    return [];
+  }
+
+  async getReviewByBookingId(_bookingId: string): Promise<ReviewRecord | null> {
+    return null;
   }
 }

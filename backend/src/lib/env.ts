@@ -11,6 +11,7 @@ export type AppEnv = {
   messagesTableName: string;
   notificationsTableName: string;
   reportsTableName: string;
+  reviewsTableName: string;
   categoriesTableName: string;
   invoicesTableName: string;
   payoutsTableName: string;
@@ -56,6 +57,7 @@ export function loadEnv(env: NodeJS.ProcessEnv = process.env): AppEnv {
     messagesTableName: requireEnv("MESSAGES_TABLE_NAME", env),
     notificationsTableName: requireEnv("NOTIFICATIONS_TABLE_NAME", env),
     reportsTableName: requireEnv("REPORTS_TABLE_NAME", env),
+    reviewsTableName: String(env.REVIEWS_TABLE_NAME || "").trim() || "artizans-prod-reviews",
     categoriesTableName: requireEnv("CATEGORIES_TABLE_NAME", env),
     invoicesTableName: requireEnv("INVOICES_TABLE_NAME", env),
     payoutsTableName: requireEnv("PAYOUTS_TABLE_NAME", env),
