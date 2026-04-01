@@ -528,7 +528,7 @@ async function handleDeleteMe(
   user: UserRecord,
 ): Promise<APIGatewayProxyStructuredResultV2> {
   await repository.patchUser({ ...user, deleted: true });
-  auditLog({ action: "user.delete", userId: user.id });
+  auditLog({ action: "user.delete_self", actorId: user.id, resourceType: "user", resourceId: user.id, outcome: "success" });
   return json(200, success({ deleted: true }));
 }
 
