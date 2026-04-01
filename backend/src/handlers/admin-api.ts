@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { failure, success } from "../domain/api-response.js";
 import type {
@@ -1067,6 +1068,25 @@ export function createAdminApiHandler(
 
       if (method === "POST" && /^\/v1\/admin\/artists\/[^/]+\/reject$/.test(path)) {
         return await handleVerifyOrRejectArtist(event, repository, identity.sub, "reject");
+      }
+
+      if (method === "POST" && /^\/v1\/admin\/artists\/[^/]+\/flag-ai$/.test(path)) {
+        const artistId = event.pathParameters?.artistId || path.split("/")[4];
+        if (!artistId) return json(400, failure("INVALID_REQUEST", "artistId is required."));
+        const artist = await repository.getArtistById(artistId);
+        if (!artist) return json(404, failure("NOT_FOUND", "Artist not found."));
+        const report: ReportRecord = {
+          ...createRecordMeta({ id: `rpt_${randomUUID()}`, createdBy: identity.sub }),
+          type: "ai",
+          status: "open",
+          targetId: artistId,
+          reportedById: identity.sub,
+          note: `Admin flagged artist "${artist.name}" as potentially AI-generated.`,
+          metadata: { artistName: artist.name, artistCategory: artist.category },
+        };
+        await repository.patchReport(report);
+        auditLog({ action: "admin.artist.flag_ai", actorId: identity.sub, actorRoles: ["admin"], resourceType: "artist", resourceId: artistId, outcome: "success" });
+        return json(200, success({ flagged: true, reportId: report.id }));
       }
 
       if (method === "GET" && path === "/v1/admin/reports") {

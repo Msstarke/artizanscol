@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { detectAiText } from "../domain/ai-detection.js";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { loadEnv } from "../lib/env.js";
 import { getArtistPublishSummary } from "../domain/artist-publishing.js";
@@ -651,6 +652,18 @@ async function handlePatchArtistProfile(
     await reportWriter.createReport(report).catch(() => {});
   }
 
+  // AI detection on bio text
+  const aiCheck = detectAiText(patchBio);
+  if (aiCheck.flagged) {
+    const aiReport = buildAutoModerationReport({
+      targetId: artist.id,
+      verdict: { allowed: true, flagged: true, reasons: aiCheck.reasons.map((r) => ({ rule: "ai_detection", severity: "flag" as const, field: "bio", detail: r })) },
+      handler: "artist-api/ai-detection",
+      contentSnapshot: `bio=${patchBio}; confidence=${aiCheck.confidence.toFixed(2)}`,
+    });
+    await reportWriter.createReport(aiReport).catch(() => {});
+  }
+
   const newHandle = slugify(normalizeRequiredText(payload.handle ?? artist.handle, "handle", 60));
   if (newHandle && newHandle !== artist.handle) {
     const taken = await repository.isHandleTaken(newHandle, artist.id);
@@ -729,6 +742,17 @@ async function handlePutOnboarding(
   if (modVerdict.flagged) {
     const report = buildAutoModerationReport({ targetId: artist.id, verdict: modVerdict, handler: "artist-api/onboarding", contentSnapshot: `bio=${onboardingBio}` });
     await reportWriter.createReport(report).catch(() => {});
+  }
+
+  const aiCheck = detectAiText(onboardingBio);
+  if (aiCheck.flagged) {
+    const aiReport = buildAutoModerationReport({
+      targetId: artist.id,
+      verdict: { allowed: true, flagged: true, reasons: aiCheck.reasons.map((r) => ({ rule: "ai_detection", severity: "flag" as const, field: "bio", detail: r })) },
+      handler: "artist-api/ai-detection",
+      contentSnapshot: `bio=${onboardingBio}; confidence=${aiCheck.confidence.toFixed(2)}`,
+    });
+    await reportWriter.createReport(aiReport).catch(() => {});
   }
 
   const next = normalizeArtist(touchRecordMeta(

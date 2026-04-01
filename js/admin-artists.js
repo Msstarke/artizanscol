@@ -125,6 +125,7 @@ function renderArtistItems(items) {
                <button class="btn btn-outline btn-small" type="button" data-action="reject" data-artist-id="${escapeHtml(artist.id)}">Reject</button>`
         }
         <button class="btn btn-ghost btn-small" type="button" data-action="clear-portfolio" data-artist-id="${escapeHtml(artist.id)}" style="color:var(--color-error);">Clear portfolio</button>
+        <button class="btn btn-ghost btn-small" type="button" data-action="flag-ai" data-artist-id="${escapeHtml(artist.id)}" style="color:var(--color-orange);">Flag as AI</button>
       </div>
     `;
 
@@ -139,6 +140,23 @@ artistListEl?.addEventListener("click", async (e) => {
   const action = btn.dataset.action;
   const artistId = btn.dataset.artistId;
   if (!action || !artistId) return;
+
+  if (action === "flag-ai") {
+    if (!window.confirm("Flag this artist's content as potentially AI-generated? A report will be created for review.")) return;
+    btn.disabled = true;
+    btn.textContent = "Flagging…";
+    try {
+      const res = await apiRequest(`/v1/admin/artists/${encodeURIComponent(artistId)}/flag-ai`, { method: "POST" });
+      if (!res?.ok) throw new Error(res?.error?.message || "Failed to flag.");
+      showToast("Artist flagged as potentially AI-generated. Report created.", "success");
+      btn.textContent = "Flagged";
+    } catch (err) {
+      showToast(err?.message || "Failed to flag.", "error");
+      btn.disabled = false;
+      btn.textContent = "Flag as AI";
+    }
+    return;
+  }
 
   if (action === "clear-portfolio") {
     if (!window.confirm("Remove all portfolio items from this artist? This cannot be undone.")) return;
