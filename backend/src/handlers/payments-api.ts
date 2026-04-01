@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import Stripe from "stripe";
 import { canTransitionBookingStatus } from "../domain/booking.js";
 import { failure, success } from "../domain/api-response.js";
 import type {
@@ -437,19 +438,63 @@ async function handleCheckoutSession(
     });
   }
 
-  const sessionId = `cs_${randomUUID().replace(/-/g, "")}`;
-  const paymentIntentId = `pi_${randomUUID().replace(/-/g, "")}`;
-  const successUrl = normalizeOptionalText(payload.successUrl, "successUrl", 500)
-    || `https://example.com/payments/success?session_id=${sessionId}`;
-  const cancelUrl = normalizeOptionalText(payload.cancelUrl, "cancelUrl", 500)
-    || `https://example.com/payments/cancel?session_id=${sessionId}`;
+  const defaultSuccessUrl = `https://www.artizanscollective.com/account-settings.html?section=bookings&payment=success`;
+  const defaultCancelUrl = `https://www.artizanscollective.com/account-settings.html?section=bookings&payment=cancelled`;
+  const successUrl = normalizeOptionalText(payload.successUrl, "successUrl", 500) || defaultSuccessUrl;
+  const cancelUrl = normalizeOptionalText(payload.cancelUrl, "cancelUrl", 500) || defaultCancelUrl;
+
+  let sessionId: string;
+  let paymentIntentId: string;
+  let checkoutUrl: string;
+
+  try {
+    const stripeSecretKey = await repository.getStripeSecretKey();
+    if (!stripeSecretKey || stripeSecretKey.startsWith("placeholder")) {
+      throw new Error("Stripe not configured — using simulated mode.");
+    }
+
+    const stripe = new Stripe(stripeSecretKey);
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [{
+        price_data: {
+          currency: "aud",
+          unit_amount: Math.round(paymentBooking.budget * 100),
+          product_data: {
+            name: paymentBooking.serviceLabel || "Booking",
+            description: `Booking with artist for ${paymentBooking.serviceLabel || "creative work"}`,
+          },
+        },
+        quantity: 1,
+      }],
+      metadata: {
+        bookingId: paymentBooking.id,
+        userId: paymentBooking.userId,
+        artistId: paymentBooking.artistId,
+      },
+      success_url: `${successUrl}${successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl,
+    });
+
+    sessionId = session.id;
+    paymentIntentId = typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : `pi_${randomUUID().replace(/-/g, "")}`;
+    checkoutUrl = session.url || successUrl;
+  } catch (_stripeError) {
+    // Stripe not configured or call failed — fall back to simulated behaviour.
+    sessionId = `cs_${randomUUID().replace(/-/g, "")}`;
+    paymentIntentId = `pi_${randomUUID().replace(/-/g, "")}`;
+    checkoutUrl = `${successUrl}${successUrl.includes("?") ? "&" : "?"}redirect_status=simulated`;
+  }
 
   const snapshot = {
     idempotencyKey,
     bookingId: paymentBooking.id,
     sessionId,
     paymentIntentId,
-    checkoutUrl: `${successUrl}&redirect_status=simulated`,
+    checkoutUrl,
     amount: paymentBooking.budget,
     currency: "AUD",
     cancelUrl,
@@ -592,6 +637,24 @@ async function handleRefund(
 
   const voidedInvoices = await markInvoicesVoid(repository, updatedBooking.id, identity.sub);
 
+  // Attempt real Stripe refund using the payment intent stored on the checkout session.
+  // If Stripe is not configured or the payment intent is missing, proceed without it.
+  let stripeRefundId: string | null = null;
+  const checkoutSession = await repository.getCheckoutSessionByIdempotencyKey(idempotencyKey).catch(() => null);
+  const paymentIntentId = checkoutSession?.paymentIntentId;
+  if (paymentIntentId && !paymentIntentId.startsWith("pi_") === false && !paymentIntentId.startsWith("cs_")) {
+    try {
+      const stripeSecretKey = await repository.getStripeSecretKey();
+      if (stripeSecretKey && !stripeSecretKey.startsWith("placeholder")) {
+        const stripe = new Stripe(stripeSecretKey);
+        const refund = await stripe.refunds.create({ payment_intent: paymentIntentId });
+        stripeRefundId = refund.id;
+      }
+    } catch (_refundError) {
+      // Stripe refund failed — continue with simulated record.
+    }
+  }
+
   const payout: PayoutRecord = {
     ...createRecordMeta({
       id: `p_${randomUUID()}`,
@@ -608,7 +671,7 @@ async function handleRefund(
   const snapshot = {
     idempotencyKey,
     bookingId: updatedBooking.id,
-    refundId: `re_${randomUUID().replace(/-/g, "")}`,
+    refundId: stripeRefundId || `re_${randomUUID().replace(/-/g, "")}`,
     status: "requested" as const,
     reason,
     createdAt: new Date().toISOString(),

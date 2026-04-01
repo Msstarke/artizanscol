@@ -56,6 +56,7 @@ export interface PaymentsWorkspaceRepository {
   getProcessedWebhookEvent(eventId: string): Promise<ProcessedWebhookEvent | null>;
   putProcessedWebhookEvent(event: ProcessedWebhookEvent): Promise<void>;
 
+  getStripeSecretKey(): Promise<string>;
   getStripeWebhookSigningSecret(): Promise<string>;
 }
 
@@ -99,6 +100,10 @@ export class NoopPaymentsWorkspaceRepository implements PaymentsWorkspaceReposit
   }
 
   async putProcessedWebhookEvent(_event: ProcessedWebhookEvent): Promise<void> {}
+
+  async getStripeSecretKey(): Promise<string> {
+    return "";
+  }
 
   async getStripeWebhookSigningSecret(): Promise<string> {
     return "";

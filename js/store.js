@@ -1643,6 +1643,16 @@ export async function updateArtistProfile(artistId, patch) {
   return remote;
 }
 
+export async function createCheckoutSession(bookingId) {
+  const idempotencyKey = `checkout-${bookingId}-${Date.now()}`;
+  const response = await apiRequest("/v1/payments/checkout-session", {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: { bookingId },
+  });
+  return response?.data || null;
+}
+
 export function deleteUserAccount(userId) {
   let deleted = false;
 

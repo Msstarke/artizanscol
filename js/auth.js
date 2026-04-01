@@ -1,4 +1,5 @@
 import {
+  createCheckoutSession,
   ensureArtistForCognito,
   ensureUserForCognito,
   getArtistById,
@@ -718,6 +719,38 @@ function renderBookings(context) {
         actionRow.appendChild(button);
       });
       item.appendChild(actionRow);
+    }
+
+    // "Pay now" button for bookings awaiting payment (client-side only)
+    if (isClient && (booking.status === "confirmed" || booking.status === "payment_pending")) {
+      const payWrap = document.createElement("div");
+      payWrap.className = "form-actions booking-pay-wrap";
+
+      const payBtn = document.createElement("button");
+      payBtn.type = "button";
+      payBtn.className = "btn btn-primary btn-small";
+      payBtn.textContent = "Pay now";
+      payBtn.addEventListener("click", async () => {
+        payBtn.disabled = true;
+        payBtn.textContent = "Preparing checkout...";
+        try {
+          const session = await createCheckoutSession(booking.id);
+          if (session?.checkoutUrl) {
+            window.location.href = session.checkoutUrl;
+          } else {
+            showToast("Could not create checkout session. Please try again.", "warning");
+            payBtn.disabled = false;
+            payBtn.textContent = "Pay now";
+          }
+        } catch (error) {
+          showToast(error?.message || "Checkout failed. Please try again.", "danger");
+          payBtn.disabled = false;
+          payBtn.textContent = "Pay now";
+        }
+      });
+
+      payWrap.appendChild(payBtn);
+      item.appendChild(payWrap);
     }
 
     // "Leave a review" button for completed bookings (client-side only)

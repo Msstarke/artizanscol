@@ -266,6 +266,7 @@ class RuntimeRepository
   private readonly env: AppEnv;
   private readonly ddb: DynamoDBDocumentClient;
   private readonly secrets: SecretsManagerClient;
+  private stripeSecretCache: string | null = null;
   private webhookSecretCache: string | null = null;
 
   constructor(env: AppEnv = loadEnv()) {
@@ -775,6 +776,30 @@ class RuntimeRepository
 
   async putProcessedWebhookEvent(event: ProcessedWebhookEvent): Promise<void> {
     await this.putSystemSnapshot(`webhook:${event.eventId}`, event as unknown as Record<string, unknown>);
+  }
+
+  async getStripeSecretKey(): Promise<string> {
+    if (this.stripeSecretCache) {
+      return this.stripeSecretCache;
+    }
+
+    const response = await this.secrets.send(
+      new GetSecretValueCommand({ SecretId: this.env.stripeSecretArn }),
+    );
+    const secretString = String(response.SecretString || "");
+    if (!secretString) {
+      return "";
+    }
+
+    try {
+      const parsed = JSON.parse(secretString) as Record<string, unknown>;
+      const secret = String(parsed.secretKey || parsed.secret || parsed.placeholder || "").trim();
+      this.stripeSecretCache = secret;
+      return secret;
+    } catch (_) {
+      this.stripeSecretCache = secretString;
+      return secretString;
+    }
   }
 
   async getStripeWebhookSigningSecret(): Promise<string> {

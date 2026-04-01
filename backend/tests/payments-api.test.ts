@@ -88,6 +88,10 @@ class InMemoryPaymentsRepo implements PaymentsWorkspaceRepository {
     this.webhookEvents.set(event.eventId, event);
   }
 
+  async getStripeSecretKey(): Promise<string> {
+    return "";
+  }
+
   async getStripeWebhookSigningSecret(): Promise<string> {
     return this.webhookSecret;
   }
