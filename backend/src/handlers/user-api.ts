@@ -523,6 +523,15 @@ async function emitNotification(
   });
 }
 
+async function handleDeleteMe(
+  repository: UserWorkspaceRepository,
+  user: UserRecord,
+): Promise<APIGatewayProxyStructuredResultV2> {
+  await repository.patchUser({ ...user, deleted: true });
+  auditLog({ action: "user.delete", userId: user.id });
+  return json(200, success({ deleted: true }));
+}
+
 async function handleGetMe(
   user: UserRecord,
   artistRepository: ArtistNameSyncRepository,
@@ -1060,6 +1069,10 @@ export function createUserApiHandler(
 
       if (method === "GET" && path === "/v1/me") {
         return await handleGetMe(user, artistRepository, identity.sub);
+      }
+
+      if (method === "DELETE" && path === "/v1/me") {
+        return await handleDeleteMe(repository, user);
       }
 
       if (method === "PATCH" && path === "/v1/me/profile") {

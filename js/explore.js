@@ -172,10 +172,28 @@ categoryChipsEl?.addEventListener("click", (e) => {
 });
 
 // Filter sidebar toggle (mobile/tablet)
+let sidebarBackdrop = null;
+
 function setSidebarOpen(open) {
   exploreSidebar?.classList.toggle("is-open", open);
   toggleFiltersBtn?.setAttribute("aria-expanded", String(open));
   if (toggleFiltersLabel) toggleFiltersLabel.textContent = open ? "Hide filters" : "Filters";
+
+  if (open) {
+    if (!sidebarBackdrop) {
+      sidebarBackdrop = document.createElement("div");
+      sidebarBackdrop.style.cssText =
+        "position:fixed;inset:0;z-index:29;background:rgba(0,0,0,0.5);";
+      sidebarBackdrop.setAttribute("aria-hidden", "true");
+      sidebarBackdrop.addEventListener("click", () => setSidebarOpen(false));
+      document.body.appendChild(sidebarBackdrop);
+    }
+  } else {
+    if (sidebarBackdrop) {
+      sidebarBackdrop.remove();
+      sidebarBackdrop = null;
+    }
+  }
 }
 
 toggleFiltersBtn?.addEventListener("click", () => {
@@ -228,7 +246,7 @@ function getFilteredArtists() {
 
   artists = artists.filter((artist) => {
     if (search) {
-      const haystack = `${artist.name} ${artist.category} ${(artist.mediums || []).join(" ")}`.toLowerCase();
+      const haystack = `${artist.name} ${artist.category} ${(artist.mediums || []).join(" ")} ${artist.bio || ""} ${artist.location || ""}`.toLowerCase();
       if (!haystack.includes(search)) {
         return false;
       }

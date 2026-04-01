@@ -2372,4 +2372,29 @@ fullSignoutBtn?.addEventListener("click", async () => {
   showToast("Signed out and cleared.", "success");
 });
 
+const deleteAccountBtn = byId("delete-account-btn");
+deleteAccountBtn?.addEventListener("click", async () => {
+  const confirmed = window.confirm(
+    "Are you sure? This will permanently delete your account and all data. This cannot be undone."
+  );
+  if (!confirmed) return;
+
+  try {
+    const result = await apiRequest("/v1/me", { method: "DELETE" });
+    if (!result.ok) {
+      showToast(result.error?.message || "Could not delete account. Please try again.", "danger");
+      return;
+    }
+    await signOutCognito();
+    clearCognitoIdentity();
+    localStorage.removeItem("artizans.last_mode.v1");
+    showToast("Your account has been deleted.", "success");
+    setTimeout(() => {
+      window.location.href = "/index.html";
+    }, 1500);
+  } catch (error) {
+    showToast(error?.message || "Could not delete account. Please try again.", "danger");
+  }
+});
+
 await hydrateCognitoState();
