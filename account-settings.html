@@ -401,8 +401,33 @@
                   <section class="account-panel settings-section" data-settings-section="billing" id="settings-panel-billing" role="tabpanel" hidden>
                     <p class="site-tag">Billing</p>
                     <h3>Creator subscription</h3>
-                    <p class="muted" style="margin:0 0 1rem;">$20 AUD/month. If you earn over $100 in a billing period, your fee becomes store credit.</p>
 
+                    <!-- Plan explainer -->
+                    <div class="billing-explainer">
+                      <div class="billing-plan-card">
+                        <div class="billing-plan-header">
+                          <h4>Creator Plan</h4>
+                          <div class="billing-plan-price">
+                            <strong>$20</strong>
+                            <span>AUD / month</span>
+                          </div>
+                        </div>
+                        <ul class="billing-plan-features">
+                          <li>Verified profile badge and public listing</li>
+                          <li>Portfolio hosting with image uploads</li>
+                          <li>Direct booking and messaging from clients</li>
+                          <li>Analytics dashboard (views, bookings, earnings)</li>
+                          <li>Priority in search and discovery</li>
+                        </ul>
+                        <div class="billing-plan-credit">
+                          <strong>Earn over $100/month?</strong>
+                          <p>Your $20 fee becomes store credit. Active artists who earn $100+ AUD in any billing period get their subscription fee back as platform credit — effectively making the plan free.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Current status -->
+                    <h4 style="margin:1.5rem 0 0.5rem;">Your subscription</h4>
                     <div id="billing-status" class="billing-status-card">
                       <div class="billing-status-row">
                         <span>Status</span>
@@ -434,6 +459,8 @@
                       <button class="btn btn-primary btn-small" id="billing-activate-btn" type="button">Subscribe — $20/mo</button>
                       <button class="btn btn-ghost btn-small" id="billing-cancel-btn" type="button" style="color:var(--color-error);" hidden>Cancel subscription</button>
                     </div>
+
+                    <p class="muted" style="margin-top:1rem;font-size:0.78rem;">This is a demo. No real charges are made. In production, payments would be processed securely via Stripe.</p>
                   </section>
 
                   <section class="account-panel settings-section" data-settings-section="alerts" id="settings-panel-alerts" role="tabpanel" hidden>
