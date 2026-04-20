@@ -245,6 +245,15 @@ const portfolioAddImage = byId("portfolio-add-image");
 const portfolioAddBtn = byId("portfolio-add-btn");
 const portfolioAddForm = byId("portfolio-add-form");
 
+const billingNavBtn = byId("billing-nav-btn");
+const billingPlanStatus = byId("billing-plan-status");
+const billingEarnings = byId("billing-earnings");
+const billingCreditEligible = byId("billing-credit-eligible");
+const billingCreditBalance = byId("billing-credit-balance");
+const billingNextDate = byId("billing-next-date");
+const billingActivateBtn = byId("billing-activate-btn");
+const billingCancelBtn = byId("billing-cancel-btn");
+
 const accountPreferencesForm = byId("account-preferences-form");
 const prefBookingUpdates = byId("pref-booking-updates");
 const prefMessageAlerts = byId("pref-message-alerts");
@@ -1033,6 +1042,48 @@ function renderAnalytics(context) {
   }
 }
 
+async function renderBilling(context) {
+  const { artist } = context;
+
+  if (!artist) {
+    if (billingNavBtn) billingNavBtn.hidden = true;
+    return;
+  }
+
+  if (billingNavBtn) billingNavBtn.hidden = false;
+
+  try {
+    const res = await apiRequest("/v1/artist/me/subscription");
+    if (!res?.ok) return;
+
+    const sub = res.data;
+    const isActive = sub.status === "active";
+
+    if (billingPlanStatus) {
+      billingPlanStatus.textContent = isActive ? "Active" : sub.status === "cancelled" ? "Cancelled" : "Not subscribed";
+      billingPlanStatus.style.color = isActive ? "var(--color-green, #43aa68)" : "";
+    }
+    if (billingEarnings) billingEarnings.textContent = `$${Number(sub.monthlyEarnings || 0).toFixed(2)}`;
+    if (billingCreditEligible) {
+      const eligible = sub.creditEligible;
+      billingCreditEligible.textContent = eligible ? "Yes — $20 credit earned" : "No — earn $100+ to qualify";
+      billingCreditEligible.style.color = eligible ? "var(--color-green, #43aa68)" : "";
+    }
+    if (billingCreditBalance) billingCreditBalance.textContent = `$${Number(sub.creditBalance || 0).toFixed(2)}`;
+    if (billingNextDate) {
+      billingNextDate.textContent = sub.currentPeriodEnd
+        ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
+        : "—";
+    }
+
+    if (billingActivateBtn) {
+      billingActivateBtn.hidden = isActive;
+      billingActivateBtn.textContent = sub.status === "cancelled" ? "Resubscribe — $20/mo" : "Subscribe — $20/mo";
+    }
+    if (billingCancelBtn) billingCancelBtn.hidden = !isActive;
+  } catch (_) {}
+}
+
 function renderNotifications(context) {
   clearNode(workspaceNotificationsList);
 
@@ -1253,6 +1304,7 @@ function renderAccountPanels(session) {
   renderMessages(context);
   renderNotifications(context);
   renderAnalytics(context);
+  renderBilling(context);
 }
 
 function setupStepLabel(step) {
@@ -2395,6 +2447,40 @@ clearSavedArtistsBtn?.addEventListener("click", async () => {
     showToast("Saved artists cleared.", "success");
   } catch (error) {
     showToast(error?.message || "Could not clear saved artists.", "danger");
+  }
+});
+
+// Billing
+billingActivateBtn?.addEventListener("click", async () => {
+  billingActivateBtn.disabled = true;
+  billingActivateBtn.textContent = "Activating…";
+  try {
+    const res = await apiRequest("/v1/artist/me/subscription/activate", { method: "POST" });
+    if (!res?.ok) throw new Error(res?.error?.message || "Failed to activate.");
+    showToast("Subscription activated! $20/month.", "success");
+    const context = signedInContext(getSession());
+    if (context) renderBilling(context);
+  } catch (error) {
+    showToast(error?.message || "Subscription activation failed.", "danger");
+    billingActivateBtn.disabled = false;
+    billingActivateBtn.textContent = "Subscribe — $20/mo";
+  }
+});
+
+billingCancelBtn?.addEventListener("click", async () => {
+  if (!window.confirm("Cancel your subscription? You'll lose access to premium features at the end of the billing period.")) return;
+  billingCancelBtn.disabled = true;
+  billingCancelBtn.textContent = "Cancelling…";
+  try {
+    const res = await apiRequest("/v1/artist/me/subscription/cancel", { method: "POST" });
+    if (!res?.ok) throw new Error(res?.error?.message || "Failed to cancel.");
+    showToast("Subscription cancelled.", "success");
+    const context = signedInContext(getSession());
+    if (context) renderBilling(context);
+  } catch (error) {
+    showToast(error?.message || "Cancellation failed.", "danger");
+    billingCancelBtn.disabled = false;
+    billingCancelBtn.textContent = "Cancel subscription";
   }
 });
 

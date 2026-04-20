@@ -1243,6 +1243,37 @@ export function createArtistApiHandler(
         return await handleGetUploadUrl(event, artist);
       }
 
+      if (method === "GET" && path === "/v1/artist/me/subscription") {
+        const sub = artist.subscription || { status: "none", plan: "creator", monthlyFee: 20, monthlyEarnings: 0, creditBalance: 0 };
+        const creditEligible = sub.monthlyEarnings >= 100;
+        return json(200, success({ ...sub, creditEligible }));
+      }
+
+      if (method === "POST" && path === "/v1/artist/me/subscription/activate") {
+        const now = new Date();
+        const periodEnd = new Date(now);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+        const sub = {
+          status: "active" as const,
+          plan: "creator",
+          monthlyFee: 20,
+          activatedAt: now.toISOString(),
+          currentPeriodEnd: periodEnd.toISOString(),
+          monthlyEarnings: artist.subscription?.monthlyEarnings || 0,
+          creditBalance: artist.subscription?.creditBalance || 0,
+        };
+        const next = touchRecordMeta({ ...artist, subscription: sub }, identity.sub);
+        await repository.patchArtist(next);
+        return json(200, success(sub));
+      }
+
+      if (method === "POST" && path === "/v1/artist/me/subscription/cancel") {
+        const sub = { ...(artist.subscription || { status: "none" as const, plan: "creator", monthlyFee: 20, monthlyEarnings: 0, creditBalance: 0 }), status: "cancelled" as const };
+        const next = touchRecordMeta({ ...artist, subscription: sub }, identity.sub);
+        await repository.patchArtist(next);
+        return json(200, success(sub));
+      }
+
       return json(404, failure("NOT_FOUND", "Route not found."));
     } catch (error) {
       if (error instanceof SecurityPolicyError) {

@@ -298,6 +298,7 @@
                   <button class="settings-nav-button" data-settings-section-btn="overview" type="button" role="tab" aria-selected="true" aria-controls="settings-panel-overview">Overview</button>
                   <button class="settings-nav-button" data-settings-section-btn="profile" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-profile">Profile</button>
                   <button class="settings-nav-button" data-settings-section-btn="portfolio" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-portfolio">Portfolio</button>
+                  <button class="settings-nav-button" data-settings-section-btn="billing" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-billing" id="billing-nav-btn" hidden>Billing</button>
                   <button class="settings-nav-button" data-settings-section-btn="alerts" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-alerts">Alerts</button>
                   <button class="settings-nav-button" data-settings-section-btn="saved" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-saved">Saved artists</button>
                   <button class="settings-nav-button" data-settings-section-btn="bookings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-bookings">Bookings</button>
@@ -395,6 +396,44 @@
                         </div>
                       </div>
                     </details>
+                  </section>
+
+                  <section class="account-panel settings-section" data-settings-section="billing" id="settings-panel-billing" role="tabpanel" hidden>
+                    <p class="site-tag">Billing</p>
+                    <h3>Creator subscription</h3>
+                    <p class="muted" style="margin:0 0 1rem;">$20 AUD/month. If you earn over $100 in a billing period, your fee becomes store credit.</p>
+
+                    <div id="billing-status" class="billing-status-card">
+                      <div class="billing-status-row">
+                        <span>Status</span>
+                        <strong id="billing-plan-status">—</strong>
+                      </div>
+                      <div class="billing-status-row">
+                        <span>Monthly fee</span>
+                        <strong>$20 AUD</strong>
+                      </div>
+                      <div class="billing-status-row">
+                        <span>This month's earnings</span>
+                        <strong id="billing-earnings">$0</strong>
+                      </div>
+                      <div class="billing-status-row">
+                        <span>Credit eligible</span>
+                        <strong id="billing-credit-eligible">No</strong>
+                      </div>
+                      <div class="billing-status-row">
+                        <span>Store credit balance</span>
+                        <strong id="billing-credit-balance">$0</strong>
+                      </div>
+                      <div class="billing-status-row">
+                        <span>Next billing date</span>
+                        <strong id="billing-next-date">—</strong>
+                      </div>
+                    </div>
+
+                    <div class="form-actions" style="margin-top:1rem;">
+                      <button class="btn btn-primary btn-small" id="billing-activate-btn" type="button">Subscribe — $20/mo</button>
+                      <button class="btn btn-ghost btn-small" id="billing-cancel-btn" type="button" style="color:var(--color-error);" hidden>Cancel subscription</button>
+                    </div>
                   </section>
 
                   <section class="account-panel settings-section" data-settings-section="alerts" id="settings-panel-alerts" role="tabpanel" hidden>

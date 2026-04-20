@@ -1957,6 +1957,36 @@ fieldset.filter-group {
   }
 }
 
+/* Billing */
+
+.billing-status-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-subtle);
+  overflow: hidden;
+}
+
+.billing-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--color-border-soft);
+  font-size: 0.88rem;
+}
+
+.billing-status-row:last-child {
+  border-bottom: none;
+}
+
+.billing-status-row span {
+  color: var(--color-text-muted);
+}
+
+.billing-status-row strong {
+  font-size: 0.9rem;
+}
+
 /* FAQ page */
 .faq-group {
   margin-bottom: 2.5rem;

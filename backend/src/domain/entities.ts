@@ -58,6 +58,15 @@ export type ArtistRecord = PersistedRecord & {
   completedBookings: number;
   acceptanceRate: number;
   portfolio: PortfolioItem[];
+  subscription?: {
+    status: "none" | "active" | "cancelled";
+    plan: string;
+    monthlyFee: number;
+    activatedAt?: string;
+    currentPeriodEnd?: string;
+    monthlyEarnings: number;
+    creditBalance: number;
+  };
 };
 
 export type ServiceRecord = PersistedRecord & {
