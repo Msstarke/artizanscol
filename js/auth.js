@@ -880,7 +880,7 @@ function renderBookings(context) {
 
     if (booking.threadId) {
       const threadLink = document.createElement("a");
-      threadLink.href = "/account-settings.html?section=messages";
+      threadLink.href = "/account-settings.html?section=bookings";
       threadLink.className = "btn-link muted";
       threadLink.style.cssText = "font-size:0.82rem;display:inline-block;margin-top:0.35rem;";
       threadLink.textContent = "View thread";
@@ -1340,7 +1340,7 @@ function startMessagePolling() {
     try {
       await hydratePrivateDB();
       const context = signedInContext(getSession());
-      if (context && activeSettingsSection === "messages") {
+      if (context && activeSettingsSection === "bookings") {
         renderMessages(context);
       }
     } catch (_) {}
@@ -1368,7 +1368,7 @@ function setActiveSettingsSection(sectionId) {
     button.setAttribute("aria-selected", active ? "true" : "false");
   });
 
-  if (activeSettingsSection === "messages") startMessagePolling();
+  if (activeSettingsSection === "bookings") startMessagePolling();
   else stopMessagePolling();
 }
 

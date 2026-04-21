@@ -642,7 +642,7 @@ contactSendBtn?.addEventListener("click", async () => {
     if (!existingLink && contactArtistBtn?.parentElement) {
       const link = document.createElement("a");
       link.id = "contact-messages-link";
-      link.href = "/account-settings.html?section=messages";
+      link.href = "/account-settings.html?section=bookings";
       link.className = "btn btn-ghost btn-small";
       link.textContent = "View in messages";
       contactArtistBtn.insertAdjacentElement("afterend", link);

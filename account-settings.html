@@ -283,44 +283,45 @@
             <div class="settings-shell" id="settings-shell" hidden>
               <div class="settings-shell-head">
                 <div>
-                  <p class="site-tag">Account settings</p>
-                  <h2 class="section-title" style="font-size:1.35rem;">Your account</h2>
-                  <p class="section-copy">Manage one part of your account at a time.</p>
+                  <p class="site-tag">Workspace</p>
+                  <h2 class="section-title" style="font-size:1.35rem;">Your workspace</h2>
                 </div>
                 <div class="form-actions">
-                  <a class="btn btn-primary" href="/explore.html">Explore artists</a>
-                  <button class="btn btn-outline" id="workspace-refresh-btn" type="button">Refresh</button>
+                  <a class="btn btn-primary btn-small" href="/explore.html">Explore</a>
+                  <button class="btn btn-outline btn-small" id="workspace-refresh-btn" type="button">Refresh</button>
                 </div>
               </div>
 
               <div class="settings-layout">
                 <nav class="settings-nav" role="tablist" aria-label="Account sections">
-                  <button class="settings-nav-button" data-settings-section-btn="overview" type="button" role="tab" aria-selected="true" aria-controls="settings-panel-overview">Overview</button>
+                  <button class="settings-nav-button" data-settings-section-btn="overview" type="button" role="tab" aria-selected="true" aria-controls="settings-panel-overview">Dashboard</button>
                   <button class="settings-nav-button" data-settings-section-btn="profile" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-profile">Profile</button>
-                  <button class="settings-nav-button" data-settings-section-btn="portfolio" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-portfolio">Portfolio</button>
-                  <button class="settings-nav-button" data-settings-section-btn="billing" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-billing" id="billing-nav-btn" hidden>Billing</button>
-                  <button class="settings-nav-button" data-settings-section-btn="alerts" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-alerts">Alerts</button>
-                  <button class="settings-nav-button" data-settings-section-btn="saved" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-saved">Saved artists</button>
                   <button class="settings-nav-button" data-settings-section-btn="bookings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-bookings">Bookings</button>
-                  <button class="settings-nav-button" data-settings-section-btn="messages" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-messages">Messages</button>
-                  <button class="settings-nav-button" data-settings-section-btn="notifications" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-notifications">Notifications</button>
                   <button class="settings-nav-button" data-settings-section-btn="analytics" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-analytics" id="analytics-nav-btn" hidden>Analytics</button>
-                  <button class="settings-nav-button" data-settings-section-btn="data" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-data">Data controls</button>
+                  <button class="settings-nav-button" data-settings-section-btn="billing" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-billing" id="billing-nav-btn" hidden>Billing</button>
+                  <button class="settings-nav-button" data-settings-section-btn="settings" type="button" role="tab" aria-selected="false" aria-controls="settings-panel-settings">Settings</button>
                 </nav>
 
                 <div class="settings-content">
                   <section class="account-panel settings-section" data-settings-section="overview" id="settings-panel-overview" role="tabpanel">
-                    <p class="site-tag">Overview</p>
-                    <h3>Activity snapshot</h3>
+                    <p class="site-tag">Dashboard</p>
+                    <h3>Welcome back</h3>
                     <div class="account-mini-stats workspace-mini-stats">
-                      <article class="kpi"><small>Saved artists</small><strong id="stat-saved-artists">0</strong></article>
-                      <article class="kpi"><small>As client</small><strong id="stat-user-bookings">0</strong></article>
-                      <article class="kpi"><small>As artist</small><strong id="stat-artist-bookings">0</strong></article>
-                      <article class="kpi"><small>Unread updates</small><strong id="stat-unread-updates">0</strong></article>
+                      <article class="kpi"><small>Saved</small><strong id="stat-saved-artists">0</strong></article>
+                      <article class="kpi"><small>Client bookings</small><strong id="stat-user-bookings">0</strong></article>
+                      <article class="kpi"><small>Artist bookings</small><strong id="stat-artist-bookings">0</strong></article>
+                      <article class="kpi"><small>Unread</small><strong id="stat-unread-updates">0</strong></article>
                     </div>
-                    <div class="form-actions">
+                    <div class="form-actions" style="margin-bottom:1rem;">
                       <button class="btn btn-outline btn-small" data-settings-shortcut="profile" type="button">Edit profile</button>
-                      <button class="btn btn-outline btn-small" data-settings-shortcut="alerts" type="button">Alerts</button>
+                      <button class="btn btn-outline btn-small" data-settings-shortcut="bookings" type="button">Bookings</button>
+                      <button class="btn btn-outline btn-small" data-settings-shortcut="settings" type="button">Settings</button>
+                    </div>
+                    <h4 style="margin:0 0 0.5rem;">Recent updates</h4>
+                    <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
+                    <ul class="collection" id="workspace-notifications-list" style="max-height:300px;overflow-y:auto;"></ul>
+                    <div class="form-actions" style="margin-top:0.5rem;">
+                      <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
                     </div>
                   </section>
 
@@ -366,34 +367,19 @@
                         <a class="btn btn-ghost btn-small" id="workspace-artist-preview" href="/artist-preview.html">Preview listing</a>
                       </div>
                     </form>
-                  </section>
 
-                  <section class="account-panel settings-section" data-settings-section="portfolio" id="settings-panel-portfolio" role="tabpanel" hidden>
-                    <p class="site-tag">Portfolio</p>
-                    <h3>Your work</h3>
-                    <p class="muted" style="margin:0 0 0.5rem;">Add pieces to your portfolio. The first item becomes your profile cover image.</p>
+                    <hr style="border:none;border-top:1px solid var(--color-border-soft);margin:1.2rem 0;">
 
+                    <h4 style="margin:0 0 0.5rem;">Portfolio</h4>
+                    <p class="muted" style="margin:0 0 0.5rem;font-size:0.84rem;">The first item becomes your profile cover image.</p>
                     <div id="portfolio-grid" class="portfolio-manage-grid"></div>
-
                     <details id="portfolio-add-form" class="portfolio-add-details">
                       <summary class="btn btn-outline btn-small" style="width:fit-content;">+ Add portfolio item</summary>
                       <div class="form-grid" style="margin-top:0.75rem;">
-                        <label>
-                          Title
-                          <input id="portfolio-add-title" type="text" maxlength="100" placeholder="e.g. Sunset over Sydney Harbour" />
-                        </label>
-                        <label>
-                          Medium
-                          <input id="portfolio-add-medium" type="text" maxlength="80" placeholder="e.g. Digital illustration" />
-                        </label>
-                        <label>
-                          Image
-                          <input id="portfolio-add-image" type="file" accept="image/jpeg,image/png,image/webp" />
-                          <small class="form-hint">Upload a JPG, PNG, or WebP image (max 5 MB).</small>
-                        </label>
-                        <div class="form-actions">
-                          <button class="btn btn-primary btn-small" id="portfolio-add-btn" type="button">Add to portfolio</button>
-                        </div>
+                        <label>Title <input id="portfolio-add-title" type="text" maxlength="100" placeholder="e.g. Sunset over Sydney Harbour" /></label>
+                        <label>Medium <input id="portfolio-add-medium" type="text" maxlength="80" placeholder="e.g. Digital illustration" /></label>
+                        <label>Image <input id="portfolio-add-image" type="file" accept="image/jpeg,image/png,image/webp" /><small class="form-hint">JPG, PNG, or WebP (max 5 MB)</small></label>
+                        <div class="form-actions"><button class="btn btn-primary btn-small" id="portfolio-add-btn" type="button">Add to portfolio</button></div>
                       </div>
                     </details>
                   </section>
@@ -459,51 +445,17 @@
                     <p class="muted" style="margin-top:1rem;font-size:0.78rem;">This is a demo. No real charges are made. In production, payments would be processed securely via Stripe.</p>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="alerts" id="settings-panel-alerts" role="tabpanel" hidden>
-                    <p class="site-tag">Alerts</p>
-                    <h3>Notifications</h3>
-                    <form id="account-preferences-form" class="form-grid">
-                      <label class="checkbox-row">
-                        <input id="pref-booking-updates" type="checkbox" />
-                        Booking status updates
-                      </label>
-                      <label class="checkbox-row">
-                        <input id="pref-message-alerts" type="checkbox" />
-                        Message alerts
-                      </label>
-                      <label class="checkbox-row">
-                        <input id="pref-marketing-emails" type="checkbox" />
-                        Product updates and tips
-                      </label>
-                      <div class="form-actions">
-                        <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
-                        <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Enable browser alerts</button>
-                      </div>
-                    </form>
-                  </section>
-
-                  <section class="account-panel settings-section" data-settings-section="saved" id="settings-panel-saved" role="tabpanel" hidden>
-                    <p class="site-tag">Saved artists</p>
-                    <h3>Saved list</h3>
-                    <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
-                    <ul class="collection" id="workspace-saved-artists"></ul>
-                    <div class="form-actions">
-                      <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
-                    </div>
-                  </section>
-
                   <section class="account-panel settings-section" data-settings-section="bookings" id="settings-panel-bookings" role="tabpanel" hidden>
                     <p class="site-tag">Bookings</p>
-                    <h3>Bookings board</h3>
-                    <p class="muted" id="workspace-bookings-empty">No bookings yet.</p>
+                    <h3>Active bookings</h3>
+                    <p class="muted" id="workspace-bookings-empty">No active bookings.</p>
                     <ul class="collection" id="workspace-bookings-list"></ul>
-                  </section>
 
-                  <section class="account-panel settings-section" data-settings-section="messages" id="settings-panel-messages" role="tabpanel" hidden>
-                    <p class="site-tag">Messages</p>
-                    <h3>Inbox and replies</h3>
+                    <hr style="border:none;border-top:1px solid var(--color-border-soft);margin:1.2rem 0;">
+
+                    <h4 style="margin:0 0 0.5rem;">Messages</h4>
                     <div id="thread-tabs" class="thread-tabs"></div>
-                    <p class="muted" id="workspace-messages-empty">No messages yet. Send one from an artist's profile.</p>
+                    <p class="muted" id="workspace-messages-empty">No messages yet.</p>
                     <ul class="collection message-thread" id="workspace-messages-list"></ul>
                     <form id="workspace-message-form" class="message-compose-form">
                       <select id="workspace-message-booking" hidden></select>
@@ -512,37 +464,49 @@
                     </form>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="notifications" id="settings-panel-notifications" role="tabpanel" hidden>
-                    <p class="site-tag">Notifications</p>
-                    <h3>Recent updates</h3>
-                    <p class="muted" id="workspace-notifications-empty">No notifications yet.</p>
-                    <ul class="collection" id="workspace-notifications-list"></ul>
-                    <div class="form-actions">
-                      <button class="btn btn-ghost btn-small" id="workspace-mark-notifications-read" type="button">Mark all as read</button>
-                    </div>
-                  </section>
-
                   <section class="account-panel settings-section" data-settings-section="analytics" id="settings-panel-analytics" role="tabpanel" hidden>
                     <p class="site-tag">Analytics</p>
-                    <h3>Performance overview</h3>
+                    <h3>Performance</h3>
                     <div class="account-mini-stats analytics-stats">
                       <article class="kpi"><small>Profile views</small><strong id="stat-profile-views">0</strong></article>
-                      <article class="kpi"><small>Completed bookings</small><strong id="stat-completed-bookings">0</strong></article>
-                      <article class="kpi"><small>Acceptance rate</small><strong id="stat-acceptance-rate">0%</strong></article>
-                      <article class="kpi"><small>Average rating</small><strong id="stat-avg-rating">-</strong></article>
-                      <article class="kpi"><small>Total earnings</small><strong id="stat-total-earnings">$0</strong></article>
+                      <article class="kpi"><small>Completed</small><strong id="stat-completed-bookings">0</strong></article>
+                      <article class="kpi"><small>Acceptance</small><strong id="stat-acceptance-rate">0%</strong></article>
+                      <article class="kpi"><small>Rating</small><strong id="stat-avg-rating">-</strong></article>
+                      <article class="kpi"><small>Earnings</small><strong id="stat-total-earnings">$0</strong></article>
                     </div>
-                    <p class="muted" id="analytics-empty-note">Analytics data will appear once your artist profile is active and receiving bookings.</p>
+                    <p class="muted" id="analytics-empty-note">Analytics will appear once your profile is active.</p>
                   </section>
 
-                  <section class="account-panel settings-section" data-settings-section="data" id="settings-panel-data" role="tabpanel" hidden>
-                    <p class="site-tag">Data controls</p>
-                    <h3>Downloads and security</h3>
-                    <p class="muted">Manage account exports and password access.</p>
+                  <section class="account-panel settings-section" data-settings-section="settings" id="settings-panel-settings" role="tabpanel" hidden>
+                    <p class="site-tag">Settings</p>
+
+                    <h3>Saved artists</h3>
+                    <p class="muted" id="workspace-saved-empty">No saved artists yet.</p>
+                    <ul class="collection" id="workspace-saved-artists"></ul>
+                    <div class="form-actions" style="margin-bottom:1.2rem;">
+                      <button class="btn btn-ghost btn-small" id="clear-saved-artists" type="button">Clear saved artists</button>
+                    </div>
+
+                    <hr style="border:none;border-top:1px solid var(--color-border-soft);margin:0 0 1.2rem;">
+
+                    <h4 style="margin:0 0 0.5rem;">Email preferences</h4>
+                    <form id="account-preferences-form" class="form-grid" style="margin-bottom:1.2rem;">
+                      <label class="checkbox-row"><input id="pref-booking-updates" type="checkbox" /> Booking updates</label>
+                      <label class="checkbox-row"><input id="pref-message-alerts" type="checkbox" /> Message alerts</label>
+                      <label class="checkbox-row"><input id="pref-marketing-emails" type="checkbox" /> Product updates</label>
+                      <div class="form-actions">
+                        <button class="btn btn-outline btn-small" type="submit">Save preferences</button>
+                        <button class="btn btn-ghost btn-small" id="enable-browser-notifications" type="button">Browser alerts</button>
+                      </div>
+                    </form>
+
+                    <hr style="border:none;border-top:1px solid var(--color-border-soft);margin:0 0 1.2rem;">
+
+                    <h4 style="margin:0 0 0.5rem;">Account</h4>
                     <div class="form-actions">
                       <button class="btn btn-outline btn-small" id="export-account-data" type="button">Download my data</button>
                       <button class="btn btn-ghost btn-small" id="open-reset-from-settings" type="button">Change password</button>
-                      <button class="btn btn-ghost btn-small" id="delete-account-btn" type="button" style="color:var(--color-error);">Delete my account</button>
+                      <button class="btn btn-ghost btn-small" id="delete-account-btn" type="button" style="color:var(--color-error);">Delete account</button>
                     </div>
                   </section>
                 </div>
