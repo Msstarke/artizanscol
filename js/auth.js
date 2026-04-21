@@ -658,11 +658,13 @@ function renderSavedArtists(context) {
 function renderBookings(context) {
   clearNode(workspaceBookingsList);
 
+  const TERMINAL_STATUSES = ["completed", "declined", "cancelled"];
   const bookings = context.db.bookings
     .filter(
       (booking) =>
-        (context.user && booking.userId === context.user.id) ||
-        (context.artist && booking.artistId === context.artist.id),
+        ((context.user && booking.userId === context.user.id) ||
+        (context.artist && booking.artistId === context.artist.id)) &&
+        !TERMINAL_STATUSES.includes(booking.status),
     )
     .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
 
@@ -938,6 +940,10 @@ function getThreadsFromMessages(context) {
     msgs.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
     const lastMsg = msgs[msgs.length - 1];
     const booking = context.db.bookings.find((b) => b.threadId === threadId || b.id === lastMsg?.bookingId);
+
+    // Only show threads that have a booking
+    if (!booking) continue;
+
     const otherIds = new Set();
     msgs.forEach((m) => { if (!ownerIds.has(m.fromId)) otherIds.add(m.fromId); if (!ownerIds.has(m.toId)) otherIds.add(m.toId); });
     const otherId = [...otherIds][0];
@@ -1039,8 +1045,8 @@ function renderAnalytics(context) {
 
   // Fetch earnings from API
   apiRequest("/v1/artist/me/earnings").then((res) => {
-    if (res.ok && totalEarnings) {
-      const earnings = Number(res.data?.totalEarnings || res.data?.total || 0);
+    if (res?.ok && totalEarnings) {
+      const earnings = Number(res.data?.grossRevenue || res.data?.totalEarnings || res.data?.total || 0);
       totalEarnings.textContent = earnings > 0 ? `$${earnings.toLocaleString("en-AU", { minimumFractionDigits: 2 })}` : "$0";
     }
   }).catch(() => {});
