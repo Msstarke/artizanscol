@@ -604,10 +604,22 @@ iframe {
 
   .header-inner {
     min-height: 66px;
+    gap: 0.5rem;
   }
 
   .header-actions {
     gap: 0.3rem;
+    flex-wrap: nowrap;
+  }
+
+  /* Trim button padding in the header so 3-4 pills fit side-by-side */
+  .header-actions .btn {
+    padding-inline: 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .header-actions .btn-small {
+    padding-inline: 0.7rem;
   }
 
   .role-chip {
@@ -618,6 +630,12 @@ iframe {
     display: none;
   }
 
+  /* Brand text can shrink a touch to leave room for actions */
+  .brand {
+    font-size: 0.88rem;
+    letter-spacing: 0.06em;
+  }
+
 
   .section-intro {
     align-items: start;
@@ -626,6 +644,22 @@ iframe {
   .footer-standard,
   .footer-link-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Extra-small phones: hide text labels on icon-like header buttons */
+@media (max-width: 420px) {
+  .header-actions {
+    gap: 0.25rem;
+  }
+  .header-actions .btn {
+    padding-inline: 0.7rem;
+    font-size: 0.8rem;
+  }
+  /* The theme toggle is icon-only already; give every header button a
+     reasonable minimum tap target without forcing wrap */
+  .header-actions > * {
+    flex-shrink: 1;
   }
 }
 

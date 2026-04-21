@@ -141,14 +141,17 @@ export async function apiRequest(path, options = {}) {
       lastError = error;
 
       const statusCode = Number(error?.statusCode || 0);
-      const canRetryStatus = statusCode >= 500 || statusCode === 0;
+      // Only retry on explicit 5xx responses. Network-level failures (status 0,
+      // e.g. offline, CORS, DNS) are surfaced immediately so the UI can react
+      // instead of waiting through another ~250-500ms timeout.
+      const canRetryStatus = statusCode >= 500;
       const canRetry = attempt < retries && canRetryStatus;
 
       if (!canRetry) {
         throw error;
       }
 
-      const delayMs = 250 * (attempt + 1);
+      const delayMs = 200 * (attempt + 1);
       await new Promise((resolve) => window.setTimeout(resolve, delayMs));
       attempt += 1;
     }

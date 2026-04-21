@@ -173,11 +173,25 @@ categoryChipsEl?.addEventListener("click", (e) => {
 
 // Filter sidebar toggle (mobile/tablet)
 let sidebarBackdrop = null;
+let sidebarCloseBtn = null;
+
+function ensureSidebarCloseButton() {
+  if (sidebarCloseBtn || !exploreSidebar) return;
+  sidebarCloseBtn = document.createElement("button");
+  sidebarCloseBtn.type = "button";
+  sidebarCloseBtn.className = "sidebar-close";
+  sidebarCloseBtn.setAttribute("aria-label", "Close filters");
+  sidebarCloseBtn.innerHTML = "&times;";
+  sidebarCloseBtn.addEventListener("click", () => setSidebarOpen(false));
+  exploreSidebar.prepend(sidebarCloseBtn);
+}
 
 function setSidebarOpen(open) {
+  ensureSidebarCloseButton();
   exploreSidebar?.classList.toggle("is-open", open);
   toggleFiltersBtn?.setAttribute("aria-expanded", String(open));
   if (toggleFiltersLabel) toggleFiltersLabel.textContent = open ? "Hide filters" : "Filters";
+  document.body.classList.toggle("filters-open", open);
 
   if (open) {
     if (!sidebarBackdrop) {

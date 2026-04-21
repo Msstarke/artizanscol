@@ -1106,15 +1106,46 @@ fieldset.filter-group {
     transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
     display: grid;
     padding: 1.5rem;
+    padding-top: 3.5rem; /* leave room for the close button */
   }
 
   .explore-sidebar.is-open {
     transform: translateX(0);
   }
 
+  .sidebar-close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .filter-toggle-btn {
     display: inline-flex;
   }
+}
+
+/* Hide close button when drawer is inline (desktop) */
+@media (min-width: 1101px) {
+  .sidebar-close {
+    display: none;
+  }
+}
+
+/* Prevent body scroll under the filter drawer backdrop */
+body.filters-open {
+  overflow: hidden;
 }
 
 @media (max-width: 720px) {
@@ -2309,4 +2340,133 @@ fieldset.filter-group {
   color: var(--color-ink-soft);
   line-height: 1.7;
   font-size: 0.92rem;
+}
+
+/* ------------------------------------------------------------------
+ * Mobile refinements
+ * Additional responsive rules layered on top of the existing
+ * 1100px / 720px breakpoints to improve phone layouts.
+ * ------------------------------------------------------------------ */
+
+/* Collapse the profile media card hero earlier so the headshot isn't squished */
+@media (max-width: 900px) {
+  .profile-media-card {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  .profile-media-card-copy {
+    padding: 1.2rem 1.1rem;
+  }
+  .preview-hero {
+    gap: 1.25rem;
+  }
+}
+
+/* Small phones */
+@media (max-width: 640px) {
+  /* Homepage hero stats — stack, tighten padding, smaller numbers */
+  .home-hero {
+    gap: 1.5rem;
+    padding-top: clamp(1.75rem, 6vw, 2.5rem);
+    padding-bottom: clamp(1.25rem, 4vw, 2rem);
+  }
+  .home-hero h1 {
+    font-size: clamp(2rem, 9vw, 2.8rem);
+    margin-bottom: 0.8rem;
+  }
+  .home-hero-copy .lead {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .home-hero-stats {
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1.1rem 1.1rem;
+    border-radius: var(--radius-md);
+  }
+  .home-hero-stat strong {
+    font-size: 1.35rem;
+  }
+
+  /* Artist and portfolio images — shorter to reduce vertical scroll */
+  .artist-card img {
+    height: 180px;
+  }
+  .portfolio-item img {
+    height: 220px;
+  }
+
+  /* Section padding relief */
+  .home-section,
+  .journey-section,
+  .home-cta {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .home-cta-card {
+    padding: 1.4rem 1.1rem;
+  }
+
+  /* Form actions stack full-width buttons on phones */
+  .form-actions {
+    flex-wrap: wrap;
+  }
+  .form-actions .btn {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Artist preview hero tighten-up */
+  .preview-hero {
+    gap: 1rem;
+  }
+  .preview-hero-copy h1 {
+    font-size: clamp(1.6rem, 7vw, 2.2rem);
+  }
+  .booking-rail {
+    padding: 1.1rem !important;
+  }
+
+  /* Workspace / account-settings shell padding */
+  .settings-shell-head,
+  .setup-head {
+    padding: 1rem 0 !important;
+  }
+  .settings-section {
+    padding: 1.1rem 1rem !important;
+  }
+
+  /* Tables scroll horizontally instead of overflowing viewport */
+  .compare-table-wrap,
+  .billing-table-wrap,
+  table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tiny phones — extra-small viewport tweaks */
+@media (max-width: 420px) {
+  .home-hero h1 {
+    font-size: clamp(1.75rem, 10vw, 2.3rem);
+    letter-spacing: -0.03em;
+  }
+  .home-hero-stat strong {
+    font-size: 1.2rem;
+  }
+  .artist-card img {
+    height: 160px;
+  }
+  .portfolio-item img {
+    height: 190px;
+  }
+  .home-cta-card {
+    padding: 1.2rem 0.95rem;
+  }
+  /* Pad the page edges a touch less so more content fits */
+  .page-main,
+  main {
+    padding-inline: clamp(0.8rem, 4vw, 1.1rem);
+  }
 }

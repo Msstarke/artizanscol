@@ -467,12 +467,27 @@ function loadLocalDBCache() {
 }
 
 function loadDBCache() {
-  clearDBCache();
-  return null;
+  // Prefer session cache (scoped to current tab); fall back to nothing.
+  // Only public, safe-to-replay fields are persisted (see persistSessionDBCache).
+  return loadSessionDBCache();
 }
 
 function persistSessionDBCache(db) {
-  void db;
+  const storage = getSessionStorage();
+  if (!storage || !isValidDB(db)) return;
+  try {
+    // Only cache the read-only public discovery data. Private data
+    // (users/bookings/messages/notifications/etc.) is always fetched fresh.
+    const safe = {
+      ...createEmptyDB(),
+      categories: asArray(db.categories),
+      artists: asArray(db.artists),
+      system: db.system || createEmptyDB().system,
+    };
+    storage.setItem(DB_SESSION_CACHE_KEY, JSON.stringify(safe));
+  } catch (_) {
+    // Quota or serialization error — cache is a hint, not required.
+  }
 }
 
 function persistLocalDBCache(db) {
@@ -499,8 +514,16 @@ function clearDBCache() {
   clearLocalDBCache();
 }
 
-let dbCache = loadDBCache() || createEmptyDB();
+const initialCache = loadDBCache();
+let dbCache = initialCache || createEmptyDB();
+// If we loaded a non-empty cache from sessionStorage, treat the store as hydrated
+// so pages can render immediately. A background refresh is still kicked off below
+// (see hydrateDB) to keep the cache fresh.
+const hasSeedCache = Boolean(
+  initialCache && (initialCache.artists?.length || initialCache.categories?.length),
+);
 let dbHydrated = false;
+let dbHydratePromise = null;
 
 function emitStoreUpdated() {
   window.dispatchEvent(new CustomEvent("artizans:store-updated"));
@@ -514,15 +537,11 @@ function runApiMutation(mutation, fallbackMessage) {
     });
 }
 
-export async function hydrateDB() {
-  if (dbHydrated) {
-    return dbCache;
-  }
-
+async function hydrateDBNetwork() {
   try {
     const [categoriesResponse, artistsResponse] = await Promise.all([
-      apiRequest("/v1/categories", { auth: false }),
-      apiRequest("/v1/artists", { auth: false }),
+      apiRequest("/v1/categories", { auth: false, retries: 0 }),
+      apiRequest("/v1/artists", { auth: false, retries: 0 }),
     ]);
 
     const next = {
@@ -591,6 +610,27 @@ export async function hydrateDB() {
   }
 
   return dbCache;
+}
+
+// Non-blocking hydration: if we have a seed cache from sessionStorage, return
+// immediately and let the network refresh happen in the background. Callers
+// can listen for the `artizans:store-updated` event to re-render.
+export async function hydrateDB() {
+  if (dbHydrated) {
+    return dbCache;
+  }
+
+  if (!dbHydratePromise) {
+    dbHydratePromise = hydrateDBNetwork();
+  }
+
+  if (hasSeedCache) {
+    // Return the cached copy immediately; the background promise keeps going
+    // and will dispatch `artizans:store-updated` when done.
+    return dbCache;
+  }
+
+  return dbHydratePromise;
 }
 
 export function getDB() {
@@ -780,64 +820,10 @@ export function ensureUserForCognito(identity) {
     ensured = { ...user };
   });
 
-  runApiMutation(
-    async () => {
-      const response = await apiRequest("/v1/me", { method: "GET" });
-      const remote = response?.data;
-      if (!remote?.id) {
-        return;
-      }
-
-      updateDB((db) => {
-        const existing = getUserByCognitoSub(db, normalized.sub) || getUserById(db, remote.id);
-        const remoteIsPreferred = preferRemoteRecord(existing, remote);
-        const next = {
-          id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("u", db.users),
-          cognitoSub: remote.cognitoSub || normalized.sub,
-          cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name: selectDisplayName(
-            [remoteIsPreferred ? remote.name : "", existing?.name, remote.name],
-            displayNameFromIdentity(normalized, "New User"),
-          ),
-          email: remote.email || normalized.email || "",
-          location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
-          bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
-          emailVerified: remoteIsPreferred ? Boolean(remote.emailVerified) : Boolean(existing?.emailVerified || remote.emailVerified),
-          profileCompleted: remoteIsPreferred
-            ? Boolean(remote.profileCompleted)
-            : Boolean(existing?.profileCompleted || remote.profileCompleted),
-          preferences: {
-            bookingUpdates: remote.preferences?.bookingUpdates ?? existing?.preferences?.bookingUpdates ?? true,
-            messageAlerts: remote.preferences?.messageAlerts ?? existing?.preferences?.messageAlerts ?? true,
-            marketingEmails: remote.preferences?.marketingEmails ?? existing?.preferences?.marketingEmails ?? false,
-            browserNotifications:
-              remote.preferences?.browserNotifications ?? existing?.preferences?.browserNotifications ?? false,
-          },
-          setup: {
-            status: remote.setup?.status || existing?.setup?.status || (remote.profileCompleted ? "completed" : "not_started"),
-            currentStep: remote.setup?.currentStep || existing?.setup?.currentStep || (remote.profileCompleted ? "done" : "welcome"),
-            artistOptIn: remote.setup?.artistOptIn ?? existing?.setup?.artistOptIn ?? false,
-            completedAt: remote.setup?.completedAt ?? existing?.setup?.completedAt ?? null,
-          },
-          savedArtistIds: asArray(existing?.savedArtistIds).length
-            ? asArray(existing?.savedArtistIds)
-            : asArray(existing?.savedArtists),
-          bookingHistoryIds: asArray(existing?.bookingHistoryIds).length
-            ? asArray(existing?.bookingHistoryIds)
-            : asArray(existing?.bookingHistory),
-          deleted: Boolean(existing?.deleted),
-          createdAt: remote.createdAt || existing?.createdAt || nowIso(),
-          updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
-        };
-        normalizeUserRecord(next);
-
-        db.users = asArray(db.users).filter((user) => user.id !== next.id && user.cognitoSub !== next.cognitoSub);
-        db.users.push(next);
-        ensured = { ...next };
-      });
-    },
-    "Ensuring user via API failed.",
-  );
+  // Note: previously this fired a background /v1/me refresh. It was redundant
+  // because hydratePrivateDB() is always called on auth flows and provides
+  // the authoritative refresh. Removing the duplicate cuts one request per
+  // session init.
 
   return ensured;
 }
@@ -861,93 +847,10 @@ export function ensureArtistForCognito(identity) {
     ensured = { ...artist };
   });
 
-  runApiMutation(
-    async () => {
-      const response = await apiRequest("/v1/artist/me", { method: "GET" });
-      const remote = response?.data;
-      if (!remote?.id) {
-        return;
-      }
-
-      updateDB((db) => {
-        const existing = getArtistByCognitoSub(db, normalized.sub) || getArtistById(db, remote.id);
-        const remoteIsPreferred = preferRemoteRecord(existing, remote);
-        const next = {
-          id: (remoteIsPreferred ? remote.id : existing?.id) || remote.id || existing?.id || nextId("a", db.artists),
-          cognitoSub: remote.cognitoSub || normalized.sub,
-          cognitoEmail: remote.cognitoEmail || normalized.email || "",
-          name: selectDisplayName(
-            [remoteIsPreferred ? remote.name : "", existing?.name, remote.name],
-            displayNameFromIdentity(normalized, "New Artist"),
-          ),
-          handle:
-            (remoteIsPreferred ? remote.handle : "") ||
-            existing?.handle ||
-            remote.handle ||
-            uniqueArtistHandle(db, remote.name || "artist"),
-          category:
-            (remoteIsPreferred ? remote.category : "") ||
-            existing?.category ||
-            remote.category ||
-            "Illustration",
-          mediums:
-            remoteIsPreferred && asArray(remote.mediums).length
-              ? asArray(remote.mediums)
-              : asArray(existing?.mediums),
-          location: (remoteIsPreferred ? remote.location : "") || existing?.location || remote.location || "",
-          verified: remoteIsPreferred ? Boolean(remote.verified) : Boolean(existing?.verified || remote.verified),
-          popularity: Number(
-            remoteIsPreferred ? remote.popularity || 0 : existing?.popularity || remote.popularity || 0,
-          ),
-          rating: Number(remoteIsPreferred ? remote.rating || 0 : existing?.rating || remote.rating || 0),
-          reviewCount: Number(
-            remoteIsPreferred ? remote.reviewCount || 0 : existing?.reviewCount || remote.reviewCount || 0,
-          ),
-          priceFrom: Number(remoteIsPreferred ? remote.priceFrom || 0 : existing?.priceFrom || remote.priceFrom || 0),
-          availability:
-            (remoteIsPreferred ? remote.availability : "") || existing?.availability || remote.availability || "open",
-          bio: (remoteIsPreferred ? remote.bio : "") || existing?.bio || remote.bio || "",
-          profileVisible:
-            remoteIsPreferred && typeof remote.profileVisible === "boolean"
-              ? remote.profileVisible
-              : existing?.profileVisible,
-          profileViews: Number(
-            remoteIsPreferred ? remote.profileViews || 0 : existing?.profileViews || remote.profileViews || 0,
-          ),
-          completedBookings: Number(
-            remoteIsPreferred
-              ? remote.completedBookings || 0
-              : existing?.completedBookings || remote.completedBookings || 0,
-          ),
-          acceptanceRate: Number(
-            remoteIsPreferred ? remote.acceptanceRate || 0 : existing?.acceptanceRate || remote.acceptanceRate || 0,
-          ),
-          portfolio: remoteIsPreferred && asArray(remote.portfolio).length
-            ? asArray(remote.portfolio).map((item) => ({
-                id: item.id || `p-${Date.now()}`,
-                title: item.title || "Portfolio Item",
-                image: item.imageUrl || item.image || "",
-                medium: item.medium || existing?.mediums?.[0] || "Digital",
-              }))
-            : asArray(existing?.portfolio),
-          createdAt: remote.createdAt || existing?.createdAt || nowIso(),
-          updatedAt: remoteIsPreferred ? remote.updatedAt || nowIso() : existing?.updatedAt || nowIso(),
-        };
-        normalizeArtistRecord(next, db);
-
-        if (existing?.id && existing.id !== next.id) {
-          migrateArtistReferences(db, existing.id, next.id);
-        }
-
-        db.artists = asArray(db.artists).filter(
-          (artist) => artist.id !== next.id && artist.cognitoSub !== next.cognitoSub,
-        );
-        db.artists.push(next);
-        ensured = { ...next };
-      });
-    },
-    "Ensuring artist via API failed.",
-  );
+  // Note: previously this fired a background /v1/artist/me refresh. It was
+  // redundant because hydratePrivateDB() is always called on auth flows and
+  // provides the authoritative refresh. Removing the duplicate cuts one
+  // request per session init.
 
   return ensured;
 }
