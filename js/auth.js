@@ -582,10 +582,6 @@ function bookingActionsForContext(booking, context) {
     actions.push({ label: "Confirm", status: "confirmed", actorRole: "user" });
   }
 
-  if (isUserBooking && (booking.status === "confirmed" || booking.status === "payment_pending")) {
-    actions.push({ label: "Mark paid", status: "paid", actorRole: "user" });
-  }
-
   if (isUserBooking && booking.status === "paid") {
     actions.push({ label: "Complete", status: "completed", actorRole: "user" });
   }
