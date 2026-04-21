@@ -3,6 +3,7 @@
 All notable project changes are tracked via Git commits and summarized here.
 
 ## 2026-04-21
+- Workspace simplified from 10 tabs to 6 for clarity: Dashboard (Overview + Notifications), Profile (Profile + Portfolio inline), Bookings (Bookings + Messages), Analytics, Billing, Settings (Saved + Alerts + Data controls). Header copy reduced to "Your workspace". Deep links updated; message polling now triggers on the bookings tab.
 - Creator subscription billing: $20 AUD/month plan with $100 earnings credit threshold. Billing tab in workspace shows plan features, status, monthly earnings, store credit balance, and next billing date. Subscribe/cancel buttons with demo mode (no real charges).
 - Demo payment flow: "Pay now" button on confirmed bookings marks them as paid directly (no Stripe redirect in demo mode). Artist earnings and completed bookings auto-update on payment. "Mark paid" button removed — replaced by Pay now.
 - Workspace cleanup: completed/declined/cancelled bookings hidden from bookings board. Messages tab only shows threads with an associated booking. Credit eligibility row removed from billing table.
