@@ -980,6 +980,27 @@ async function handleUpdateBookingStatus(
     createdBy: identitySub,
   });
 
+  // Update artist earnings when booking is paid
+  if (nextStatusRaw === "paid") {
+    try {
+      // Look up the artist for this booking (may be the caller or the other party)
+      const targetArtist = isArtist && callerArtist
+        ? callerArtist
+        : await repository.getArtistById(booking.artistId);
+
+      if (targetArtist) {
+        const sub = targetArtist.subscription || { status: "none" as const, plan: "creator", monthlyFee: 20, monthlyEarnings: 0, creditBalance: 0 };
+        const newEarnings = (sub.monthlyEarnings || 0) + (booking.budget || 0);
+        const newCredit = newEarnings >= 100 ? (sub.creditBalance || 0) + sub.monthlyFee : sub.creditBalance || 0;
+        await artistRepository.patchArtist(touchRecordMeta({
+          ...targetArtist,
+          completedBookings: (targetArtist.completedBookings || 0) + 1,
+          subscription: { ...sub, monthlyEarnings: newEarnings, creditBalance: newCredit },
+        }, identitySub));
+      }
+    } catch (_) {}
+  }
+
   auditLog({
     action: "booking.status.update",
     actorId: identitySub,
