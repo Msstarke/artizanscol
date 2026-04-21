@@ -2,6 +2,55 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-04-21
+- Creator subscription billing: $20 AUD/month plan with $100 earnings credit threshold. Billing tab in workspace shows plan features, status, monthly earnings, store credit balance, and next billing date. Subscribe/cancel buttons with demo mode (no real charges).
+- Demo payment flow: "Pay now" button on confirmed bookings marks them as paid directly (no Stripe redirect in demo mode). Artist earnings and completed bookings auto-update on payment. "Mark paid" button removed — replaced by Pay now.
+- Workspace cleanup: completed/declined/cancelled bookings hidden from bookings board. Messages tab only shows threads with an associated booking. Credit eligibility row removed from billing table.
+
+## 2026-04-20
+- Review system: clients can submit 1–5 star ratings with written reviews on completed bookings. Reviews stored in new DynamoDB table with artist-level aggregation. "Leave a review" button on completed booking cards with inline star picker and textarea.
+- Public reviews on artist profiles: `GET /v1/artists/{id}/reviews` endpoint. Reviews section on artist-preview page showing star ratings, review text, and dates.
+- Artist analytics dashboard: new Analytics tab in workspace (visible for artists only) showing profile views, completed bookings, acceptance rate, average rating, and total earnings from API.
+- AI content detection: heuristic text analyser checks bios for AI-typical phrases, formal hedge words, uniform sentence lengths. Auto-flags suspected AI content as admin reports. Admin "Flag as AI" button on artist review cards creates AI reports for manual review.
+- Stripe payment integration: real `stripe.checkout.sessions.create()` wired with test/demo fallback. Refund support via `stripe.refunds.create()`. Stripe SDK installed. Payment intent IDs stored for refund lookups.
+
+## 2026-04-01
+- Comprehensive site review from 10 user-perspective audits covering homepage, explore, artist profiles, signup, workspace, info pages, visual design, booking flow, mobile UX, accessibility, and admin panel. 25 issues identified (P0–P3), all fixed.
+- P0 fixes: removed "AI-Assisted" category (contradicted brand), added role-based booking transition enforcement (artist-only accept/decline, client-only confirm/pay/complete).
+- P1 fixes: live character counters on booking/contact textareas, setup wizard warns about empty required fields, sort options disabled when no data, explore search debounced (300ms), "View in messages" link after contact message.
+- P2 fixes: artist bio rendered on explore cards (truncated 80 chars), touch targets raised to 44px minimum (btn-small, theme-toggle, category-chip, filter-chip), portfolio empty state text, "View thread" link on booking cards, social media footer links (Instagram, Twitter/X, LinkedIn).
+- P3 accessibility: `aria-current="page"` on active nav link, input focus ring contrast increased (0.3→0.5 opacity), filter groups use `<fieldset>`/`<legend>`, `--color-text-faint` opacity boosted for contrast, footer headings changed from `<p>` to `<h4>`.
+- Define "verified" on homepage and about page: "Every artist is manually reviewed by our team before their profile goes live."
+- Search now matches artist bio and location text in addition to name/category/mediums.
+- Account deletion: "Delete my account" button in Data Controls with soft-delete + sign-out + redirect.
+- Mobile filter drawer: slide-in overlay from left with backdrop instead of pushing content down.
+
+## 2026-03-30
+- Manual review gate: profiles require admin approval before publishing. New "pending_review" publish state. Artists click "Submit for review" instead of "Show profile". Admin verify auto-publishes, reject auto-hides. Profile fields locked after verification (name, category, mediums, bio, location, rate cannot be edited).
+- Admin artist review shows all artists (was filtering by `isArtistLive` which excluded unverified). Default filter set to "Pending review".
+- Admin can clear artist portfolio: `POST /v1/admin/artists/{id}/clear-portfolio` endpoint + "Clear portfolio" button on artist cards.
+- Proper content moderation reconnected: slurs hard-blocked (13 terms), profanity soft-flagged (19 terms), spam detection (URLs, repeated chars/words, IP addresses). Removed placeholder blocking, gibberish detection. Rate limit set to 20 messages per 60 seconds.
+- Hard delete for users: `DELETE /v1/admin/platform/users/{id}` permanently removes user and linked artist. "Hard delete" button with confirmation on admin users page.
+- Thread access fixed: `resolveParticipant` returns both userId and artistId. All thread access checks and message queries use both IDs. Recipient validation simplified to accept any toId that isn't self.
+- Setup wizard steps now advance after form submission (was stuck on same step).
+- Message thread tabs with 15-second auto-refresh polling. Compose form uses active thread tab instead of booking dropdown.
+- Chat-style message bubbles (own messages right-aligned orange, received left-aligned). Improved booking cards with status badge, direction labels, formatted dates. Improved saved artist cards with thumbnails. Improved notification items with unread dots and monospace type labels.
+
+## 2026-03-29
+- S3 image upload for artist portfolios: new uploads bucket in CloudFormation, presigned PUT URLs via `POST /v1/artist/me/upload-url`, file picker in portfolio form (JPG/PNG/WebP, max 5MB). CSP updated for S3 connect-src.
+- Performance: JS/CSS minification in deploy workflow (terser + clean-css), correct content-type headers on S3 (text/css, application/javascript), font preload hints, WOFF2 fonts (1.47MB→527KB, 64% smaller), lazy image loading with decoding="async".
+
+## 2026-03-27
+- Dark mode status badges, verified badge, maintenance banner, tree markers, image placeholder gradients — all with proper dark mode overrides.
+- Fixed theme persistence: moved from inline script (blocked by CSP) to external `theme-init.js`, then to `data-theme="dark"` HTML attribute (zero network requests).
+- Artist marquee strip on homepage (auto-scrolling, pauses on hover, populates from live artists).
+- Open Graph + Twitter Card meta tags on all public pages.
+- Meta theme-color updated to #0e0e0d on all pages.
+- 404 page redesigned with header, footer, branded "Lost in the studio" layout.
+- Explore empty state improved with search icon and live count.
+- Accessibility: skip-to-content links on all pages, toast aria-live, explore result count aria-live, form validation aria-invalid with red borders, budget input aria-describedby hint.
+- Portfolio placeholder "No image" state for items without URLs.
+
 ## 2026-03-24
 - Added dark/light mode toggle system: full CSS variable foundation with 15+ semantic tokens (`--color-text`, `--color-text-soft`, `--color-border-soft`, `--color-card-bg`, etc.), `[data-theme="dark"]` override block, theme toggle button (sun/moon icons) in header, `localStorage` persistence with system preference fallback, and FOUC prevention inline script on all 11 HTML pages. Site defaults to dark mode.
 - Refactored 60+ hardcoded `rgba()` values across `base.css`, `components.css`, and `pages.css` to semantic CSS variables, enabling dark mode to work across cards, badges, tags, buttons, inputs, navigation, header, footer, sidebar, profile pages, booking rails, stats, setup/settings panels, FAQ accordion, filters, chips, and empty states.
