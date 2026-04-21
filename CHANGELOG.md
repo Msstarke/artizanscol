@@ -2,6 +2,9 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-04-22
+- Fix portfolio images not loading on other visitors' devices: detect and block known-private image hosts (Google Drive, Google Photos thumbnails, iCloud, Dropbox, OneDrive) inside `sanitizeImageUrl`. Legacy records where artists pasted a Google Drive link now fall back to the placeholder image for visitors. Artists editing their own portfolio see an orange "Not visible to visitors — please re-upload" warning on affected items so they can re-upload via the proper S3 file picker.
+
 ## 2026-04-21
 - Mobile layout pass: hero stats stack vertically on phones with tighter padding and smaller numbers; artist card images shrink from 260→180px and portfolio items from 300→220px on small phones; profile media card collapses at 900px so headshots aren't squished; header action buttons shrink and align without wrapping at 640/420px; explore filter drawer gets an explicit close button and body-scroll lock while open; section/card padding relief on small screens.
 - Perceived-perf pass: public data (categories, artists) now reads from sessionStorage on second+ page loads so pages render instantly and refresh in the background. Removed duplicate `/v1/me` and `/v1/artist/me` fetches from `ensureUserForCognito`/`ensureArtistForCognito` — `hydratePrivateDB` already provides the authoritative refresh on auth flows. API client no longer retries on network-level (status 0) failures; only on explicit 5xx.

@@ -79,6 +79,52 @@ export function sanitizeClassToken(value, fallback = "unknown") {
   return cleaned || fallback;
 }
 
+// Hosts that serve images which require the viewer to be signed in as the
+// file owner (Google Drive thumbnails, Google Photos viewer links, iCloud
+// share pages, Dropbox web UI, OneDrive view links, etc.). Images hosted at
+// these domains typically work only for the person who pasted them and
+// silently fail for everyone else, so we treat them as invalid and fall
+// through to the placeholder image.
+const PRIVATE_IMAGE_HOSTS = [
+  "drive.google.com",
+  "docs.google.com",
+  "photos.google.com",
+  "photos.app.goo.gl",
+  "lh3.google.com",
+  "lh4.google.com",
+  "lh5.google.com",
+  "lh6.google.com",
+  // lh3-6.googleusercontent.com serve public thumbnails for most Google
+  // products, but Drive-origin thumbnails require auth. Err on the side of
+  // blocking — legitimate Google-hosted images should come through imgur/
+  // Cloudinary/S3 anyway.
+  "lh3.googleusercontent.com",
+  "lh4.googleusercontent.com",
+  "lh5.googleusercontent.com",
+  "lh6.googleusercontent.com",
+  "www.icloud.com",
+  "share.icloud.com",
+  "www.dropbox.com",
+  "dl.dropboxusercontent.com",
+  "onedrive.live.com",
+  "1drv.ms",
+];
+
+export function isPubliclyAccessibleImageUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return false;
+  if (raw.startsWith("data:image/")) return true;
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+    const host = url.hostname.toLowerCase();
+    if (PRIVATE_IMAGE_HOSTS.includes(host)) return false;
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 export function sanitizeImageUrl(value, fallbackUrl) {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -92,6 +138,12 @@ export function sanitizeImageUrl(value, fallbackUrl) {
   try {
     const url = new URL(raw, window.location.origin);
     if (url.protocol === "http:" || url.protocol === "https:") {
+      // Filter out private image hosts that require the viewer to be
+      // logged in as the file owner. These silently fail for all other
+      // visitors.
+      if (PRIVATE_IMAGE_HOSTS.includes(url.hostname.toLowerCase())) {
+        return String(fallbackUrl || "");
+      }
       return url.href;
     }
   } catch (_) {

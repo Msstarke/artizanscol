@@ -30,7 +30,7 @@ import {
 } from "./cognito-auth.js";
 import { clearCognitoIdentity, getSession, setCognitoIdentity, setSession } from "./session.js";
 import { initSharedPage } from "./shared-nav.js";
-import { byId, escapeHtml, sanitizeImageUrl, showToast } from "./utils.js";
+import { byId, escapeHtml, isPubliclyAccessibleImageUrl, sanitizeImageUrl, showToast } from "./utils.js";
 import { apiRequest } from "./api-client.js";
 
 initSharedPage();
@@ -1155,12 +1155,18 @@ function renderPortfolio(context) {
 
   portfolioGrid.innerHTML = items
     .map((item, idx) => {
-      const imgSrc = sanitizeImageUrl(item.imageUrl || item.image, "");
+      const rawUrl = item.imageUrl || item.image || "";
+      const imgSrc = sanitizeImageUrl(rawUrl, "");
       const isCover = idx === 0;
+      const hasPrivateUrl = Boolean(rawUrl) && !isPubliclyAccessibleImageUrl(rawUrl);
       return `
         <div class="portfolio-manage-item${isCover ? " is-cover" : ""}" data-portfolio-idx="${idx}">
           ${isCover ? '<span class="cover-badge">Cover</span>' : ""}
-          ${imgSrc ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio piece")}" loading="lazy" decoding="async" />` : '<div class="portfolio-manage-placeholder">No image</div>'}
+          ${imgSrc
+            ? `<img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(item.title || "Portfolio piece")}" loading="lazy" decoding="async" />`
+            : hasPrivateUrl
+              ? '<div class="portfolio-manage-placeholder portfolio-manage-warning">Not visible to visitors — please re-upload</div>'
+              : '<div class="portfolio-manage-placeholder">No image</div>'}
           <div class="portfolio-manage-item-body">
             <strong>${escapeHtml(item.title || "Untitled")}</strong>
             <span>${escapeHtml(item.medium || "")}</span>

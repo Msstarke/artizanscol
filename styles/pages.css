@@ -1918,6 +1918,14 @@ body.filters-open {
   color: var(--color-text-faint);
   font-size: 0.8rem;
   font-weight: 600;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.portfolio-manage-placeholder.portfolio-manage-warning {
+  background: rgba(232, 138, 44, 0.12);
+  color: var(--color-orange);
+  border: 1px dashed var(--color-orange);
 }
 
 .portfolio-manage-item-body {
