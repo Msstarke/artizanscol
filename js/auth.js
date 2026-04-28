@@ -2244,12 +2244,17 @@ portfolioAddBtn?.addEventListener("click", async () => {
   let imageUrl = "";
 
   if (file) {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      showToast("Only JPG, PNG, or WebP images are allowed.", "warning");
+    const ALLOWED_TYPES = [
+      "image/jpeg", "image/png", "image/webp",
+      "image/heif", "image/heic", "image/heif-sequence", "image/heic-sequence",
+      "image/x-canon-cr3",
+    ];
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showToast("Allowed formats: JPG, PNG, WebP, HEIC/HEIF, CR3.", "warning");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast("Image must be under 5 MB.", "warning");
+    if (file.size > 20 * 1024 * 1024) {
+      showToast("Image must be under 20 MB.", "warning");
       return;
     }
 

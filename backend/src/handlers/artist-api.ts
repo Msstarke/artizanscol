@@ -1126,9 +1126,31 @@ async function handleMarkArtistNotificationsRead(
   return json(200, success({ updatedCount }));
 }
 
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const EXT_MAP: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
-const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  // HEIF/HEIC — iPhone and modern camera format, supported in all modern browsers
+  "image/heif",
+  "image/heic",
+  "image/heif-sequence",
+  "image/heic-sequence",
+  // CR3 — Canon RAW 3. Stored as-is; note that browsers cannot render raw
+  // files inline so the portfolio image will show a broken icon until a
+  // web-viewable version (JPG/HEIC) is used instead.
+  "image/x-canon-cr3",
+];
+const EXT_MAP: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heif": "heif",
+  "image/heic": "heic",
+  "image/heif-sequence": "heif",
+  "image/heic-sequence": "heic",
+  "image/x-canon-cr3": "cr3",
+};
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20 MB — covers HEIC/HEIF and RAW files
 let s3Client: S3Client | null = null;
 
 async function handleGetUploadUrl(
@@ -1143,7 +1165,7 @@ async function handleGetUploadUrl(
   const payload = parseJsonRequestBody(event) as Record<string, unknown>;
   const contentType = String(payload?.contentType || "").trim();
   if (!ALLOWED_IMAGE_TYPES.includes(contentType)) {
-    return json(400, failure("INVALID_REQUEST", "contentType must be image/jpeg, image/png, or image/webp."));
+    return json(400, failure("INVALID_REQUEST", "contentType must be image/jpeg, image/png, image/webp, image/heic, image/heif, or image/x-canon-cr3."));
   }
 
   if (!s3Client) {
