@@ -85,6 +85,38 @@ export function sanitizeClassToken(value, fallback = "unknown") {
 // these domains typically work only for the person who pasted them and
 // silently fail for everyone else, so we treat them as invalid and fall
 // through to the placeholder image.
+// File extensions that browsers cannot render inside an <img> tag.
+// These are camera RAW formats — they upload and store fine on S3, but
+// visiting any URL ending in these extensions just shows a broken image.
+const NON_DISPLAYABLE_EXTENSIONS = new Set([
+  "cr3",  // Canon RAW 3
+  "cr2",  // Canon RAW 2
+  "nef",  // Nikon RAW
+  "arw",  // Sony RAW
+  "raf",  // Fujifilm RAW
+  "orf",  // Olympus RAW
+  "rw2",  // Panasonic RAW
+  "pef",  // Pentax RAW
+  "srw",  // Samsung RAW
+  "x3f",  // Sigma RAW
+  "raw",  // Generic RAW
+  "dng",  // Adobe DNG (some browsers support, most don't — safer to exclude)
+]);
+
+export function isBrowserDisplayable(urlOrPath) {
+  const raw = String(urlOrPath || "").trim();
+  if (!raw) return false;
+  if (raw.startsWith("data:image/")) return true;
+  // Extract the path without query string, get the final extension
+  try {
+    const pathname = new URL(raw, "https://example.com").pathname;
+    const ext = pathname.split(".").pop()?.toLowerCase() || "";
+    return !NON_DISPLAYABLE_EXTENSIONS.has(ext);
+  } catch (_) {
+    return true; // unknown — let the browser try
+  }
+}
+
 const PRIVATE_IMAGE_HOSTS = [
   "drive.google.com",
   "docs.google.com",
@@ -110,6 +142,7 @@ const PRIVATE_IMAGE_HOSTS = [
   "1drv.ms",
 ];
 
+// Returns true if the URL is both publicly accessible AND renderable in a browser <img>.
 export function isPubliclyAccessibleImageUrl(value) {
   const raw = String(value || "").trim();
   if (!raw) return false;
@@ -119,6 +152,7 @@ export function isPubliclyAccessibleImageUrl(value) {
     if (url.protocol !== "http:" && url.protocol !== "https:") return false;
     const host = url.hostname.toLowerCase();
     if (PRIVATE_IMAGE_HOSTS.includes(host)) return false;
+    if (!isBrowserDisplayable(raw)) return false;
     return true;
   } catch (_) {
     return false;
@@ -138,10 +172,12 @@ export function sanitizeImageUrl(value, fallbackUrl) {
   try {
     const url = new URL(raw, window.location.origin);
     if (url.protocol === "http:" || url.protocol === "https:") {
-      // Filter out private image hosts that require the viewer to be
-      // logged in as the file owner. These silently fail for all other
-      // visitors.
+      // Block private hosts (Google Drive, iCloud, etc.)
       if (PRIVATE_IMAGE_HOSTS.includes(url.hostname.toLowerCase())) {
+        return String(fallbackUrl || "");
+      }
+      // Block file types browsers cannot render as images (camera RAW formats)
+      if (!isBrowserDisplayable(url.href)) {
         return String(fallbackUrl || "");
       }
       return url.href;
