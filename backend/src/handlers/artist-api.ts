@@ -62,7 +62,7 @@ const ARTIST_ONBOARDING_SCHEMA: JsonSchema = {
   properties: {
     category: { type: "string", minLength: 1, maxLength: 80 },
     mediums: { type: "array", minItems: 1, maxItems: 16 },
-    priceFrom: { type: "number", minimum: 0.01 },
+    priceFrom: { type: "number", minimum: 0 },
     availability: { type: "string", enum: AVAILABILITY_VALUES },
     portfolio: { type: "array", maxItems: 40, nullable: true },
     bio: { type: "string", maxLength: 1200, nullable: true },
@@ -760,7 +760,7 @@ async function handlePutOnboarding(
       ...artist,
       category: normalizeRequiredText(payload.category, "category", 80),
       mediums: normalizeStringArray(payload.mediums, "mediums", 16, 60),
-      priceFrom: normalizeMoney(payload.priceFrom, "priceFrom"),
+      priceFrom: normalizeDraftMoney(payload.priceFrom, "priceFrom"),
       availability: normalizeAvailability(payload.availability),
       portfolio: normalizePortfolio(payload.portfolio),
       bio: onboardingBio,
