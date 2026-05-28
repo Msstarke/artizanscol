@@ -1148,6 +1148,16 @@ function renderPortfolio(context) {
   const { artist } = context;
   const items = Array.isArray(artist?.portfolio) ? artist.portfolio : [];
 
+  const profileReady =
+    String(artist?.category || "").trim().length > 0 &&
+    Array.isArray(artist?.mediums) &&
+    artist.mediums.some((m) => String(m || "").trim().length > 0);
+
+  if (!profileReady) {
+    portfolioGrid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:1.5rem 0;">Submit your profile first (what you do + mediums). You can add portfolio pieces once it's saved.</p>`;
+    return;
+  }
+
   if (!items.length) {
     portfolioGrid.innerHTML = `<p class="muted" style="grid-column:1/-1;text-align:center;padding:1.5rem 0;">No portfolio items yet. Add your first piece below.</p>`;
     return;
@@ -2232,6 +2242,18 @@ portfolioAddBtn?.addEventListener("click", async () => {
   const context = signedInContext(getSession());
   if (!context?.artist?.id) {
     showToast("Save your profile first.", "warning");
+    return;
+  }
+
+  // Portfolio saves go through the onboarding endpoint, which needs the core
+  // profile in place (what you do + mediums). Guard here so users get a clear
+  // prompt instead of a cryptic validation error after uploading an image.
+  const hasCategory = String(context.artist.category || "").trim().length > 0;
+  const hasMediums =
+    Array.isArray(context.artist.mediums) &&
+    context.artist.mediums.some((m) => String(m || "").trim().length > 0);
+  if (!hasCategory || !hasMediums) {
+    showToast("Submit your profile first — add what you do and your mediums, then save. You can add portfolio pieces after.", "warning");
     return;
   }
 
