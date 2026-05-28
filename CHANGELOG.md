@@ -2,6 +2,13 @@
 
 All notable project changes are tracked via Git commits and summarized here.
 
+## 2026-05-29
+- Rewrote all visible marketing copy across the public pages (home, about, FAQ, contact, blog, legal intro, explore, artist-preview, plus shared footers) into an all-lowercase, plain-spoken brand voice — blunt, no corporate fluff. UI labels, form fields, error states, SEO meta tags, and legal clause bodies left unchanged.
+
+## 2026-04-29
+- Portfolio uploads now accept HEIC/HEIF and CR3 (Canon RAW) files, with the per-file size limit raised from 5 MB to 20 MB to fit larger camera formats.
+- RAW camera files (CR3 and similar) are blocked from rendering directly as portfolio images — browsers can't display them, so affected items fall back to the placeholder instead of showing a broken image.
+
 ## 2026-04-22
 - Fix portfolio images not loading on other visitors' devices: detect and block known-private image hosts (Google Drive, Google Photos thumbnails, iCloud, Dropbox, OneDrive) inside `sanitizeImageUrl`. Legacy records where artists pasted a Google Drive link now fall back to the placeholder image for visitors. Artists editing their own portfolio see an orange "Not visible to visitors — please re-upload" warning on affected items so they can re-upload via the proper S3 file picker.
 
