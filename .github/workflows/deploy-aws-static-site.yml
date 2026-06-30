@@ -268,11 +268,22 @@ jobs:
             --content-type "application/javascript" \
             --exclude "*" --include "*.js"
 
-          # Set no-cache on HTML (always fresh)
+          # Long cache on demo/static images (deploys invalidate /* if changed)
+          aws s3 cp "$BUCKET/assets/demo/" "$BUCKET/assets/demo/" \
+            --recursive --metadata-directive REPLACE \
+            --cache-control "public, max-age=2592000" \
+            --content-type "image/jpeg" \
+            --exclude "*" --include "*.jpg" || true
+
+          # Short edge cache on HTML. Deploys invalidate /* (next step) so a
+          # short max-age is safe and keeps the document off the origin on the
+          # hot path — fixes the ~770ms revalidate-every-request TTFB that
+          # "no-cache" caused. Auth-sensitive HTML (account-settings.html) is
+          # forced to no-store by its own CloudFront response-headers policy.
           for f in $(find . -maxdepth 1 -name "*.html" -printf "%f\n" 2>/dev/null || ls *.html 2>/dev/null); do
             aws s3 cp "$BUCKET/$f" "$BUCKET/$f" \
               --metadata-directive REPLACE \
-              --cache-control "no-cache, must-revalidate" \
+              --cache-control "public, max-age=300, must-revalidate" \
               --content-type "text/html; charset=utf-8"
           done
 

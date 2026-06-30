@@ -23,3 +23,13 @@ node_modules/
 
 # Local conversation/transcript dumps (keep out of the repo)
 transfer.txt
+
+# AI assistant tooling / agent config (kept local, never published)
+.claude/
+.codex/
+.cursor/
+.continue/
+.aider*
+CLAUDE.md
+AGENTS.md
+.github/copilot-instructions.md

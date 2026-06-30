@@ -342,7 +342,7 @@ function renderArtistDetails() {
       const leadImage = safeImageUrl(leadImageRaw);
       profileHeroMedia.innerHTML = `
         <article class="profile-media-card">
-          <img src="${escapeHtml(leadImage)}" alt="${escapeHtml(artist.name)} portfolio highlight" />
+          <img src="${escapeHtml(leadImage)}" alt="${escapeHtml(artist.name)} portfolio highlight" width="800" height="600" fetchpriority="high" decoding="async" />
           <div class="profile-media-card-copy">
             <p class="site-tag">Profile highlight</p>
             <h3>${escapeHtml(leadPortfolio?.title || artist.category || "Published profile")}</h3>

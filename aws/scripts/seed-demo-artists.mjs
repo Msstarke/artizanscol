@@ -29,9 +29,12 @@ const CREATED_BY = process.env.ARTIZANS_SEED_CREATED_BY || "seed:demo-artists";
 
 const now = new Date().toISOString();
 
-// portfolio image helper — picsum gives stable, public, https jpgs.
-function pic(seed, w = 1200, h = 900) {
-  return `https://picsum.photos/seed/${seed}/${w}/${h}`;
+// portfolio image helper — self-hosted, same-origin, optimized demo images
+// (committed under assets/demo/). same-origin = no third-party DNS/TLS/redirect,
+// served straight from CloudFront, and no dependency on an external host being
+// up during a live demo. files are named <prefix>-<n>.jpg to match the ids below.
+function pic(seed) {
+  return `/assets/demo/${seed}.jpg`;
 }
 
 function portfolio(prefix, items) {
