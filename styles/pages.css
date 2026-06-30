@@ -1868,6 +1868,12 @@ body.filters-open {
 
 .account-page .page-shell {
   padding-bottom: 0.9rem;
+  /* The account screen is a single-page app that swaps in its view after JS
+     hydration, which changes the main height. Reserve at least a viewport's
+     worth of height (minus the sticky header) so the tall footer starts at or
+     below the fold on first paint — that way it never visibly jumps when the
+     view expands (was CLS ~0.44). */
+  min-height: calc(100vh - 78px);
 }
 
 .account-page .site-footer {
