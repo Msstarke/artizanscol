@@ -454,6 +454,10 @@ iframe {
 
 .page-shell {
   padding: 1.3rem 0 2rem;
+  /* Grow to fill the viewport so the footer is pinned to the bottom from first
+     paint. Without this, short pre-hydration content lets the footer sit
+     mid-viewport, then it jumps down when JS renders the view (large CLS). */
+  flex: 1 0 auto;
 }
 
 .page-shell .content-section:last-child {
