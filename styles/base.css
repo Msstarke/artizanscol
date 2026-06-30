@@ -258,6 +258,9 @@ iframe {
   gap: 0.45rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+  /* Hold a stable height while session-dependent buttons resolve so the
+     header doesn't reflow on load. */
+  min-height: 40px;
 }
 
 .header-actions > * {
@@ -771,6 +774,10 @@ body {
   padding: 1.5rem 0;
   border-top: 1px solid var(--color-border-soft);
   border-bottom: 1px solid var(--color-border-soft);
+  /* Reserve the row height so filling the track in place doesn't shift the
+     page below it. JS collapses this section only when there are too few
+     artists to feature. */
+  min-height: 6.75rem;
 }
 
 .marquee-track {

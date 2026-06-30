@@ -59,6 +59,67 @@
   gap: 0.55rem;
 }
 
+/* Loading skeletons — reserve the same space as a real card so the grid
+   doesn't grow (and shove the page down) when live profiles load. */
+.artist-card--skeleton {
+  pointer-events: none;
+}
+
+.skeleton-media {
+  height: 260px;
+  background: var(--color-surface);
+}
+
+.artist-card--skeleton .artist-card-body {
+  min-height: 186px;
+  align-content: start;
+}
+
+.skeleton-bar {
+  display: block;
+  height: 0.9rem;
+  border-radius: 6px;
+  background: var(--color-border-soft);
+}
+
+.skeleton-bar--title {
+  height: 1.14rem;
+  width: 62%;
+}
+
+.skeleton-bar--sub {
+  width: 44%;
+}
+
+.skeleton-bar--tags {
+  height: 1.7rem;
+  width: 78%;
+  margin-top: 0.15rem;
+}
+
+.skeleton-bar--btn {
+  height: 2.1rem;
+  width: 52%;
+  margin-top: 0.2rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-media,
+  .skeleton-bar {
+    animation: skeletonPulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .artist-card h3 {
   margin: 0;
   font-size: 1.14rem;
@@ -282,8 +343,13 @@
   align-self: start;
 }
 
+/* Reserve the stats panel's height before it's populated so it doesn't
+   push the rest of the page down when the numbers load (avoids layout shift). */
 .home-hero-stats:empty {
-  display: none;
+  min-height: 6.5rem;
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .home-hero-stat strong {

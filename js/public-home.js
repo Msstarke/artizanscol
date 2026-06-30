@@ -99,7 +99,10 @@ if (marqueeSection && marqueeTrack && visibleArtists.length >= 3) {
     .join("");
 
   marqueeTrack.innerHTML = itemHTML + itemHTML;
-  marqueeSection.hidden = false;
+  // Section starts visible with reserved height; it fills in place (no shift).
+} else if (marqueeSection) {
+  // Not enough artists to feature — collapse the reserved space.
+  marqueeSection.hidden = true;
 }
 
 // Adapt artist CTAs based on session state
